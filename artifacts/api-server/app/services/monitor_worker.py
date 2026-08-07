@@ -16,6 +16,46 @@ from typing import Optional
 logger = logging.getLogger("licitaim.monitor_worker")
 
 
+# ── Shared notif-fallback helper ──────────────────────────────────────────────
+
+_NOTIF_DEFAULTS = dict(
+    notif_email=True, notif_push=True,
+    notif_whatsapp=False, notif_telegram=False,
+    telegram_chat_id=None, phone=None,
+)
+
+
+async def _fetch_with_notif_fallback(
+    pool,
+    full_query: str,
+    fallback_query: str,
+    args: tuple,
+    context: str,
+) -> list:
+    """
+    Executa full_query (que inclui colunas de notificação no JOIN com users).
+    Se falhar (coluna ausente ou outro erro de schema), executa fallback_query
+    (sem essas colunas) e mescla _NOTIF_DEFAULTS em cada linha.
+
+    Parâmetros
+    ----------
+    pool           : asyncpg pool
+    full_query     : SQL completo, com colunas notif_* de users
+    fallback_query : SQL sem colunas notif_*, apenas email/nome
+    args           : argumentos posicionais para ambas as queries
+    context        : nome da função chamadora, usado no log de aviso
+    """
+    try:
+        return list(await pool.fetch(full_query, *args))
+    except Exception as exc:
+        logger.warning(
+            "%s: colunas de notificação indisponíveis, usando preferências padrão: %s",
+            context, exc,
+        )
+        rows = await pool.fetch(fallback_query, *args)
+        return [dict(r, **_NOTIF_DEFAULTS) for r in rows]
+
+
 # ── Busca no cache local ──────────────────────────────────────────────────────
 
 async def _search_cache(
@@ -110,35 +150,29 @@ async def check_all_monitors() -> dict:
     # ultima_execucao é timestamp WITHOUT time zone; last_checked_at é timestamptz
     now_naive = now.replace(tzinfo=None)
 
-    _NOTIF_DEFAULTS = dict(
-        notif_email=True, notif_push=True,
-        notif_whatsapp=False, notif_telegram=False,
-        telegram_chat_id=None, phone=None,
+    monitors = await _fetch_with_notif_fallback(
+        pool,
+        full_query="""
+            SELECT m.id, m.user_id, m.nome, m.palavras_chave, m.modalidades,
+                   m.ufs, m.valor_min, m.valor_max, m.last_checked_at,
+                   u.email, u.nome AS user_nome, u.notif_email, u.notif_push,
+                   u.notif_whatsapp, u.notif_telegram,
+                   u.telegram_chat_id, u.phone
+               FROM monitoramentos m
+               JOIN users u ON u.id = m.user_id
+               WHERE m.ativo = true
+        """,
+        fallback_query="""
+            SELECT m.id, m.user_id, m.nome, m.palavras_chave, m.modalidades,
+                   m.ufs, m.valor_min, m.valor_max, m.last_checked_at,
+                   u.email, u.nome AS user_nome
+               FROM monitoramentos m
+               JOIN users u ON u.id = m.user_id
+               WHERE m.ativo = true
+        """,
+        args=(),
+        context="check_all_monitors",
     )
-    try:
-        monitors = await pool.fetch(
-            """SELECT m.id, m.user_id, m.nome, m.palavras_chave, m.modalidades,
-                      m.ufs, m.valor_min, m.valor_max, m.last_checked_at,
-                      u.email, u.nome AS user_nome, u.notif_email, u.notif_push,
-                      u.notif_whatsapp, u.notif_telegram,
-                      u.telegram_chat_id, u.phone
-               FROM monitoramentos m
-               JOIN users u ON u.id = m.user_id
-               WHERE m.ativo = true""",
-        )
-    except Exception as exc:
-        logger.warning(
-            "check_all_monitors: colunas de notificação indisponíveis, usando preferências padrão: %s", exc
-        )
-        _rows = await pool.fetch(
-            """SELECT m.id, m.user_id, m.nome, m.palavras_chave, m.modalidades,
-                      m.ufs, m.valor_min, m.valor_max, m.last_checked_at,
-                      u.email, u.nome AS user_nome
-               FROM monitoramentos m
-               JOIN users u ON u.id = m.user_id
-               WHERE m.ativo = true""",
-        )
-        monitors = [dict(r, **_NOTIF_DEFAULTS) for r in _rows]
 
     total_matches   = 0
     total_monitors  = len(monitors)
@@ -283,34 +317,26 @@ async def check_upcoming_tenders() -> dict:
 
     # Usuários que favoritaram essas licitações
     # favoritos.licitacao_id armazena o numero PNCP
-    _NOTIF_DEFAULTS_UT = dict(
-        notif_email=True, notif_push=True,
-        notif_whatsapp=False, notif_telegram=False,
-        telegram_chat_id=None, phone=None,
+    favs = await _fetch_with_notif_fallback(
+        pool,
+        full_query="""
+            SELECT f.user_id, f.licitacao_id,
+                   u.email, u.nome, u.notif_email, u.notif_push,
+                   u.notif_whatsapp, u.notif_telegram,
+                   u.telegram_chat_id, u.phone
+               FROM favoritos f
+               JOIN users u ON u.id = f.user_id
+               WHERE f.licitacao_id = ANY($1::text[])
+        """,
+        fallback_query="""
+            SELECT f.user_id, f.licitacao_id, u.email, u.nome
+               FROM favoritos f
+               JOIN users u ON u.id = f.user_id
+               WHERE f.licitacao_id = ANY($1::text[])
+        """,
+        args=(tender_numeros,),
+        context="check_upcoming_tenders",
     )
-    try:
-        favs = await pool.fetch(
-            """SELECT f.user_id, f.licitacao_id,
-                      u.email, u.nome, u.notif_email, u.notif_push,
-                      u.notif_whatsapp, u.notif_telegram,
-                      u.telegram_chat_id, u.phone
-               FROM favoritos f
-               JOIN users u ON u.id = f.user_id
-               WHERE f.licitacao_id = ANY($1::text[])""",
-            tender_numeros,
-        )
-    except Exception as exc:
-        logger.warning(
-            "check_upcoming_tenders: colunas de notificação indisponíveis, usando preferências padrão: %s", exc
-        )
-        _fav_rows = await pool.fetch(
-            """SELECT f.user_id, f.licitacao_id, u.email, u.nome
-               FROM favoritos f
-               JOIN users u ON u.id = f.user_id
-               WHERE f.licitacao_id = ANY($1::text[])""",
-            tender_numeros,
-        )
-        favs = [dict(r, **_NOTIF_DEFAULTS_UT) for r in _fav_rows]
 
     tender_map = {r["numero"]: r for r in upcoming}
 
@@ -422,41 +448,31 @@ async def check_document_expirations() -> dict:
     pool = await get_pool()
     hoje = date.today()
 
-    _NOTIF_DEFAULTS_CE = dict(
-        notif_email=True, notif_push=True,
-        notif_whatsapp=False, notif_telegram=False,
-        telegram_chat_id=None, phone=None,
+    certs = await _fetch_with_notif_fallback(
+        pool,
+        full_query="""
+            SELECT c.id, c.nome, c.tipo, c.data_vencimento, c.user_id,
+                   u.email, u.nome AS user_nome, u.notif_email, u.notif_push,
+                   u.notif_whatsapp, u.notif_telegram,
+                   u.telegram_chat_id, u.phone
+               FROM certidoes c
+               JOIN users u ON u.id = c.user_id
+               WHERE c.data_vencimento IS NOT NULL
+                 AND c.data_vencimento >= $1
+                 AND c.data_vencimento <= $2
+        """,
+        fallback_query="""
+            SELECT c.id, c.nome, c.tipo, c.data_vencimento, c.user_id,
+                   u.email, u.nome AS user_nome
+               FROM certidoes c
+               JOIN users u ON u.id = c.user_id
+               WHERE c.data_vencimento IS NOT NULL
+                 AND c.data_vencimento >= $1
+                 AND c.data_vencimento <= $2
+        """,
+        args=(hoje - timedelta(days=1), hoje + timedelta(days=30)),
+        context="check_document_expirations",
     )
-    try:
-        certs = await pool.fetch(
-            """SELECT c.id, c.nome, c.tipo, c.data_vencimento, c.user_id,
-                      u.email, u.nome AS user_nome, u.notif_email, u.notif_push,
-                      u.notif_whatsapp, u.notif_telegram,
-                      u.telegram_chat_id, u.phone
-               FROM certidoes c
-               JOIN users u ON u.id = c.user_id
-               WHERE c.data_vencimento IS NOT NULL
-                 AND c.data_vencimento >= $1
-                 AND c.data_vencimento <= $2""",
-            hoje - timedelta(days=1),
-            hoje + timedelta(days=30),
-        )
-    except Exception as exc:
-        logger.warning(
-            "check_document_expirations: colunas de notificação indisponíveis, usando preferências padrão: %s", exc
-        )
-        _cert_rows = await pool.fetch(
-            """SELECT c.id, c.nome, c.tipo, c.data_vencimento, c.user_id,
-                      u.email, u.nome AS user_nome
-               FROM certidoes c
-               JOIN users u ON u.id = c.user_id
-               WHERE c.data_vencimento IS NOT NULL
-                 AND c.data_vencimento >= $1
-                 AND c.data_vencimento <= $2""",
-            hoje - timedelta(days=1),
-            hoje + timedelta(days=30),
-        )
-        certs = [dict(r, **_NOTIF_DEFAULTS_CE) for r in _cert_rows]
 
     ALERT_THRESHOLDS = {30, 15, 7, 3, 1, 0, -1}
     sent     = 0
