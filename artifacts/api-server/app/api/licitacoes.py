@@ -746,7 +746,7 @@ async def search_licitacoes(
     data_ini_pncp = _fmt_pncp_date(data_ini_iso)
     data_fim_pncp = _fmt_pncp_date(data_fim_iso)
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=6.0) as client:
             tasks = [
                 _fetch_pncp_consulta(client, data_ini_pncp, data_fim_pncp, m, uf or None)
                 for m in modal_pncp
@@ -768,7 +768,7 @@ async def search_licitacoes(
         if uf:
             base_params["unidadeOrgaoUfSigla"] = uf
         try:
-            async with httpx.AsyncClient(timeout=20.0) as client:
+            async with httpx.AsyncClient(timeout=6.0) as client:
                 tasks2 = [_fetch_dadosabertos(client, base_params, m) for m in modal_dados]
                 batches2 = await asyncio.gather(*tasks2, return_exceptions=True)
             for batch in batches2:

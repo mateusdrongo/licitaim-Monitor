@@ -106,6 +106,35 @@ _DDL = [
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_telegram boolean NOT NULL DEFAULT false",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_chat_id text",
     "ALTER TABLE users ADD COLUMN IF NOT EXISTS phone text",
+    # Tabela de eventos personalizados de agenda
+    """
+    CREATE TABLE IF NOT EXISTS agenda_eventos (
+        id          SERIAL PRIMARY KEY,
+        user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        titulo      TEXT NOT NULL,
+        descricao   TEXT,
+        data        DATE NOT NULL,
+        observacao  TEXT,
+        criado_em   TIMESTAMPTZ DEFAULT NOW()
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_agenda_user_data ON agenda_eventos(user_id, data)",
+    # Tabela de notificações push do usuário
+    """
+    CREATE TABLE IF NOT EXISTS notifications (
+        id          SERIAL PRIMARY KEY,
+        user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        title       TEXT NOT NULL,
+        body        TEXT NOT NULL DEFAULT '',
+        tipo        TEXT NOT NULL DEFAULT 'geral',
+        channel     TEXT NOT NULL DEFAULT 'push',
+        lida        BOOLEAN NOT NULL DEFAULT false,
+        metadata    JSONB,
+        criado_em   TIMESTAMPTZ DEFAULT NOW()
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_notif_user_lida ON notifications(user_id, lida)",
+    "CREATE INDEX IF NOT EXISTS idx_notif_criado    ON notifications(criado_em DESC)",
     # Registro de execuções de jobs agendados — usado para detectar misfires no startup
     """
     CREATE TABLE IF NOT EXISTS job_runs (
