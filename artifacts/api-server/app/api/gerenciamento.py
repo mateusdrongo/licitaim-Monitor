@@ -46,6 +46,28 @@ def _parse_date(s: Optional[str]) -> Optional[date]:
         except Exception:
             return None
 
+
+def _parse_date_strict(v: Optional[str]) -> Optional[date]:
+    """
+    Converte string ISO completa (data ou datetime) para date.
+    Levanta ValueError com mensagem clara se o formato não for reconhecido,
+    em vez de silenciosamente retornar None.
+
+    Formatos aceitos: '2026-07-17', '2026-07-17T08:00:00', '2026-07-17T08:00:00+00:00',
+                      '2026-07-17T08:00:00Z'.
+    Strings como '2026-07-17 nonsense' ou '2026-07-17T' são rejeitadas.
+    """
+    if v is None or v == "":
+        return None
+    # Parse the full string — no prefix slicing so trailing garbage raises an error.
+    try:
+        return dt.fromisoformat(v.replace("Z", "+00:00")).date()
+    except (ValueError, TypeError):
+        raise ValueError(
+            f"Formato de data não reconhecido: '{v}'. "
+            "Use ISO 8601 (ex.: '2026-07-17' ou '2026-07-17T08:00:00+00:00')."
+        )
+
 router = APIRouter(prefix="/gerenciamento", tags=["gerenciamento"])
 
 
@@ -131,11 +153,20 @@ class GerenciamentoCreate(BaseModel):
     licitacaoModalidade: Optional[str] = None
     licitacaoSituacao: Optional[str] = None
     licitacaoValor: Optional[str] = None
-    licitacaoDataAbertura: Optional[str] = None
-    licitacaoDataEncerramento: Optional[str] = None
-    licitacaoDataPublicacao: Optional[str] = None
+    licitacaoDataAbertura: Optional[date] = None
+    licitacaoDataEncerramento: Optional[date] = None
+    licitacaoDataPublicacao: Optional[date] = None
     licitacaoLinkPncp: Optional[str] = None
     responsavel: Optional[str] = None
+
+    @field_validator("licitacaoDataAbertura", "licitacaoDataEncerramento", "licitacaoDataPublicacao", mode="before")
+    @classmethod
+    def validate_date_fields(cls, v: object) -> Optional[date]:
+        if isinstance(v, date):
+            return v
+        if isinstance(v, str) or v is None:
+            return _parse_date_strict(v)  # type: ignore[arg-type]
+        raise ValueError(f"Tipo inválido para campo de data: {type(v).__name__}")
 
 
 class GerenciamentoUpdate(BaseModel):
@@ -274,9 +305,9 @@ async def add_gerenciamento(body: GerenciamentoCreate, current_user: dict = Depe
         current_user["id"], body.licitacaoId, body.licitacaoNumero, body.licitacaoObjeto,
         body.licitacaoOrgao, body.licitacaoCnpj, body.licitacaoUf, body.licitacaoMunicipio,
         body.licitacaoModalidade, body.licitacaoSituacao, body.licitacaoValor,
-        _parse_date(body.licitacaoDataAbertura),
-        _parse_date(body.licitacaoDataEncerramento),
-        _parse_date(body.licitacaoDataPublicacao),
+        body.licitacaoDataAbertura,
+        body.licitacaoDataEncerramento,
+        body.licitacaoDataPublicacao,
         body.licitacaoLinkPncp, body.responsavel,
     )
     r = dict(row)
