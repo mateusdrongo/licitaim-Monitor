@@ -11,6 +11,7 @@ import {
   SquareStack, FileDown, AlertCircle, ClipboardList,
 } from "lucide-react";
 import { apiFetch } from "@/lib/apiFetch";
+import { ToastAction } from "@/components/ui/toast";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 import { fmtLastSync as fmtLastSyncBRT } from "../lib/dateUtils";
@@ -342,12 +343,16 @@ export default function Licitacoes() {
       setFavOverrides(prev => { const m = new Map(prev); m.delete(id); return m; });
       const msg = err instanceof Error ? err.message : String(err);
       const is401 = msg.includes("401") || msg.toLowerCase().includes("não autorizado") || msg.toLowerCase().includes("unauthorized");
+      const returnTo = window.location.pathname + window.location.search;
       toast({
         variant: "destructive",
         title: is401 ? "Sessão expirada" : "Erro ao favoritar",
         description: is401
           ? "Faça login novamente para favoritar licitações."
           : "Não foi possível atualizar os favoritos. Tente novamente.",
+        action: is401
+          ? <ToastAction altText="Entrar" onClick={() => navigate(`/entrar?redirect=${encodeURIComponent(returnTo)}`)}>Entrar</ToastAction>
+          : undefined,
       });
     },
   });
@@ -457,12 +462,16 @@ export default function Licitacoes() {
       setGerOverrides(prev => { const m = new Map(prev); m.delete(id); return m; });
       const msg = err instanceof Error ? err.message : String(err);
       const is401 = msg === "401" || msg.toLowerCase().includes("unauthorized");
+      const returnTo = window.location.pathname + window.location.search;
       toast({
         variant: "destructive",
         title: is401 ? "Sessão expirada" : currently ? "Erro ao remover gerenciamento" : "Erro ao gerenciar licitação",
         description: is401
           ? "Faça login novamente para gerenciar licitações."
           : "Não foi possível completar a operação. Tente novamente.",
+        action: is401
+          ? <ToastAction altText="Entrar" onClick={() => navigate(`/entrar?redirect=${encodeURIComponent(returnTo)}`)}>Entrar</ToastAction>
+          : undefined,
       });
     },
   });
