@@ -469,10 +469,20 @@ export default function GerenciamentoDetalhe() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ conteudo }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error(String(res.status));
       return res.json();
     },
     onSuccess: () => { invalidate(); setNovaAnot(""); },
+    onError: (err: unknown) => {
+      const is401 = err instanceof Error && err.message === "401";
+      toast({
+        variant: "destructive",
+        title: is401 ? "Sessão expirada" : "Erro ao salvar anotação",
+        description: is401
+          ? "Sessão expirada — faça login novamente."
+          : "Não foi possível salvar a anotação. Tente novamente.",
+      });
+    },
   });
 
   const updateAnot = useMutation({
@@ -482,9 +492,19 @@ export default function GerenciamentoDetalhe() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ conteudo }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error(String(res.status));
     },
     onSuccess: () => { invalidate(); setEditAnotId(null); },
+    onError: (err: unknown) => {
+      const is401 = err instanceof Error && err.message === "401";
+      toast({
+        variant: "destructive",
+        title: is401 ? "Sessão expirada" : "Erro ao atualizar anotação",
+        description: is401
+          ? "Sessão expirada — faça login novamente."
+          : "Não foi possível atualizar a anotação. Tente novamente.",
+      });
+    },
   });
 
   const deleteAnot = useMutation({
@@ -492,9 +512,19 @@ export default function GerenciamentoDetalhe() {
       const res = await apiFetch(`${BASE}/api/gerenciamento/${gerId}/anotacoes/${id}`, {
         method: "DELETE", credentials: "include",
       });
-      if (!res.ok && res.status !== 204) throw new Error();
+      if (!res.ok && res.status !== 204) throw new Error(String(res.status));
     },
     onSuccess: invalidate,
+    onError: (err: unknown) => {
+      const is401 = err instanceof Error && err.message === "401";
+      toast({
+        variant: "destructive",
+        title: is401 ? "Sessão expirada" : "Erro ao excluir anotação",
+        description: is401
+          ? "Sessão expirada — faça login novamente."
+          : "Não foi possível excluir a anotação. Tente novamente.",
+      });
+    },
   });
 
   const createHab = useMutation({
@@ -504,13 +534,23 @@ export default function GerenciamentoDetalhe() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error(String(res.status));
       return res.json();
     },
     onSuccess: () => {
       invalidate();
       setNovaHab({ documento: "", status: "pendente", observacoes: "", dataEntrega: "" });
       setShowHabForm(false);
+    },
+    onError: (err: unknown) => {
+      const is401 = err instanceof Error && err.message === "401";
+      toast({
+        variant: "destructive",
+        title: is401 ? "Sessão expirada" : "Erro ao salvar documento",
+        description: is401
+          ? "Sessão expirada — faça login novamente."
+          : "Não foi possível salvar o documento de habilitação. Tente novamente.",
+      });
     },
   });
 
@@ -521,9 +561,19 @@ export default function GerenciamentoDetalhe() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error(String(res.status));
     },
     onSuccess: () => { invalidate(); setEditHabId(null); },
+    onError: (err: unknown) => {
+      const is401 = err instanceof Error && err.message === "401";
+      toast({
+        variant: "destructive",
+        title: is401 ? "Sessão expirada" : "Erro ao atualizar documento",
+        description: is401
+          ? "Sessão expirada — faça login novamente."
+          : "Não foi possível atualizar o documento de habilitação. Tente novamente.",
+      });
+    },
   });
 
   const deleteHab = useMutation({
@@ -531,9 +581,19 @@ export default function GerenciamentoDetalhe() {
       const res = await apiFetch(`${BASE}/api/gerenciamento/${gerId}/habilitacao/${id}`, {
         method: "DELETE", credentials: "include",
       });
-      if (!res.ok && res.status !== 204) throw new Error();
+      if (!res.ok && res.status !== 204) throw new Error(String(res.status));
     },
     onSuccess: invalidate,
+    onError: (err: unknown) => {
+      const is401 = err instanceof Error && err.message === "401";
+      toast({
+        variant: "destructive",
+        title: is401 ? "Sessão expirada" : "Erro ao excluir documento",
+        description: is401
+          ? "Sessão expirada — faça login novamente."
+          : "Não foi possível excluir o documento de habilitação. Tente novamente.",
+      });
+    },
   });
 
   // ── Render helpers ────────────────────────────────────────────────────────
