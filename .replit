@@ -30,6 +30,10 @@ args = "Backend API"
 task = "workflow.run"
 args = "Start application"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Collector"
+
 [[workflows.workflow]]
 name = "Backend API"
 author = "agent"
@@ -53,3 +57,14 @@ waitForPort = 5000
 
 [workflows.workflow.metadata]
 outputType = "webview"
+
+[[workflows.workflow]]
+name = "Collector"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python3 -m collector.app.standalone"
+
+[workflows.workflow.metadata]
+outputType = "console"
