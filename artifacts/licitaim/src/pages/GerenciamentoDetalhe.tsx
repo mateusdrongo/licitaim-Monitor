@@ -9,6 +9,7 @@ import {
   BellRing,
 } from "lucide-react";
 import { fmtDateBRT, fmtDateTime } from "../lib/dateUtils";
+import { useToast } from "../hooks/use-toast";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -248,6 +249,7 @@ export default function GerenciamentoDetalhe() {
 
   console.log("[GerenciamentoDetalhe] render — gerId:", gerId, "location:", location, "pathname:", window.location.pathname);
   const qc = useQueryClient();
+  const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState<"tarefas" | "anotacoes" | "habilitacao">("tarefas");
   const [showFinalizarModal, setShowFinalizarModal] = useState(false);
@@ -403,13 +405,23 @@ export default function GerenciamentoDetalhe() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error(String(res.status));
       return res.json();
     },
     onSuccess: () => {
       invalidate();
       setNovaTarefa({ titulo: "", descricao: "", prazo: "", prioridade: "normal", categoria: "geral" });
       setShowTarefaForm(false);
+    },
+    onError: (err: unknown) => {
+      const is401 = err instanceof Error && err.message === "401";
+      toast({
+        variant: "destructive",
+        title: is401 ? "Sessão expirada" : "Erro ao salvar tarefa",
+        description: is401
+          ? "Faça login novamente para continuar."
+          : "Não foi possível salvar a tarefa. Tente novamente.",
+      });
     },
   });
 
@@ -420,9 +432,16 @@ export default function GerenciamentoDetalhe() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ concluida }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error(String(res.status));
     },
     onSuccess: invalidate,
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Erro ao atualizar tarefa",
+        description: "Não foi possível marcar a tarefa. Tente novamente.",
+      });
+    },
   });
 
   const deleteTarefa = useMutation({
@@ -430,9 +449,16 @@ export default function GerenciamentoDetalhe() {
       const res = await fetch(`${BASE}/api/gerenciamento/${gerId}/tarefas/${id}`, {
         method: "DELETE", credentials: "include",
       });
-      if (!res.ok && res.status !== 204) throw new Error();
+      if (!res.ok && res.status !== 204) throw new Error(String(res.status));
     },
     onSuccess: invalidate,
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Erro ao excluir tarefa",
+        description: "Não foi possível excluir a tarefa. Tente novamente.",
+      });
+    },
   });
 
   const createAnot = useMutation({

@@ -27,7 +27,7 @@ Rotas:
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, field_validator
 from typing import Optional
-from datetime import date, datetime as dt
+from datetime import date, datetime as dt, timezone
 
 from ..core.deps import get_current_user
 from ..db.session import get_pool
@@ -478,7 +478,7 @@ async def update_tarefa(ger_id: int, tid: int, body: TarefaUpdate, current_user:
         n += 1
         if body.concluida:
             sets.append(f"concluida_em=${n}")
-            vals.append(datetime.datetime.now(datetime.timezone.utc))
+            vals.append(dt.now(timezone.utc))
             n += 1
         else:
             sets.append("concluida_em=NULL")
@@ -615,7 +615,7 @@ async def update_habilitacao(ger_id: int, hid: int, body: HabilitacaoUpdate, cur
         raise HTTPException(status_code=400, detail="Nenhum campo para atualizar")
 
     sets.append(f"atualizado_em=${n}")
-    vals.append(datetime.datetime.now(datetime.timezone.utc))
+    vals.append(dt.now(timezone.utc))
 
     row = await pool.fetchrow(
         f"UPDATE gerenciamento_habilitacao SET {', '.join(sets)} WHERE id=$1 AND gerenciamento_id=$2 RETURNING *",
