@@ -14,6 +14,7 @@ from .core.security import decode_token
 from .api import auth, dashboard, licitacoes, favoritos, monitoramentos
 from .api import alertas, documentos, equipe, oportunidades
 from .api import certidoes, agenda, analytics, precos, ai, admin, gerenciamento
+from .api import collector as collector_api
 from .services.elasticsearch_service import get_es_service
 from .services.websocket_manager import get_ws_manager
 from .services.cache_scheduler import start_scheduler, stop_scheduler, sync_licitacoes_job
@@ -197,6 +198,7 @@ app.include_router(precos.router,         prefix=PREFIX)
 app.include_router(ai.router,             prefix=PREFIX)
 app.include_router(admin.router,          prefix=PREFIX)
 app.include_router(gerenciamento.router,  prefix=PREFIX)
+app.include_router(collector_api.router,  prefix=PREFIX)
 
 from .api import notifications as notifications_api  # noqa: E402
 app.include_router(notifications_api.router, prefix=PREFIX)

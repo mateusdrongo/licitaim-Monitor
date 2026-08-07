@@ -37,6 +37,40 @@ INTERVAL_HOURS = int(os.environ.get("COLLECTOR_INTERVAL_HOURS", "4"))
 SCRAPE_DAYS    = int(os.environ.get("COLLECTOR_DAYS", "1"))
 
 
+# ── Persistência de status ────────────────────────────────────────────────────
+
+async def _write_collector_status(
+    db_url: str,
+    portal: str,
+    processed: int,
+    errors: int,
+) -> None:
+    """
+    Grava (ou atualiza) a linha de status do collector na tabela collector_status.
+    Falhas são ignoradas — o status é informativo, não crítico.
+    """
+    import asyncpg
+
+    sql = """
+        INSERT INTO collector_status (portal, last_run, processed, errors, interval_hours, atualizado_em)
+        VALUES ($1, NOW(), $2, $3, $4, NOW())
+        ON CONFLICT (portal) DO UPDATE
+            SET last_run       = NOW(),
+                processed      = EXCLUDED.processed,
+                errors         = EXCLUDED.errors,
+                interval_hours = EXCLUDED.interval_hours,
+                atualizado_em  = NOW()
+    """
+    try:
+        pool = await asyncpg.create_pool(db_url, min_size=1, max_size=2)
+        try:
+            await pool.execute(sql, portal, processed, errors, INTERVAL_HOURS)
+        finally:
+            await pool.close()
+    except Exception as exc:
+        logger.warning("_write_collector_status(%s): %s", portal, exc)
+
+
 # ── Processor sem broker ───────────────────────────────────────────────────────
 
 class StandaloneTenderProcessor:
@@ -204,6 +238,7 @@ async def main_loop() -> None:
             result = await run_pncp_scrape(db_url, days=SCRAPE_DAYS)
             cycle_totals["processed"] += result["processed"]
             cycle_totals["errors"]    += result["errors"]
+            await _write_collector_status(db_url, "pncp", result["processed"], result["errors"])
         except Exception as exc:
             logger.error("Erro inesperado no scraping PNCP: %s", exc, exc_info=True)
             cycle_totals["errors"] += 1
@@ -216,6 +251,7 @@ async def main_loop() -> None:
                 result = await run_comprasnet_scrape(db_url, days=SCRAPE_DAYS)
                 cycle_totals["processed"] += result["processed"]
                 cycle_totals["errors"]    += result["errors"]
+                await _write_collector_status(db_url, "comprasnet", result["processed"], result["errors"])
             except Exception as exc:
                 logger.error("Erro inesperado no scraping ComprasNet: %s", exc, exc_info=True)
                 cycle_totals["errors"] += 1
@@ -228,9 +264,16 @@ async def main_loop() -> None:
                 result = await run_bec_sp_scrape(db_url, days=SCRAPE_DAYS)
                 cycle_totals["processed"] += result["processed"]
                 cycle_totals["errors"]    += result["errors"]
+                await _write_collector_status(db_url, "bec_sp", result["processed"], result["errors"])
             except Exception as exc:
                 logger.error("Erro inesperado no scraping BEC-SP: %s", exc, exc_info=True)
                 cycle_totals["errors"] += 1
+
+        # ── Grava status global do ciclo ──────────────────────────────────────
+        await _write_collector_status(
+            db_url, "global",
+            cycle_totals["processed"], cycle_totals["errors"],
+        )
 
         logger.info(
             "Ciclo completo — total: %d processados, %d erros.",

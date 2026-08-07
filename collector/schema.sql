@@ -62,3 +62,13 @@ CREATE TABLE IF NOT EXISTS tender_history (
 
 CREATE INDEX IF NOT EXISTS idx_tender_history_tender ON tender_history (tender_id);
 CREATE INDEX IF NOT EXISTS idx_tender_history_campo  ON tender_history (tender_id, campo);
+
+-- ── Status do collector — uma linha por portal + "global" ──────────────────
+CREATE TABLE IF NOT EXISTS collector_status (
+    portal          TEXT        PRIMARY KEY,
+    last_run        TIMESTAMPTZ,
+    processed       INT         DEFAULT 0,
+    errors          INT         DEFAULT 0,
+    interval_hours  INT         DEFAULT 4,
+    atualizado_em   TIMESTAMPTZ DEFAULT NOW()
+);

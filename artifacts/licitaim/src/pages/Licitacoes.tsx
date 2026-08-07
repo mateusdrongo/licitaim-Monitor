@@ -489,6 +489,24 @@ export default function Licitacoes() {
     retry: false,
   });
 
+  // ── Status do collector standalone ────────────────────────────────────
+  const { data: collectorData } = useQuery<{
+    lastRun: string | null;
+    processed: number;
+    errors: number;
+    nextRunIn: number | null;
+  }>({
+    queryKey: ["collector-status"],
+    queryFn: async () => {
+      const res = await fetch(`${BASE}/api/collector/status`, { credentials: "include" });
+      if (!res.ok) return { lastRun: null, processed: 0, errors: 0, nextRunIn: null };
+      return res.json();
+    },
+    staleTime: 60_000,
+    refetchInterval: 120_000,
+    retry: false,
+  });
+
   const [syncStatus, setSyncStatus] = useState<"idle" | "running" | "done" | "error">("idle");
   const [syncElapsed, setSyncElapsed] = useState<number | null>(null);
   const syncStartMs   = useRef<number>(0);
@@ -1059,6 +1077,15 @@ export default function Licitacoes() {
                 <span className="flex items-center gap-1">
                   <Wifi className="w-3 h-3" />
                   {fmtFonte(statsData.fonte_predominante)}
+                </span>
+              </>
+            )}
+            {collectorData?.lastRun && (
+              <>
+                <span className="text-border">·</span>
+                <span className="flex items-center gap-1" title={`Collector: ${collectorData.processed} processadas, ${collectorData.errors} erros`}>
+                  <RefreshCw className="w-3 h-3" />
+                  Coleta: {fmtLastSync(collectorData.lastRun)}
                 </span>
               </>
             )}

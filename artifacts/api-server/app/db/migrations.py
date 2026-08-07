@@ -144,6 +144,17 @@ _DDL = [
     )
     """,
     "CREATE INDEX IF NOT EXISTS idx_job_runs_name_ran ON job_runs(job_name, ran_at DESC)",
+    # Status do collector standalone — uma linha por portal + linha "global"
+    """
+    CREATE TABLE IF NOT EXISTS collector_status (
+        portal          TEXT PRIMARY KEY,
+        last_run        TIMESTAMPTZ,
+        processed       INT DEFAULT 0,
+        errors          INT DEFAULT 0,
+        interval_hours  INT DEFAULT 4,
+        atualizado_em   TIMESTAMPTZ DEFAULT NOW()
+    )
+    """,
 ]
 
 
