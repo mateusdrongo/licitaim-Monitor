@@ -1,6 +1,6 @@
 """
 collector.py — Endpoint de status do collector standalone.
-GET /api/collector/status  →  { last_run, processed, errors, next_run_in, portals }
+GET /api/collector/status  →  { last_run, processed, errors, next_run_in, is_stale, portals }
 """
 from __future__ import annotations
 
@@ -49,6 +49,7 @@ async def collector_status():
             "processed": 0,
             "errors": 0,
             "next_run_in": None,
+            "is_stale": True,
             "portals": [],
         }
 
@@ -58,6 +59,7 @@ async def collector_status():
             "processed": 0,
             "errors": 0,
             "next_run_in": None,
+            "is_stale": True,
             "portals": [],
         }
 
@@ -119,10 +121,26 @@ async def collector_status():
                 "next_run_in": None,
             }
 
+    # Consider stale when last_run is missing or older than 8 h (2× default interval)
+    _STALE_THRESHOLD_HOURS = 8
+    last_run_iso = global_row["last_run"]
+    if last_run_iso is None:
+        is_stale = True
+    else:
+        try:
+            last_run_dt = datetime.fromisoformat(last_run_iso)
+            if last_run_dt.tzinfo is None:
+                last_run_dt = last_run_dt.replace(tzinfo=timezone.utc)
+            hours_ago = (now - last_run_dt).total_seconds() / 3600
+            is_stale = hours_ago > _STALE_THRESHOLD_HOURS
+        except Exception:
+            is_stale = True
+
     return {
         "last_run":    global_row["last_run"],
         "processed":   global_row["processed"],
         "errors":      global_row["errors"],
         "next_run_in": global_row["next_run_in"],
+        "is_stale":    is_stale,
         "portals":     portals,
     }
