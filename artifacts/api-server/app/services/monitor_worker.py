@@ -110,16 +110,35 @@ async def check_all_monitors() -> dict:
     # ultima_execucao é timestamp WITHOUT time zone; last_checked_at é timestamptz
     now_naive = now.replace(tzinfo=None)
 
-    monitors = await pool.fetch(
-        """SELECT m.id, m.user_id, m.nome, m.palavras_chave, m.modalidades,
-                  m.ufs, m.valor_min, m.valor_max, m.last_checked_at,
-                  u.email, u.nome AS user_nome, u.notif_email, u.notif_push,
-                  u.notif_whatsapp, u.notif_telegram,
-                  u.telegram_chat_id, u.phone
-           FROM monitoramentos m
-           JOIN users u ON u.id = m.user_id
-           WHERE m.ativo = true""",
+    _NOTIF_DEFAULTS = dict(
+        notif_email=True, notif_push=True,
+        notif_whatsapp=False, notif_telegram=False,
+        telegram_chat_id=None, phone=None,
     )
+    try:
+        monitors = await pool.fetch(
+            """SELECT m.id, m.user_id, m.nome, m.palavras_chave, m.modalidades,
+                      m.ufs, m.valor_min, m.valor_max, m.last_checked_at,
+                      u.email, u.nome AS user_nome, u.notif_email, u.notif_push,
+                      u.notif_whatsapp, u.notif_telegram,
+                      u.telegram_chat_id, u.phone
+               FROM monitoramentos m
+               JOIN users u ON u.id = m.user_id
+               WHERE m.ativo = true""",
+        )
+    except Exception as exc:
+        logger.warning(
+            "check_all_monitors: colunas de notificação indisponíveis, usando preferências padrão: %s", exc
+        )
+        _rows = await pool.fetch(
+            """SELECT m.id, m.user_id, m.nome, m.palavras_chave, m.modalidades,
+                      m.ufs, m.valor_min, m.valor_max, m.last_checked_at,
+                      u.email, u.nome AS user_nome
+               FROM monitoramentos m
+               JOIN users u ON u.id = m.user_id
+               WHERE m.ativo = true""",
+        )
+        monitors = [dict(r, **_NOTIF_DEFAULTS) for r in _rows]
 
     total_matches   = 0
     total_monitors  = len(monitors)
@@ -264,16 +283,34 @@ async def check_upcoming_tenders() -> dict:
 
     # Usuários que favoritaram essas licitações
     # favoritos.licitacao_id armazena o numero PNCP
-    favs = await pool.fetch(
-        """SELECT f.user_id, f.licitacao_id,
-                  u.email, u.nome, u.notif_email, u.notif_push,
-                  u.notif_whatsapp, u.notif_telegram,
-                  u.telegram_chat_id, u.phone
-           FROM favoritos f
-           JOIN users u ON u.id = f.user_id
-           WHERE f.licitacao_id = ANY($1::text[])""",
-        tender_numeros,
+    _NOTIF_DEFAULTS_UT = dict(
+        notif_email=True, notif_push=True,
+        notif_whatsapp=False, notif_telegram=False,
+        telegram_chat_id=None, phone=None,
     )
+    try:
+        favs = await pool.fetch(
+            """SELECT f.user_id, f.licitacao_id,
+                      u.email, u.nome, u.notif_email, u.notif_push,
+                      u.notif_whatsapp, u.notif_telegram,
+                      u.telegram_chat_id, u.phone
+               FROM favoritos f
+               JOIN users u ON u.id = f.user_id
+               WHERE f.licitacao_id = ANY($1::text[])""",
+            tender_numeros,
+        )
+    except Exception as exc:
+        logger.warning(
+            "check_upcoming_tenders: colunas de notificação indisponíveis, usando preferências padrão: %s", exc
+        )
+        _fav_rows = await pool.fetch(
+            """SELECT f.user_id, f.licitacao_id, u.email, u.nome
+               FROM favoritos f
+               JOIN users u ON u.id = f.user_id
+               WHERE f.licitacao_id = ANY($1::text[])""",
+            tender_numeros,
+        )
+        favs = [dict(r, **_NOTIF_DEFAULTS_UT) for r in _fav_rows]
 
     tender_map = {r["numero"]: r for r in upcoming}
 
@@ -385,19 +422,41 @@ async def check_document_expirations() -> dict:
     pool = await get_pool()
     hoje = date.today()
 
-    certs = await pool.fetch(
-        """SELECT c.id, c.nome, c.tipo, c.data_vencimento, c.user_id,
-                  u.email, u.nome AS user_nome, u.notif_email, u.notif_push,
-                  u.notif_whatsapp, u.notif_telegram,
-                  u.telegram_chat_id, u.phone
-           FROM certidoes c
-           JOIN users u ON u.id = c.user_id
-           WHERE c.data_vencimento IS NOT NULL
-             AND c.data_vencimento >= $1
-             AND c.data_vencimento <= $2""",
-        hoje - timedelta(days=1),
-        hoje + timedelta(days=30),
+    _NOTIF_DEFAULTS_CE = dict(
+        notif_email=True, notif_push=True,
+        notif_whatsapp=False, notif_telegram=False,
+        telegram_chat_id=None, phone=None,
     )
+    try:
+        certs = await pool.fetch(
+            """SELECT c.id, c.nome, c.tipo, c.data_vencimento, c.user_id,
+                      u.email, u.nome AS user_nome, u.notif_email, u.notif_push,
+                      u.notif_whatsapp, u.notif_telegram,
+                      u.telegram_chat_id, u.phone
+               FROM certidoes c
+               JOIN users u ON u.id = c.user_id
+               WHERE c.data_vencimento IS NOT NULL
+                 AND c.data_vencimento >= $1
+                 AND c.data_vencimento <= $2""",
+            hoje - timedelta(days=1),
+            hoje + timedelta(days=30),
+        )
+    except Exception as exc:
+        logger.warning(
+            "check_document_expirations: colunas de notificação indisponíveis, usando preferências padrão: %s", exc
+        )
+        _cert_rows = await pool.fetch(
+            """SELECT c.id, c.nome, c.tipo, c.data_vencimento, c.user_id,
+                      u.email, u.nome AS user_nome
+               FROM certidoes c
+               JOIN users u ON u.id = c.user_id
+               WHERE c.data_vencimento IS NOT NULL
+                 AND c.data_vencimento >= $1
+                 AND c.data_vencimento <= $2""",
+            hoje - timedelta(days=1),
+            hoje + timedelta(days=30),
+        )
+        certs = [dict(r, **_NOTIF_DEFAULTS_CE) for r in _cert_rows]
 
     ALERT_THRESHOLDS = {30, 15, 7, 3, 1, 0, -1}
     sent     = 0

@@ -162,25 +162,31 @@ async def check_task_deadlines() -> dict:
         # Referência única: "tarefa_{id}" em licitacao_id — usada só para dedup
         ref_key = f"tarefa_{tarefa_id}"
 
-        # Deduplicação: não cria se já existe alerta do mesmo tipo p/ esta tarefa em 24h
-        existing = await pool.fetchval(
-            """
-            SELECT id FROM alertas
-            WHERE user_id      = $1
-              AND tipo         = $2
-              AND licitacao_id = $3
-              AND criado_em    > NOW() - INTERVAL '24 hours'
-            LIMIT 1
-            """,
-            user_id, tipo, ref_key,
-        )
-        if existing:
-            alerts_skipped += 1
-            logger.debug(
-                "task_alerts: tarefa %d tipo=%s ja tem alerta recente — pulando.",
-                tarefa_id, tipo,
+        try:
+            # Deduplicação: não cria se já existe alerta do mesmo tipo p/ esta tarefa em 24h
+            existing = await pool.fetchval(
+                """
+                SELECT id FROM alertas
+                WHERE user_id      = $1
+                  AND tipo         = $2
+                  AND licitacao_id = $3
+                  AND criado_em    > NOW() - INTERVAL '24 hours'
+                LIMIT 1
+                """,
+                user_id, tipo, ref_key,
             )
-            continue
+            if existing:
+                alerts_skipped += 1
+                logger.debug(
+                    "task_alerts: tarefa %d tipo=%s ja tem alerta recente — pulando.",
+                    tarefa_id, tipo,
+                )
+                continue
+        except Exception as exc:
+            logger.warning(
+                "task_alerts: erro na deduplicação para tarefa %d, prosseguindo sem dedup: %s",
+                tarefa_id, exc,
+            )
 
         titulo, descricao = _build_texts(tipo, dias_restantes, titulo_tarefa, objeto, prazo)
         link = f"/gerenciamento/{ger_id}"
