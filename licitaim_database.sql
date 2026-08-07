@@ -813,7 +813,7 @@ COMMENT ON VIEW v_monitoramentos_stats IS
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS licitacoes_gerenciadas (
     id                        SERIAL PRIMARY KEY,
-    user_id                   TEXT        NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    user_id                   TEXT        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     licitacao_id              TEXT        NOT NULL,
     licitacao_numero          TEXT,
     licitacao_objeto          TEXT,
