@@ -99,6 +99,13 @@ _DDL = [
     )
     """,
     "CREATE INDEX IF NOT EXISTS idx_hab_gerenciamento ON gerenciamento_habilitacao(gerenciamento_id)",
+    # Colunas de preferências de notificação em users — idempotentes
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_email boolean NOT NULL DEFAULT true",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_push boolean NOT NULL DEFAULT true",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_whatsapp boolean NOT NULL DEFAULT false",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS notif_telegram boolean NOT NULL DEFAULT false",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS telegram_chat_id text",
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS phone text",
     # Registro de execuções de jobs agendados — usado para detectar misfires no startup
     """
     CREATE TABLE IF NOT EXISTS job_runs (
