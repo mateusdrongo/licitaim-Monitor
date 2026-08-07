@@ -6,19 +6,18 @@ Plataforma SaaS para monitoramento inteligente de licitações públicas brasile
 
 - **Frontend**: React 19 + Vite + TypeScript + Tailwind CSS + Radix UI (`artifacts/licitaim/`)
 - **Backend**: FastAPI (Python 3.11) + asyncpg + PostgreSQL (`artifacts/api-server/`)
-- **Collector**: Microserviço de scraping Python (`collector/`) — opcional, requer Redis/Celery
+- **Collector**: Microserviço de scraping standalone Python (`collector/`)
 - **Banco**: PostgreSQL (configurado via `DATABASE_URL`)
 
-## Como rodar
+## Workflows ativos
 
-Dois workflows configurados no Replit:
-
-| Workflow | Comando | Porta |
+| Workflow | Porta | Descrição |
 |---|---|---|
-| **Start application** | `PORT=5000 BASE_PATH=/ pnpm --filter @workspace/licitaim run dev` | 5000 (preview) |
-| **Backend API** | `cd artifacts/api-server && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload` | 8000 |
+| `artifacts/licitaim: web` | dinâmica (21607) | Frontend React/Vite — preview principal |
+| `artifacts/api-server: API Server` | 8080 | Backend FastAPI |
+| `Collector` | — | Scraping standalone do PNCP (iniciar manualmente) |
 
-O frontend faz chamadas à API em `/api/*` (configurar proxy se necessário).
+O frontend faz proxy `/api/*` → `http://localhost:${API_PORT:-8080}` via `vite.config.ts`.
 
 ## Variáveis de ambiente necessárias
 
@@ -28,24 +27,34 @@ O frontend faz chamadas à API em `/api/*` (configurar proxy se necessário).
 | `SESSION_SECRET` | Segredo JWT (já configurado) |
 
 ### Opcionais
-- `ELASTICSEARCH_URL` — busca semântica (padrão: `localhost:9200`)
+- `API_PORT` — porta do backend para o proxy Vite (padrão: `8080`)
+- `ELASTICSEARCH_URL` — busca semântica (padrão: `localhost:9200`, opcional)
 - `REDIS_URL` / `CELERY_BROKER_URL` — fila do collector (padrão: `localhost:6379/0`)
 - `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD` — envio de e-mails
 - `TELEGRAM_BOT_TOKEN` — notificações Telegram
 
 ## Banco de dados
 
-O schema completo está em `licitaim_database.sql`. As migrações de bootstrap rodam automaticamente no startup do backend (`artifacts/api-server/app/db/migrations.py`).
+O schema completo está em `licitaim_database.sql`. As migrações de bootstrap rodam automaticamente no startup do backend (`artifacts/api-server/app/db/migrations.py`) — são idempotentes.
+
+**Observação:** A API pública do PNCP está bloqueada no ambiente Replit. O timeout das chamadas externas foi reduzido para 6s; a busca usa o cache local ou dados mock como fallback.
 
 ## Instalar dependências
 
 ```bash
-# Frontend (monorepo pnpm)
+# Frontend + workspace (monorepo pnpm)
 pnpm install
 
 # Backend
-cd artifacts/api-server && pip install -r requirements.txt
+pip install -r artifacts/api-server/requirements.txt
+
+# Collector
+pip install -r collector/requirements.txt
 ```
+
+## Post-merge setup
+
+Script configurado em `scripts/post-merge.sh` — roda automaticamente após merges de tasks.
 
 ## User preferences
 

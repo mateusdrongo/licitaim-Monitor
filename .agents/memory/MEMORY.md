@@ -1,0 +1,4 @@
+- [Bcrypt/Passlib](bcrypt-passlib.md) — passlib 1.7.4 é incompatível com bcrypt≥4; usar bcrypt direto em security.py
+- [Vite Proxy Setup](vite-proxy.md) — frontend precisa de proxy /api → API_PORT (padrão 8080) no vite.config.ts server.proxy
+- [Missing DB Tables](missing-db-tables.md) — agenda_eventos e notifications não estavam no schema inicial; adicionadas nas migrations
+- [PNCP Bloqueado](pncp-timeout.md) — PNCP está inacessível no Replit; timeout reduzido para 6s para cair no mock rapidamente
