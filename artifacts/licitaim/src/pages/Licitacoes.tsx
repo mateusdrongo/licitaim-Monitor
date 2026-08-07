@@ -13,6 +13,7 @@ import {
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 import { fmtLastSync as fmtLastSyncBRT } from "../lib/dateUtils";
+import { useToast } from "../hooks/use-toast";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Licitacao {
@@ -277,6 +278,7 @@ export default function Licitacoes() {
 
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const qc = useQueryClient();
+  const { toast } = useToast();
 
   // ── Carrega favoritos do servidor ─────────────────────────────────────
   // Map: licitacaoId -> fav DB id (para poder deletar pelo id interno)
@@ -334,9 +336,18 @@ export default function Licitacoes() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["favoritos-ids"] });
     },
-    onError: (_err, { id }) => {
+    onError: (err: unknown, { id }) => {
       // Reverte override em caso de erro
       setFavOverrides(prev => { const m = new Map(prev); m.delete(id); return m; });
+      const msg = err instanceof Error ? err.message : String(err);
+      const is401 = msg.includes("401") || msg.toLowerCase().includes("não autorizado") || msg.toLowerCase().includes("unauthorized");
+      toast({
+        variant: "destructive",
+        title: is401 ? "Sessão expirada" : "Erro ao favoritar",
+        description: is401
+          ? "Faça login novamente para favoritar licitações."
+          : "Não foi possível atualizar os favoritos. Tente novamente.",
+      });
     },
   });
 
@@ -387,6 +398,7 @@ export default function Licitacoes() {
         const res = await fetch(`${BASE}/api/gerenciamento/by-licitacao/${encodeURIComponent(id)}`, {
           method: "DELETE", credentials: "include",
         });
+        if (res.status === 401) throw new Error("401");
         if (!res.ok && res.status !== 404) throw new Error("Erro ao remover gerenciamento");
         return null;
       } else {
@@ -410,10 +422,22 @@ export default function Licitacoes() {
             licitacaoLinkPncp: lic.numero ? `https://pncp.gov.br/app/editais/${lic.orgaoCnpj?.replace(/\D/g, "")}/${new Date().getFullYear()}/${lic.numero?.split("/")[0]}` : null,
           }),
         });
-        if (!res.ok && res.status !== 409) throw new Error("Erro ao gerenciar");
+        if (res.status === 401) throw new Error("401");
+        if (res.status === 409) {
+          // Licitação já gerenciada: resolve o id existente via check endpoint
+          const check = await fetch(`${BASE}/api/gerenciamento/check/${encodeURIComponent(id)}`, {
+            credentials: "include",
+          });
+          if (check.ok) {
+            const ck = await check.json();
+            if (ck.gerenciamentoId) return { id: ck.gerenciamentoId as number };
+          }
+          // check falhou — retorna null e aguarda o refetch da query resolver
+          return null;
+        }
+        if (!res.ok) throw new Error("Erro ao gerenciar");
         // Retorna o novo gerenciamento (com id) para eliminar race condition
-        if (res.ok) return res.json() as Promise<{ id: number }>;
-        return null;
+        return res.json() as Promise<{ id: number }>;
       }
     },
     onSuccess: (data, { id, currently }) => {
@@ -428,8 +452,17 @@ export default function Licitacoes() {
       qc.invalidateQueries({ queryKey: ["gerenciamento-ids"] });
       qc.invalidateQueries({ queryKey: ["gerenciamento"] });
     },
-    onError: (_err, { id }) => {
+    onError: (err: unknown, { id, currently }) => {
       setGerOverrides(prev => { const m = new Map(prev); m.delete(id); return m; });
+      const msg = err instanceof Error ? err.message : String(err);
+      const is401 = msg === "401" || msg.toLowerCase().includes("unauthorized");
+      toast({
+        variant: "destructive",
+        title: is401 ? "Sessão expirada" : currently ? "Erro ao remover gerenciamento" : "Erro ao gerenciar licitação",
+        description: is401
+          ? "Faça login novamente para gerenciar licitações."
+          : "Não foi possível completar a operação. Tente novamente.",
+      });
     },
   });
 

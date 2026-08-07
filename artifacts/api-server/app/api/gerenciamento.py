@@ -27,11 +27,24 @@ Rotas:
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, field_validator
 from typing import Optional
-from datetime import date
-import datetime
+from datetime import date, datetime as dt
 
 from ..core.deps import get_current_user
 from ..db.session import get_pool
+
+
+def _parse_date(s: Optional[str]) -> Optional[date]:
+    """Converte string ISO (data ou datetime) para date, ou None."""
+    if not s:
+        return None
+    try:
+        # Suporta '2026-07-17', '2026-07-17T08:00:00+00:00', etc.
+        return dt.fromisoformat(s.replace("Z", "+00:00")).date()
+    except Exception:
+        try:
+            return date.fromisoformat(s[:10])
+        except Exception:
+            return None
 
 router = APIRouter(prefix="/gerenciamento", tags=["gerenciamento"])
 
@@ -261,7 +274,9 @@ async def add_gerenciamento(body: GerenciamentoCreate, current_user: dict = Depe
         current_user["id"], body.licitacaoId, body.licitacaoNumero, body.licitacaoObjeto,
         body.licitacaoOrgao, body.licitacaoCnpj, body.licitacaoUf, body.licitacaoMunicipio,
         body.licitacaoModalidade, body.licitacaoSituacao, body.licitacaoValor,
-        body.licitacaoDataAbertura, body.licitacaoDataEncerramento, body.licitacaoDataPublicacao,
+        _parse_date(body.licitacaoDataAbertura),
+        _parse_date(body.licitacaoDataEncerramento),
+        _parse_date(body.licitacaoDataPublicacao),
         body.licitacaoLinkPncp, body.responsavel,
     )
     r = dict(row)
