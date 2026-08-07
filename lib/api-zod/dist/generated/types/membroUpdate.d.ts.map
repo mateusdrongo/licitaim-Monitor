@@ -1,0 +1,1 @@
+{"version":3,"file":"membroUpdate.d.ts","sourceRoot":"","sources":["../../../src/generated/types/membroUpdate.ts"],"names":[],"mappings":"AAAA;;;;;;GAMG;AACH,OAAO,KAAK,EAAE,iBAAiB,EAAE,MAAM,qBAAqB,CAAC;AAC7D,OAAO,KAAK,EAAE,kBAAkB,EAAE,MAAM,sBAAsB,CAAC;AAE/D,MAAM,WAAW,YAAY;IAC3B,KAAK,CAAC,EAAE,iBAAiB,CAAC;IAC1B,MAAM,CAAC,EAAE,kBAAkB,CAAC;CAC7B"}

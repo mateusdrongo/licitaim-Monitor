@@ -1,0 +1,1 @@
+{"version":3,"file":"listDocumentosParams.d.ts","sourceRoot":"","sources":["../../../src/generated/types/listDocumentosParams.ts"],"names":[],"mappings":"AAAA;;;;;;GAMG;AAEH,MAAM,MAAM,oBAAoB,GAAG;IACnC,WAAW,CAAC,EAAE,MAAM,CAAC;IACrB,SAAS,CAAC,EAAE,MAAM,CAAC;IACnB,IAAI,CAAC,EAAE,MAAM,CAAC;IACd,KAAK,CAAC,EAAE,MAAM,CAAC;CACd,CAAC"}

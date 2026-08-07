@@ -1,0 +1,107 @@
+Arquitetura Geral e Stack Tecnológico
+2.1. Diagrama de Arquitetura (Atualizado para FastAPI)
+                        +----------------------+
+                        |       Front-end      |
+                        | React / Next.js      |
+                        +----------+-----------+
+                                   |
+                        REST API / WebSocket
+                                   |
++----------------------------------------------------------------+
+|               API Gateway (NGINX / Traefik)                    |
+|               Rate Limit, SSL, JWT Routing                     |
++----------------------------------------------------------------+
+             |                |                 |
+             |                |                 |
+      Auth Service      Licitações API     Notificações
+      (FastAPI)         (FastAPI)          (FastAPI + Celery)
+             |                |                 |
+             |                |                 |
+      PostgreSQL         Elasticsearch     RabbitMQ
+             |                |                 |
+             |                |                 |
+             +----------------+-----------------+
+                              |
+                     Coletor de Dados (Scrapers/APIs)
+                     (Python + Celery/ARQ + Playwright)
+                              |
+      --------------------------------------------------
+      |         |          |          |                 |
+      PNCP   ComprasNet   BEC-SP   BBMNET     Outros Portais
+2.2. Tecnologias
+Backend: Python 3.11+, FastAPI, SQLAlchemy 2.0, Pydantic v2, Celery (tarefas assíncronas).
+Front-end: Next.js 14+, React, TypeScript, Tailwind CSS + shadcn/ui (ou Material UI), TanStack Query, Socket.io (WebSockets).
+Banco de Dados: PostgreSQL 16 (Relacional), Redis (Cache/Filas), Elasticsearch/OpenSearch (Busca).
+Armazenamento: MinIO (S3 compatível para editais e documentos).
+Mensageria: RabbitMQ.
+Infraestrutura: Docker, Kubernetes (ou Docker Compose para MVP), GitHub Actions (CI/CD).
+Observabilidade: Prometheus, Grafana, Loki.
+IA / LLM: LangChain ou LlamaIndex integrados ao Elasticsearch para o Chat IA.
+3. Módulos e Requisitos Funcionais
+3.1. Gestão de Acesso e Multi-Tenancy
+Autenticação: Login, Cadastro, Recuperação de senha, MFA (2FA via TOTP/SMS).
+Estrutura Multi-Tenancy: Usuários -> Equipes -> Empresas.
+RBAC (Controle de Acesso): Permissões granulares (Admin, Gestor, Operador, Visualizador).
+Planos SaaS: Free (limitado), Pro (ilimitado + IA), Enterprise (API + SLA).
+3.2. Cadastro de Empresas e Conformidade
+Dados Cadastrais: CNPJ, Razão Social, CNAE, Endereço, Representantes Legais.
+Gestão Documental (Compliance): Upload de Certidões (FGTS, Receita, INSS, Trabalhista), Balanço, Contrato Social, Procurações.
+Alertas de Validade: Sistema notifica 30, 15 e 5 dias antes do vencimento de certidões.
+3.3. Dashboard e Visão Geral
+KPIs em Tempo Real: Licitações abertas hoje, novas oportunidades (últimas 24h), monitoramentos ativos, disputas em andamento, encerrando hoje.
+Widgets: Favoritas, Alertas pendentes, Documentos da empresa com validade próxima.
+3.4. Motor de Busca (Avançada e Inteligente)
+Busca Google-like (Elasticsearch): Autocomplete, correção ortográfica, busca semântica.
+Filtros Avançados:
+Textuais: Palavra-chave, Objeto, Número, Processo.
+Geográficos: Órgão, Município, Estado, Região.
+Técnicos: Modalidade (Pregão, Concorrência, Dispensa, etc.), Situação, SRP, Critério, Modo de Disputa, Esfera (Federal/Estadual/Municipal).
+Financeiros/Datas: Valor min/max, Data publicação/abertura.
+Exclusivos: ME/EPP, Consórcios.
+Lógica Booleana: Palavras obrigatórias, proibidas e combinações (("Notebook" OR "Computador") AND NOT "Usado").
+3.5. Página de Detalhe da Licitação
+Aba Resumo: Objeto, Valor, Datas, Órgão, Responsável, Links originais.
+Aba Itens: Tabela detalhada (Qtd, Unidade, Valor estimado/máximo).
+Aba Documentos: Edital, TR, Anexos (armazenados no MinIO com preview de PDF).
+Aba Histórico e Timeline: Linha do tempo visual (Publicação -> Retificação -> Esclarecimentos -> Sessão -> Homologação -> Ata -> Contrato).
+Aba Mercado: Empresas interessadas (que usam a plataforma), histórico de preços do item.
+3.6. Sistema de Monitoramento e Alertas
+Criador de Regras: Interface visual para criar filtros salvos (ex: Objeto="Notebook", UF="CE", Valor>100k, Excluir="Usado").
+Gatilhos de Notificação: Nova licitação, retificação de edital, impugnação, abertura próxima.
+Multicanal: E-mail, Push (Web), WhatsApp (via API oficial ou provedor), Telegram.
+Central de Alertas: Inbox interno com contadores (ex: "32 novas", "5 alteradas").
+3.7. Gestão de Participação e Agenda
+Agenda/Calendário: Visão de Sessões, Visitas Técnicas, Prazos de Impugnação/Recursos.
+Fluxo de Participação: Botão "Vou Participar" gera um workspace com:
+Checklist de documentos necessários.
+Atribuição de responsáveis (Equipe).
+Campo de observações e estratégia de lances.
+3.8. Inteligência Comercial e BI
+Dashboards Gerenciais: Maiores compradores, preço médio por item, histórico de preços, empresas mais vencedoras.
+Filtros de BI: Cruzamento de Ano, Cidade, Órgão, Fornecedor, Categoria.
+Estimativa de Competitividade: Indicador de quantos participantes costumam aparecer e a faixa de desconto praticada.
+3.9. Assistente IA (Chat)
+Interface: Chat lateral ou página dedicada.
+Capacidades (RAG - Retrieval-Augmented Generation):
+Exemplos: "Quais licitações abertas para notebook acima de R$500 mil?", "Quais órgãos mais compram reagentes no Nordeste?", "Resuma o objeto e as penalidades deste edital."
+3.10. Administração do SaaS (Backoffice)
+Gestão de Usuários, Empresas, Planos e Cobrança (integração Stripe/Asaas).
+Logs de Auditoria, Monitoramento de saúde dos Scrapers (Coletores), Gestão de Mensagens/Notificações enviadas.
+4. Modelo de Dados (PostgreSQL)
+O banco será estruturado em esquemas lógicos. Principais entidades:
+Core SaaS: usuarios, empresas, equipes, permissoes, planos, assinaturas.
+Licitações: licitacoes, licitacao_itens, licitacao_documentos, licitacao_historico, orgaos, unidades_compradoras.
+Interação: monitoramentos, favoritos, alertas, notificacoes, disputas (participações), eventos_disputa.
+Conformidade: documentos_empresa, validades_certidoes.
+Sistema: tarefas (filas), mensagens, logs, auditoria.
+5. O Coletor de Dados (Data Ingestion)
+Este é o coração do sistema. Será um microsserviço Python assíncrono.
+Tecnologias: Playwright/Selenium (para portais com JS/Captcha), HTTPX (para APIs como PNCP), BeautifulSoup/ParSEL (parsing).
+Arquitetura: Filas no RabbitMQ. Um Scheduler (Celery Beat) agenda as varreduras.
+Resiliência: Retry com backoff exponencial, rotação de proxies, fallback para APIs oficiais quando disponíveis (ex: API do PNCP).
+Pipeline: Coleta -> Normalização (Padronizar nomes de órgãos, cidades) -> Indexação (PostgreSQL + Elasticsearch).
+6. Requisitos Não-Funcionais
+Performance: Busca no Elasticsearch deve retornar em < 200ms. API FastAPI deve suportar > 1000 req/s por instância.
+Segurança: Criptografia de dados sensíveis em repouso e trânsito. Conformidade com LGPD. Tokens JWT com tempo de expiração curto e Refresh Tokens.
+Escalabilidade: Microsserviços e coletores devem ser escaláveis horizontalmente via Kubernetes ou Docker Swarm.
+Disponibilidade: SLA alvo de 99.9%. Healthchecks em todas as rotas do FastAPI.

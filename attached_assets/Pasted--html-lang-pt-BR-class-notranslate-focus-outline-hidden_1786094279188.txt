@@ -1,0 +1,2697 @@
+<html lang="pt-BR" class="notranslate focus-outline-hidden" translate="no">
+
+<head>
+  <script src="https://embed.tawk.to/_s/v4/app/6a4e64e9f0d/js/twk-main.js" charset="UTF-8" crossorigin="*"></script>
+  <script src="https://embed.tawk.to/_s/v4/app/6a4e64e9f0d/js/twk-vendor.js" charset="UTF-8" crossorigin="*"></script>
+  <script src="https://embed.tawk.to/_s/v4/app/6a4e64e9f0d/js/twk-chunk-vendors.js" charset="UTF-8"
+    crossorigin="*"></script>
+  <script src="https://embed.tawk.to/_s/v4/app/6a4e64e9f0d/js/twk-chunk-common.js" charset="UTF-8"
+    crossorigin="*"></script>
+  <script src="https://embed.tawk.to/_s/v4/app/6a4e64e9f0d/js/twk-runtime.js" charset="UTF-8" crossorigin="*"></script>
+  <script src="https://embed.tawk.to/_s/v4/app/6a4e64e9f0d/js/twk-app.js" charset="UTF-8" crossorigin="*"></script>
+  <script type="text/javascript" async="" src="https://connect.facebook.net/en_US/fbevents.js"></script>
+  <script type="text/javascript" async="" src="https://stapecdn.com/dtag/v8.js"></script>
+  <script type="text/javascript" async="" src="https://snap.licdn.com/li.lms-analytics/insight.min.js"></script>
+  <script type="text/javascript" async="" src="https://www.clarity.ms/tag/mtyyxfgb5g?ref=gtm"></script>
+  <script type="text/javascript" async=""
+    src="https://www.googletagmanager.com/gtag/js?id=AW-1055239920&amp;cx=c&amp;gtm=4e6852h1"></script>
+  <script type="text/javascript" async=""
+    src="https://www.googletagmanager.com/gtag/js?id=G-B500WXSBG2&amp;cx=c&amp;gtm=4e6852h1"></script>
+  <script async=""
+    src="https://www.googletagmanager.com/gtm.js?id=GTM-PBG9BCL&amp;gtm_auth=&amp;gtm_preview=&amp;gtm_cookies_win=x"></script>
+  <script>
+    (function (w, d, s, l, i) {
+      w[l] = w[l] || [];
+      w[l].push({ 'gtm.start': new Date().getTime(), event: 'gtm.js', });
+      var f = d.getElementsByTagName(s)[0], j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : '';
+      j.async = true; j.src = 'https://www.googletagmanager.com/gtm.js?id=' + i + dl + '&gtm_auth=&gtm_preview=&gtm_cookies_win=x';
+      f.parentNode.insertBefore(j, f);
+    })(window, document, 'script', 'dataLayer', 'GTM-PBG9BCL');</script>
+  <meta charset="utf-8">
+  <meta name="google" content="notranslate">
+  <link rel="icon" href="/favicon.ico">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#000000">
+  <meta name="description" content="Conlicitação">
+  <link rel="manifest" href="/manifest.json">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined" rel="stylesheet">
+  <script async="" src="https://www.clarity.ms/tag/hulfldxvjj?ref=npm" id="clarity-script"></script>
+  <script
+    src="https://api.tallos.com.br/widget/v2/load-scripts?load=1786093821518&amp;presentation=Ol%C3%A1%2C%20podemos%20ajudar%3F&amp;side=right&amp;size=medium&amp;active_phrase_presentation=true"></script>
+  <style data-styled="active" data-styled-version="5.3.3">
+    .fVYYRg .control {
+      font-family: arial;
+      position: relative;
+      padding-left: 20px;
+      margin-bottom: 0;
+      margin-right: 0;
+      padding-top: 0;
+      cursor: pointer;
+    }
+
+    .fVYYRg .control input {
+      position: absolute;
+      z-index: -1;
+      opacity: 0;
+    }
+
+    .fVYYRg .control_indicator {
+      position: absolute;
+      top: 3px;
+      left: 0;
+      height: 1rem;
+      width: 1rem;
+      background: transparent;
+      border: 1px solid #6c757d;
+      border-radius: 3px;
+    }
+
+    .fVYYRg .control:hover input~.control_indicator,
+    .fVYYRg .control input:focus~.control_indicator {
+      border-color: #007bff;
+      background: transparent;
+    }
+
+    .fVYYRg .control input:checked~.control_indicator {
+      background: #007bff;
+      border-color: #007bff;
+    }
+
+    .fVYYRg .control input:disabled~.control_indicator {
+      background: #f0f1f2;
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .fVYYRg .control_indicator:after {
+      box-sizing: unset;
+      content: '';
+      position: absolute;
+      display: none;
+    }
+
+    .fVYYRg .control input:checked~.control_indicator:after {
+      display: block;
+    }
+
+    .fVYYRg .control-checkbox .control_indicator:after {
+      left: 0.3rem;
+      top: 0.01rem;
+      width: 3px;
+      height: 8px;
+      border: solid #ffffff;
+      border-width: 0 2px 2px 0;
+      -webkit-transform: rotate(45deg);
+      -ms-transform: rotate(45deg);
+      transform: rotate(45deg);
+    }
+
+    .fVYYRg .control-checkbox input:disabled~.control_indicator:after {
+      border-color: #6c757d;
+    }
+
+    .fVYYRg .control-checkbox .control_indicator::before {
+      content: '';
+      display: block;
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 4.5rem;
+      height: 4.5rem;
+      margin-left: -1.3rem;
+      margin-top: -1.3rem;
+      background: #007bff;
+      border-radius: 3rem;
+      opacity: 0.6;
+      z-index: 99999;
+      -webkit-transform: scale(0);
+      -ms-transform: scale(0);
+      transform: scale(0);
+    }
+
+    @-webkit-keyframes s-ripple {
+      0% {
+        -webkit-transform: scale(0);
+        -ms-transform: scale(0);
+        transform: scale(0);
+      }
+
+      20% {
+        -webkit-transform: scale(1);
+        -ms-transform: scale(1);
+        transform: scale(1);
+      }
+
+      100% {
+        opacity: 0;
+        -webkit-transform: scale(1);
+        -ms-transform: scale(1);
+        transform: scale(1);
+      }
+    }
+
+    @keyframes s-ripple {
+      0% {
+        -webkit-transform: scale(0);
+        -ms-transform: scale(0);
+        transform: scale(0);
+      }
+
+      20% {
+        -webkit-transform: scale(1);
+        -ms-transform: scale(1);
+        transform: scale(1);
+      }
+
+      100% {
+        opacity: 0;
+        -webkit-transform: scale(1);
+        -ms-transform: scale(1);
+        transform: scale(1);
+      }
+    }
+
+    @-webkit-keyframes s-ripple-dup {
+      0% {
+        -webkit-transform: scale(0);
+        -ms-transform: scale(0);
+        transform: scale(0);
+      }
+
+      30% {
+        -webkit-transform: scale(1);
+        -ms-transform: scale(1);
+        transform: scale(1);
+      }
+
+      60% {
+        -webkit-transform: scale(1);
+        -ms-transform: scale(1);
+        transform: scale(1);
+      }
+
+      100% {
+        opacity: 0;
+        -webkit-transform: scale(1);
+        -ms-transform: scale(1);
+        transform: scale(1);
+      }
+    }
+
+    @keyframes s-ripple-dup {
+      0% {
+        -webkit-transform: scale(0);
+        -ms-transform: scale(0);
+        transform: scale(0);
+      }
+
+      30% {
+        -webkit-transform: scale(1);
+        -ms-transform: scale(1);
+        transform: scale(1);
+      }
+
+      60% {
+        -webkit-transform: scale(1);
+        -ms-transform: scale(1);
+        transform: scale(1);
+      }
+
+      100% {
+        opacity: 0;
+        -webkit-transform: scale(1);
+        -ms-transform: scale(1);
+        transform: scale(1);
+      }
+    }
+
+    .fVYYRg .control-checkbox input+.control_indicator::before {
+      -webkit-animation: s-ripple 250ms ease-out;
+      animation: s-ripple 250ms ease-out;
+    }
+
+    .fVYYRg .control-checkbox input:checked+.control_indicator::before {
+      -webkit-animation-name: s-ripple-dup;
+      animation-name: s-ripple-dup;
+    }
+
+    .fVYYRg .control.checkbox-danger input~.control_indicator,
+    .fVYYRg .control.checkbox-danger input:focus~.control_indicator {
+      border-color: #dc3545;
+      background: transparent;
+    }
+
+    .fVYYRg .control.checkbox-danger input:checked~.control_indicator {
+      background: #dc3545;
+      border-color: #dc3545;
+    }
+
+    .fVYYRg .control.checkbox-purple input~.control_indicator,
+    .fVYYRg .control.checkbox-purple input:focus~.control_indicator {
+      border-color: #956CCA;
+      background: transparent;
+    }
+
+    .fVYYRg .control.checkbox-purple input:checked~.control_indicator {
+      background: #956CCA;
+      border-color: #956CCA;
+    }
+
+    .fVYYRg .control.checkbox-orange input~.control_indicator,
+    .fVYYRg .control.checkbox-orange input:focus~.control_indicator {
+      border-color: #FDA117;
+      background: transparent;
+    }
+
+    .fVYYRg .control.checkbox-orange input:checked~.control_indicator {
+      background: #FDA117;
+      border-color: #FDA117;
+    }
+
+    .fVYYRg .control.checkbox-brown input~.control_indicator,
+    .fVYYRg .control.checkbox-brown input:focus~.control_indicator {
+      border-color: #7A5D06;
+      background: transparent;
+    }
+
+    .fVYYRg .control.checkbox-brown input:checked~.control_indicator {
+      background: #7A5D06;
+      border-color: #7A5D06;
+    }
+
+    .fVYYRg .control.checkbox-warning input~.control_indicator,
+    .fVYYRg .control.checkbox-warning input:focus~.control_indicator {
+      border-color: #ffc107;
+      background: transparent;
+    }
+
+    .fVYYRg .control.checkbox-warning input:checked~.control_indicator {
+      background: #ffc107;
+      border-color: #ffc107;
+    }
+
+    .fVYYRg .control.checkbox-warning .control_indicator:after {
+      border-color: #000000;
+    }
+
+    .fVYYRg .control.checkbox-info input~.control_indicator,
+    .fVYYRg .control.checkbox-info input:focus~.control_indicator {
+      border-color: #17a2b8;
+      background: transparent;
+    }
+
+    .fVYYRg .control.checkbox-info input:checked~.control_indicator {
+      background: #17a2b8;
+      border-color: #17a2b8;
+    }
+
+    .fVYYRg .control.checkbox-success input~.control_indicator,
+    .fVYYRg .control.checkbox-success input:focus~.control_indicator {
+      border-color: #28a745;
+      background: transparent;
+    }
+
+    .fVYYRg .control.checkbox-success input:checked~.control_indicator {
+      background: #28a745;
+      border-color: #28a745;
+    }
+
+    .gxoJIf {
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: -ms-flexbox;
+      display: flex;
+      -webkit-align-items: center;
+      -webkit-box-align: center;
+      -ms-flex-align: center;
+      align-items: center;
+      -webkit-box-pack: center;
+      -webkit-justify-content: center;
+      -ms-flex-pack: center;
+      justify-content: center;
+      margin: -8px;
+    }
+
+    .fswuPg {
+      display: block;
+    }
+
+    .lohvqF button.databalloon[aria-label] {
+      overflow: visible;
+    }
+
+    .enhtnj {
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: -ms-flexbox;
+      display: flex;
+      -webkit-align-items: center;
+      -webkit-box-align: center;
+      -ms-flex-align: center;
+      align-items: center;
+      -webkit-box-pack: center;
+      -webkit-justify-content: center;
+      -ms-flex-pack: center;
+      justify-content: center;
+      margin: -8px;
+    }
+
+    .kvRgJp {
+      display: block;
+    }
+
+    .ewZLFj {
+      width: 24px !important;
+      height: 24px !important;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 4px;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: -ms-flexbox;
+      display: flex;
+      -webkit-align-items: center;
+      -webkit-box-align: center;
+      -ms-flex-align: center;
+      align-items: center;
+      -webkit-box-pack: end;
+      -webkit-justify-content: end;
+      -ms-flex-pack: end;
+      justify-content: end;
+      padding-right: 7px;
+    }
+
+    .imWNeD .bidding-bg-header {
+      background: #21354A;
+      border-top-left-radius: 0;
+    }
+
+    .imWNeD .bidding .card-header .item {
+      color: #ffffff;
+    }
+
+    .imWNeD .bidding .card-header .item-label {
+      color: #ffffff;
+    }
+
+    .imWNeD .bidding-item-header-buttons {
+      display: contents;
+      position: relative;
+    }
+
+    .imWNeD .bidding-item-header-buttons>div {
+      width: 38px;
+      height: 20px;
+    }
+
+    .imWNeD .bidding-item-header-button {
+      height: auto;
+      overflow: hidden;
+      position: absolute;
+      top: -12px;
+      left: -4px;
+    }
+
+    .imWNeD .bidding-item-header-button svg {
+      vertical-align: middle;
+    }
+
+    .imWNeD .bidding-favorited-icon {
+      left: 0px;
+      top: -1px;
+    }
+
+    .imWNeD .bidding [class*='bidding-situation-'] {
+      background-color: #6c757d;
+      color: #ffffff;
+      padding: 3px 7px;
+    }
+
+    .imWNeD .bidding .bidding-situation-nova {
+      background-color: #009F79;
+    }
+
+    .imWNeD .bidding .bidding-situation-suspensa {
+      background-color: #ffc107;
+      color: #000000;
+    }
+
+    .imWNeD .bidding .bidding-situation-suspensa-sine-die {
+      background-color: #ffc107;
+      color: #000000;
+    }
+
+    .imWNeD .bidding .bidding-situation-urgente {
+      background-color: #dc3545;
+    }
+
+    @page {
+      margin: 0.5cm;
+    }
+
+    .chgDLT .list-highlight {
+      margin-bottom: 0;
+      list-style-type: disc;
+      list-style-position: inside;
+    }
+
+    .chgDLT .text-secondary {
+      color: #535a60 !important;
+    }
+
+    .chgDLT .bg-itens {
+      background: #e9ecef;
+      border: 0;
+    }
+
+    .chgDLT .bidding {
+      border-top-left-radius: 0;
+    }
+
+    .chgDLT .bidding-keyword {
+      background: #ffdf8f;
+    }
+
+    .chgDLT .bidding.bidding_selected {
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+    }
+
+    .chgDLT .bidding.bidding_selected .bidding-bg-header {
+      border-top-left-radius: 0 !important;
+    }
+
+    .chgDLT .bidding.bidding_selected::before {
+      content: '';
+      width: 7px;
+      height: 100%;
+      background: #009F79;
+      position: absolute;
+      left: -7px;
+      border-top-left-radius: 20px;
+      border-bottom-left-radius: 20px;
+    }
+
+    .chgDLT .bidding-item-count {
+      color: #009F79;
+      font-weight: bold;
+      font-size: 0.9em;
+    }
+
+    .chgDLT .bidding [class*='bidding-situation-'] {
+      background-color: #6c757d;
+      color: #ffffff;
+      padding: 3px 7px;
+    }
+
+    .chgDLT .bidding .bidding-situation-nova {
+      background-color: #009F79;
+    }
+
+    .chgDLT .bidding .bidding-situation-suspensa {
+      background-color: #ffc107;
+      color: #000000;
+    }
+
+    .chgDLT .bidding .bidding-situation-suspensa-sine-die {
+      background-color: #ffc107;
+      color: #000000;
+    }
+
+    .chgDLT .bidding .bidding-situation-urgente {
+      background-color: #dc3545;
+    }
+
+    .chgDLT .bidding .button {
+      font-size: 12px !important;
+    }
+
+    .chgDLT .bidding-info {
+      overflow-wrap: anywhere;
+    }
+
+    .chgDLT .bidding-info-border {
+      border-top: 5px solid #21354A;
+    }
+
+    .chgDLT .bidding-info-item-description {
+      max-height: 400px;
+      overflow: auto;
+      word-break: normal;
+      word-wrap: break-word;
+      white-space: pre-wrap;
+    }
+
+    .chgDLT .bidding-info-icon {
+      font-size: 15px;
+    }
+
+    .chgDLT .bidding-info-title {
+      color: #21354A;
+      font-weight: bold;
+    }
+
+    .chgDLT .bidding-info-state {
+      background: #17a2b8;
+      color: #ffffff;
+      padding: 3px 5px;
+    }
+
+    .chgDLT .bidding-info a:hover {
+      cursor: pointer;
+    }
+
+    .chgDLT .bidding-viewed {
+      opacity: 30%;
+      pointer-events: none;
+    }
+
+    .chgDLT .history-arrow {
+      font-size: 0.7em;
+    }
+
+    .chgDLT .bidding-info-title {
+      color: #354153 !important;
+    }
+
+    .chgDLT .notice-date {
+      background-color: #f89f3e;
+    }
+
+    .chgDLT .number-cnl {
+      color: #354153 !important;
+    }
+
+    .chgDLT .item-arrow {
+      font-size: 0.7em;
+    }
+
+    .chgDLT .item-highlight em {
+      background: #ffdf8f;
+      padding: 0.2em;
+    }
+
+    .chgDLT .highlight {
+      background: #ffdf8f;
+      padding: 0.2em;
+    }
+
+    .chgDLT .fs-16 {
+      font-size: 15px !important;
+    }
+
+    .chgDLT .estimated {
+      color: #ff8000 !important;
+    }
+
+    @media print {
+      .chgDLT .card.bidding {
+        margin: 30px 15px 0 15px;
+      }
+
+      .chgDLT .bidding.bidding_selected::before {
+        display: none;
+      }
+
+      .chgDLT .bidding-bg-header {
+        background: #ffffff;
+      }
+
+      .chgDLT .bidding-bg-header .text-white {
+        color: #000000 !important;
+      }
+
+      .chgDLT .bidding-info-icon {
+        display: none;
+      }
+
+      .chgDLT .btn-link:focus {
+        outline: none;
+        box-shadow: none;
+      }
+    }
+
+    .bgseCP .btn-clean-search,
+    .bgseCP .btn-clean-search:hover {
+      background: #ffffff;
+      border: 1px solid #ced4da;
+      border-radius: 0 0.2rem 0.2rem 0;
+      border-left-width: 0;
+    }
+
+    .ftwmGz {
+      position: relative;
+      box-sizing: border-box;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: -ms-flexbox;
+      display: flex;
+      -webkit-flex-direction: column;
+      -ms-flex-direction: column;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      max-width: 100%;
+      color: rgba(0, 0, 0, 0.87);
+      background-color: #FFFFFF;
+    }
+
+    .hhsLri {
+      position: relative;
+      width: 100%;
+      border-radius: inherit;
+      overflow-x: auto;
+      overflow-y: hidden;
+      min-height: 0;
+    }
+
+    .bgceYQ {
+      position: relative;
+      width: 100%;
+      display: table;
+    }
+
+    .hNoIKr {
+      box-sizing: border-box;
+      width: 100%;
+      height: 100%;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: -ms-flexbox;
+      display: flex;
+      -webkit-align-items: center;
+      -webkit-box-align: center;
+      -ms-flex-align: center;
+      align-items: center;
+      -webkit-box-pack: center;
+      -webkit-justify-content: center;
+      -ms-flex-pack: center;
+      justify-content: center;
+      color: rgba(0, 0, 0, 0.87);
+      background-color: #FFFFFF;
+    }
+
+    .bXuHOH .btn-management {
+      border: solid 1px #ced4da !important;
+      color: #6c757d !important;
+      background: #ffffff;
+      line-height: 14px;
+    }
+
+    .bXuHOH .btn-management:hover,
+    .bXuHOH .btn-management.active {
+      background-color: #007bff !important;
+      border-color: #007bff !important;
+      color: #ffffff !important;
+    }
+
+    .bTRHGp .list-tools {
+      position: -webkit-sticky;
+      position: sticky;
+      background: #f0f1f2;
+      top: 3.8em;
+      z-index: 12;
+    }
+
+    @media (max-width:992px) {
+      .bTRHGp .list-tools {
+        top: 3em;
+      }
+    }
+
+    .bTRHGp .itemToolsSelected {
+      bottom: 2px;
+      font-size: 0.9rem;
+      background-color: #007bff1a;
+      padding: 15px 20px;
+      border-radius: 4px;
+    }
+
+    .bTRHGp .itemToolsSelected button {
+      font-size: 1em;
+      border: none;
+      background-color: unset;
+      box-shadow: none;
+    }
+
+    .bTRHGp .rdt_TableHeadRow {
+      color: #495057;
+      background-color: #e9ecef;
+      border: 1px solid #dee2e6;
+      border-radius: 0.2rem 0.2rem 0 0;
+    }
+
+    .bTRHGp .rdt_TableHeadRow div {
+      color: #495057;
+      font-size: 14px;
+    }
+
+    .bTRHGp .rdt_TableCell {
+      padding-bottom: 8px;
+      padding-top: 8px;
+    }
+
+    .fGHjUb .small-icon {
+      font-size: 0.9rem;
+    }
+
+    .lkOwuN .overview-backdrop {
+      all: unset;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.3);
+      z-index: 1040;
+      cursor: pointer;
+    }
+
+    .lkOwuN .overview-panel {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: 50vw;
+      height: 100%;
+      background: #fff;
+      z-index: 1050;
+      box-shadow: -4px 0 12px rgba(0, 0, 0, 0.15);
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: -ms-flexbox;
+      display: flex;
+      -webkit-flex-direction: column;
+      -ms-flex-direction: column;
+      flex-direction: column;
+    }
+
+    .lkOwuN .overview-header {
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: -ms-flexbox;
+      display: flex;
+      -webkit-box-pack: justify;
+      -webkit-justify-content: space-between;
+      -ms-flex-pack: justify;
+      justify-content: space-between;
+      -webkit-align-items: center;
+      -webkit-box-align: center;
+      -ms-flex-align: center;
+      align-items: center;
+      padding: 16px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .lkOwuN .overview-content {
+      padding: 16px;
+      -webkit-flex: 1;
+      -ms-flex: 1;
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .lkOwuN .timeline {
+      position: relative;
+      padding-left: 5px;
+      border-left: 2px solid #d1d5db;
+    }
+
+    .lkOwuN .timeline-item {
+      position: relative;
+      margin-bottom: 24px;
+      padding-left: 18px;
+    }
+
+    .lkOwuN .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -2px;
+      top: 10px;
+      width: 12px;
+      height: 2px;
+      background: #9ca3af;
+    }
+
+    .lkOwuN .list-disc {
+      list-style-type: disc;
+      padding-left: 20px;
+    }
+
+    .lkOwuN .list-disc li {
+      margin-bottom: 4px;
+    }
+
+    .lkOwuN .task-group {
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: -ms-flexbox;
+      display: flex;
+      -webkit-align-items: center;
+      -webkit-box-align: center;
+      -ms-flex-align: center;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .lkOwuN .badge-overview {
+      border-radius: 50%;
+      width: 10px;
+      height: 10px;
+      padding: 0;
+    }
+
+    .lkOwuN .btn-speak {
+      border: 1px solid transparent;
+      background: linear-gradient(#fff, #fff) padding-box, linear-gradient(90deg, #007bff, #009f79) border-box;
+    }
+
+    .lkOwuN .span-speak {
+      background: linear-gradient(90deg, #007bff, #009f79);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .bDQZWZ {
+      height: 56px !important;
+      background-color: #1f3e4f;
+      background: #1f3e4f;
+    }
+
+    .bDQZWZ .icon-ia-badge {
+      font-weight: 500;
+      padding: 1px 2px;
+      font-size: 0.45rem;
+      border-radius: 2px;
+      bottom: 11px;
+      left: 23px;
+    }
+
+    :root {
+      --bidding-chat-drawer-width: 46.2rem;
+    }
+
+    .modal.bidding-chat-drawer-modal {
+      padding-left: 0;
+      padding-right: 0;
+      font-family: 'Roboto', sans-serif;
+      pointer-events: none;
+    }
+
+    .modal.bidding-chat-drawer-modal.bidding-chat-drawer-modal--with-summary {
+      z-index: 1060 !important;
+    }
+
+    .modal.bidding-chat-drawer-modal .modal-dialog.bidding-chat-drawer-dialog {
+      position: fixed;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      left: auto;
+      margin: 0;
+      width: min(100vw, var(--bidding-chat-drawer-width));
+      max-width: min(100vw, var(--bidding-chat-drawer-width));
+      height: 100vh;
+      max-height: 100vh;
+      -webkit-transform: translateX(100%);
+      -ms-transform: translateX(100%);
+      transform: translateX(100%);
+      -webkit-transition: -webkit-transform 0.3s ease-out;
+      -webkit-transition: transform 0.3s ease-out;
+      transition: transform 0.3s ease-out;
+    }
+
+    .modal-backdrop.bidding-chat-drawer-backdrop {
+      opacity: 0.5;
+    }
+
+    .modal-backdrop.bidding-chat-drawer-backdrop--with-summary {
+      opacity: 0.35;
+      left: 0;
+      right: auto;
+      width: calc(100vw - min(100vw, var(--bidding-chat-drawer-width)) - min(var(--bidding-summary-drawer-width, 72rem), calc(100vw - min(100vw, var(--bidding-chat-drawer-width)))));
+    }
+
+    .modal.bidding-chat-drawer-modal.show .modal-dialog.bidding-chat-drawer-dialog {
+      -webkit-transform: translateX(0);
+      -ms-transform: translateX(0);
+      transform: translateX(0);
+    }
+
+    .modal.bidding-chat-drawer-modal .bidding-chat-drawer-content {
+      position: relative;
+      height: 100vh;
+      max-height: 100vh;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: -ms-flexbox;
+      display: flex;
+      -webkit-flex-direction: column;
+      -ms-flex-direction: column;
+      flex-direction: column;
+      overflow: visible;
+      pointer-events: auto;
+    }
+
+    .modal.bidding-chat-drawer-modal .bidding-chat-drawer-content>.bidding-chat-summary-fab-anchor {
+      position: absolute;
+      left: 0;
+      top: 1.125rem;
+      z-index: 1060;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: -ms-flexbox;
+      display: flex;
+      -webkit-transform: translateX(-100%);
+      -ms-transform: translateX(-100%);
+      transform: translateX(-100%);
+      pointer-events: auto;
+      line-height: 0;
+    }
+
+    .bidding-chat-summary-fab-anchor .bidding-chat-summary-fab-tooltip {
+      font-family: 'Roboto', sans-serif;
+      position: absolute;
+      top: 50%;
+      right: calc(100% + 0.4375rem);
+      -webkit-transform: translateY(-50%);
+      -ms-transform: translateY(-50%);
+      transform: translateY(-50%);
+      padding: 0.5625rem 0.8125rem;
+      border-radius: 6px;
+      background-color: #1a2838;
+      color: #fff;
+      font-size: 0.875rem;
+      font-weight: 500;
+      line-height: 1.25;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgb(0 0 0 / 22%);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      -webkit-transition: opacity 0.18s ease, visibility 0.18s ease;
+      transition: opacity 0.18s ease, visibility 0.18s ease;
+    }
+
+    .bidding-chat-summary-fab-anchor .bidding-chat-summary-fab-tooltip::after {
+      content: '';
+      position: absolute;
+      left: 100%;
+      top: 50%;
+      -webkit-transform: translateY(-50%);
+      -ms-transform: translateY(-50%);
+      transform: translateY(-50%);
+      border-width: 6px 0 6px 6px;
+      border-style: solid;
+      border-color: transparent transparent transparent #1a2838;
+    }
+
+    .bidding-chat-summary-fab-anchor:hover .bidding-chat-summary-fab-tooltip,
+    .bidding-chat-summary-fab-anchor:focus-within .bidding-chat-summary-fab-tooltip {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .bidding-chat-summary-fab {
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: -ms-flexbox;
+      display: flex;
+      -webkit-align-items: center;
+      -webkit-box-align: center;
+      -ms-flex-align: center;
+      align-items: center;
+      -webkit-box-pack: center;
+      -webkit-justify-content: center;
+      -ms-flex-pack: center;
+      justify-content: center;
+      width: 3rem;
+      height: 3rem;
+      padding: 0;
+      border: none;
+      border-radius: 9px 0 0 9px;
+      box-shadow: 0 2px 8px rgb(0 0 0 / 18%);
+      background: linear-gradient(90deg, #1e88e5 0%, #00897b 100%);
+      color: #fff;
+      cursor: pointer;
+      -webkit-transition: opacity 0.15s ease;
+      transition: opacity 0.15s ease;
+    }
+
+    .bidding-chat-summary-fab:hover,
+    .bidding-chat-summary-fab:focus {
+      opacity: 0.95;
+      outline: none;
+      box-shadow: 0 2px 10px rgb(0 0 0 / 22%);
+    }
+
+    .bidding-chat-summary-fab img {
+      width: 1.5rem;
+      height: 1.5rem;
+      display: block;
+    }
+
+    .modal.bidding-chat-drawer-modal--with-summary .bidding-chat-drawer-content {
+      border-left: 0;
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+      box-shadow: none;
+    }
+
+    .bidding-chat-saved-drawer .bidding-chat-saved-question-inline-input.btn.btn-link {
+      white-space: normal !important;
+      word-break: break-word;
+      cursor: text !important;
+      border-radius: 0 !important;
+      border: none !important;
+      border-color: transparent !important;
+      box-shadow: none !important;
+      background-color: transparent !important;
+      -webkit-text-decoration: none;
+      text-decoration: none;
+      color: #1a2b3c !important;
+    }
+
+    .bidding-chat-saved-drawer .bidding-chat-saved-question-inline-input.btn.btn-link:hover,
+    .bidding-chat-saved-drawer .bidding-chat-saved-question-inline-input.btn.btn-link:focus,
+    .bidding-chat-saved-drawer .bidding-chat-saved-question-inline-input.btn.btn-link:active {
+      outline: none !important;
+      box-shadow: none !important;
+      -webkit-text-decoration: none;
+      text-decoration: none;
+      border-color: transparent !important;
+      background-color: transparent !important;
+      color: #1a2b3c !important;
+    }
+
+    .bidding-chat-saved-drawer .chatbot-input-group {
+      border: none !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      background-color: transparent !important;
+      min-height: 0 !important;
+    }
+
+    .modal.bidding-chat-drawer-modal .bidding-chat-container .chatbot .chatbot-form .chatbot-footer-meta {
+      box-sizing: border-box;
+      width: 100%;
+      max-width: 100%;
+      display: block;
+      text-align: center;
+    }
+
+    .bCHLMR a.dropdown-item p {
+      white-space: pre-line;
+    }
+
+    .bCHLMR a.notification-bell {
+      color: #21354A;
+    }
+
+    @media screen and (min-width:980px) {
+      .bCHLMR .notification-dropdown {
+        width: 400px;
+      }
+    }
+
+    @media screen and (min-width:980px) {
+      .bCHLMR .notification-pull-right {
+        line-height: 40px;
+        float: right;
+        margin-right: 0;
+        right: 0;
+        left: auto;
+      }
+    }
+
+    .bCHLMR .notification-badge {
+      position: relative;
+    }
+
+    .bCHLMR .notification-badge[data-notification-badge]:after {
+      content: attr(data-notification-badge);
+      position: absolute;
+      right: -3px;
+      top: -4px;
+      background: #dc3545;
+      line-height: 9px;
+      border-radius: 50%;
+      font-family: sans-serif;
+      padding: 2px 4px;
+      font-size: 11px !important;
+      color: #ffffff;
+      border: 2px solid #ffffff;
+      white-space: nowrap;
+      font-weight: bold;
+    }
+
+    .bCHLMR .dropdown-menu {
+      width: 350px;
+      max-height: 300px;
+      font-size: 0.935em;
+      overflow: auto;
+      color: #8c8c8c;
+    }
+
+    @media only screen and (max-width:768px) {
+      .bCHLMR .dropdown-menu {
+        width: 270px;
+      }
+    }
+
+    .bCHLMR .dropdown-menu a:hover {
+      -webkit-text-decoration: none;
+      text-decoration: none;
+    }
+
+    .bCHLMR .dropdown-menu li {
+      cursor: pointer;
+    }
+
+    .bCHLMR .dropdown-menu .dropdown-divider {
+      margin: 0;
+    }
+
+    .bCHLMR .dropdown-menu .new-notification {
+      color: #666;
+      background-color: #f2f2f2;
+    }
+
+    .bCHLMR .dropdown-menu .all-notifications {
+      margin-top: 0.3em;
+    }
+
+    .bCHLMR .dropdown-menu .all-notifications a {
+      color: $primary;
+    }
+
+    .glPoTF {
+      min-height: 56px;
+      box-shadow: 0 0.25rem 0.75rem rgb(0 0 0 / 5%);
+    }
+
+    .glPoTF.bg-header {
+      background: #21354A;
+      color: #ffffff;
+    }
+
+    html[data-tema='go'] .glPoTF.glPoTF {
+      background: #171717;
+    }
+
+    html[data-tema='go'] .sc-dSaQTq .btn-menu:hover,
+    html[data-tema='go'] .glPoTF .new-header-chatbot button:hover {
+      background: #2a2a2a !important;
+    }
+
+    html[data-tema='go'] .sc-dSaQTq .new-header-chatbot button {
+      background: #171717 !important;
+    }
+
+    html[data-tema='go'] .sc-dSaQTq .nav-link.active,
+    html[data-tema='go'] .glPoTF .dropdown-toggle:hover {
+      color: #FF6B00 !important;
+    }
+
+    html[data-tema='go'] .sc-dSaQTq .tour-ajuda-button {
+      background: linear-gradient(90deg, #FF6B00 0%, #EB2727 100%) !important;
+      border-color: transparent !important;
+    }
+
+    html[data-tema='go'] .sc-dSaQTq .tour-ajuda-button:hover {
+      -webkit-filter: brightness(1.08);
+      filter: brightness(1.08);
+    }
+
+    .glPoTF .box-logo {
+      padding: 0.5em 1em;
+    }
+
+    .glPoTF .btn-menu {
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: -ms-flexbox;
+      display: flex;
+      height: 56px;
+      -webkit-align-items: center;
+      -webkit-box-align: center;
+      -ms-flex-align: center;
+      align-items: center;
+      padding: 0 1rem;
+      color: #ffffff !important;
+    }
+
+    .glPoTF .btn-menu:hover {
+      -webkit-text-decoration: none;
+      text-decoration: none;
+      background: #374D65;
+    }
+
+    .glPoTF .new-header-chatbot button {
+      padding: 0 1rem;
+      background: #21354A !important;
+      border: 0;
+    }
+
+    .glPoTF .new-header-chatbot button:hover {
+      background: #374D65 !important;
+    }
+
+    .glPoTF .new-header-chatbot button .icon-ia {
+      height: 25px;
+      width: 25px;
+      display: inline-block;
+      border-color: #ffffff;
+    }
+
+    .glPoTF .icon-header .notification-bell,
+    .glPoTF .icon-header .menu-monitoring {
+      color: #ffffff !important;
+    }
+
+    .glPoTF .icon-header .notification-bell:hover,
+    .glPoTF .icon-header .menu-monitoring:hover {
+      -webkit-text-decoration: none;
+      text-decoration: none;
+      opacity: 0.8;
+    }
+
+    .glPoTF .notification-badge[data-notification-badge]:after {
+      border-color: #21354A;
+    }
+
+    .glPoTF .nav-link {
+      color: #ffffff;
+    }
+
+    .glPoTF .nav-link-menu {
+      height: 56px;
+    }
+
+    .glPoTF .nav-link-menu:hover {
+      background: #374D65 !important;
+    }
+
+    .glPoTF.representant-header {
+      background: #1F3E4F;
+    }
+
+    @media only screen and (max-width:768px) {
+      .glPoTF.representant-header {
+        min-height: 112px;
+      }
+    }
+
+    .glPoTF.representant-header button,
+    .glPoTF.representant-header .new-header-chatbot button {
+      background: #1F3E4F !important;
+    }
+
+    .glPoTF.representant-header .btn-menu:hover,
+    .glPoTF.representant-header .nav-link-menu:hover,
+    .glPoTF.representant-header .new-header-chatbot button:hover {
+      background: #19323F !important;
+    }
+
+    .glPoTF.representant-header .notification-badge[data-notification-badge]:after {
+      border-color: #1F3E4F;
+    }
+
+    .glPoTF.representant-header .representant-select {
+      width: 25%;
+    }
+
+    @media only screen and (max-width:768px) {
+      .glPoTF.representant-header .representant-select {
+        width: 100%;
+      }
+    }
+
+    .glPoTF .img-logos {
+      max-width: 100%;
+    }
+
+    .glPoTF .img-logos.logo-parceiro {
+      background: #ffffff;
+      padding: 5px;
+      border-radius: 4px;
+    }
+
+    .glPoTF .dropdown-menu {
+      position: absolute !important;
+      top: 56px;
+    }
+
+    .glPoTF .dropdown-menu.dropdown-menu-right {
+      right: 5px;
+    }
+
+    .glPoTF .dropdown-menu.dropdown-menu-left {
+      left: 0;
+    }
+
+    @media only screen and (max-width:768px) {
+      .glPoTF {
+        margin-left: 0px;
+      }
+    }
+
+    .glPoTF.hasTopBanner {
+      top: 80px;
+    }
+
+    @media only screen and (max-width:768px) {
+      .glPoTF.hasTopBanner {
+        top: 240px;
+      }
+    }
+
+    .glPoTF .menu-tools {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      width: 250px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 10px;
+      z-index: 1000;
+    }
+
+    .glPoTF .btn-menu.tools,
+    .glPoTF .btn-menu.tools:hover {
+      background: #ffffff !important;
+      color: #21354A !important;
+    }
+
+    .glPoTF .user-avatar {
+      width: 32px;
+      height: 32px;
+      background: #ffffff;
+      color: #21354A;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: -ms-flexbox;
+      display: flex;
+      -webkit-align-items: center;
+      -webkit-box-align: center;
+      -ms-flex-align: center;
+      align-items: center;
+      -webkit-box-pack: center;
+      -webkit-justify-content: center;
+      -ms-flex-pack: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .glPoTF .user-dropdown {
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: -ms-flexbox;
+      display: flex;
+      -webkit-align-items: center;
+      -webkit-box-align: center;
+      -ms-flex-align: center;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .kufmpd {
+      background: #00000060;
+      width: 100%;
+      height: 0;
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      z-index: 999;
+    }
+
+    .kufmpd.menu-open {
+      height: calc(100vh - 56px);
+    }
+
+    .modal.chatbot-assistant-drawer-modal {
+      padding-left: 0;
+      padding-right: 0;
+      font-family: 'Roboto', sans-serif;
+      pointer-events: none;
+    }
+
+    .modal.chatbot-assistant-drawer-modal .modal-dialog.chatbot-assistant-drawer-dialog {
+      position: fixed;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      left: auto;
+      margin: 0;
+      width: min(100vw, var(--bidding-chat-drawer-width, 46.2rem));
+      max-width: min(100vw, var(--bidding-chat-drawer-width, 46.2rem));
+      height: 100vh;
+      max-height: 100vh;
+      -webkit-transform: translateX(100%);
+      -ms-transform: translateX(100%);
+      transform: translateX(100%);
+      -webkit-transition: -webkit-transform 0.3s ease-out, width 0.3s ease-out, max-width 0.3s ease-out;
+      -webkit-transition: transform 0.3s ease-out, width 0.3s ease-out, max-width 0.3s ease-out;
+      transition: transform 0.3s ease-out, width 0.3s ease-out, max-width 0.3s ease-out;
+    }
+
+    .modal.chatbot-assistant-drawer-modal .modal-dialog.chatbot-assistant-drawer-dialog--expanded {
+      width: min(100vw, calc(var(--bidding-chat-drawer-width, 46.2rem) * 1.8));
+      max-width: min(100vw, calc(var(--bidding-chat-drawer-width, 46.2rem) * 1.8));
+    }
+
+    .modal-backdrop.chatbot-assistant-drawer-backdrop {
+      opacity: 0.5;
+    }
+
+    .modal.chatbot-assistant-drawer-modal.show .modal-dialog.chatbot-assistant-drawer-dialog {
+      -webkit-transform: translateX(0);
+      -ms-transform: translateX(0);
+      transform: translateX(0);
+    }
+
+    .modal.chatbot-assistant-drawer-modal .chatbot-assistant-drawer-content {
+      height: 100vh;
+      max-height: 100vh;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: -ms-flexbox;
+      display: flex;
+      -webkit-flex-direction: column;
+      -ms-flex-direction: column;
+      flex-direction: column;
+      overflow: hidden;
+      pointer-events: auto;
+      padding: 0;
+      border: 0;
+      border-top-left-radius: 0.3rem;
+      border-bottom-left-radius: 0.3rem;
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+      background: #41526b;
+    }
+
+    :root {
+      --bidding-summary-drawer-width: 72rem;
+    }
+
+    .modal.bidding-summary-drawer-modal {
+      padding-left: 0;
+      padding-right: 0;
+      font-family: 'Roboto', sans-serif;
+      pointer-events: none;
+    }
+
+    .modal.bidding-summary-drawer-modal.bidding-summary-drawer-modal--with-chat {
+      z-index: 1049 !important;
+    }
+
+    .modal.bidding-summary-drawer-modal .modal-dialog.bidding-summary-drawer-dialog {
+      position: fixed;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      left: auto;
+      margin: 0;
+      max-width: min(100vw, var(--bidding-summary-drawer-width));
+      width: min(100vw, var(--bidding-summary-drawer-width));
+      height: 100vh;
+      max-height: 100vh;
+      -webkit-transform: translateX(100%);
+      -ms-transform: translateX(100%);
+      transform: translateX(100%);
+      -webkit-transition: -webkit-transform 0.3s ease-out;
+      -webkit-transition: transform 0.3s ease-out;
+      transition: transform 0.3s ease-out;
+    }
+
+    .modal.bidding-summary-drawer-modal--with-chat .modal-dialog.bidding-summary-drawer-dialog {
+      left: auto;
+      right: min(100vw, var(--bidding-chat-drawer-width, 46.2rem));
+      width: min(var(--bidding-summary-drawer-width), calc(100vw - min(100vw, var(--bidding-chat-drawer-width, 46.2rem))));
+      max-width: min(var(--bidding-summary-drawer-width), calc(100vw - min(100vw, var(--bidding-chat-drawer-width, 46.2rem))));
+    }
+
+    .modal.bidding-summary-drawer-modal.show .modal-dialog.bidding-summary-drawer-dialog {
+      -webkit-transform: translateX(0);
+      -ms-transform: translateX(0);
+      transform: translateX(0);
+    }
+
+    .modal.bidding-summary-drawer-modal .bidding-summary-drawer-content {
+      height: 100vh;
+      max-height: 100vh;
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: -ms-flexbox;
+      display: flex;
+      -webkit-flex-direction: column;
+      -ms-flex-direction: column;
+      flex-direction: column;
+      overflow: hidden;
+      pointer-events: auto;
+    }
+
+    .modal.bidding-summary-drawer-modal--with-chat .bidding-summary-drawer-content {
+      border-right: 1px solid #e8e8e8;
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+      box-shadow: none;
+    }
+
+    @media (max-width:767.98px) {
+      .modal.bidding-summary-drawer-modal--with-chat .modal-dialog.bidding-summary-drawer-dialog {
+        width: 0;
+        max-width: 0;
+        overflow: hidden;
+      }
+    }
+
+    .modal.bidding-summary-drawer-modal .bidding-summary-container {
+      -webkit-flex: 1 1 auto;
+      -ms-flex: 1 1 auto;
+      flex: 1 1 auto;
+      min-height: 0;
+    }
+
+    .modal.bidding-summary-drawer-modal .card.summary-accordion-card.summary-accordion-card--danger-border {
+      border-color: #c10007 !important;
+    }
+
+    .modal.bidding-summary-drawer-modal .card.summary-accordion-card.summary-accordion-card--warning-border {
+      border-color: #ffc107 !important;
+    }
+
+    .modal.bidding-summary-drawer-modal .card.summary-accordion-card.summary-accordion-card--success-border {
+      border-color: #28a745 !important;
+    }
+
+    .modal.bidding-summary-drawer-modal .card.summary-accordion-card.summary-accordion-card--exigencias-border {
+      border: 1px solid #17a2b8 !important;
+      border-radius: 8px;
+    }
+
+    .bOrjez {
+      background-color: #f0f1f2;
+      width: 100vw;
+      height: 100vh;
+      overflow-x: hidden !important;
+    }
+
+    .bOrjez.hasTopBanner {
+      padding-top: 80px;
+    }
+
+    @media only screen and (max-width:768px) {
+      .bOrjez.hasTopBanner {
+        padding-top: 240px;
+      }
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      outline: 0;
+      box-sizing: border-box;
+    }
+
+    *:focus {
+      outline: 0;
+    }
+
+    html,
+    body,
+    #root {
+      height: 100%;
+      font-family: 'Roboto', sans-serif;
+      font-size: .94rem;
+    }
+
+    @import url('https://fonts.googleapis.com/css?family=Roboto:400,400i,500,500i,700,700i&display=swap');
+
+    *body {
+      font-family: 'Roboto';
+      --webkit-font-smoothing: antialiased;
+    }
+
+    input,
+    button {
+      font: .95rem 'Roboto', sans-serif;
+    }
+
+    a {
+      -webkit-text-decoration: none;
+      text-decoration: none;
+    }
+
+    ul {
+      list-style: none;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    main {
+      -webkit-box-flex: 1;
+      -webkit-flex-grow: 1;
+      -ms-flex-positive: 1;
+      flex-grow: 1;
+    }
+
+    header,
+    main,
+    footer {
+      -webkit-flex-shrink: 0;
+      -ms-flex-negative: 0;
+      flex-shrink: 0;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    .h1,
+    .h2,
+    .h3,
+    .h4,
+    .h5,
+    .h6 {
+      margin-bottom: 0.5rem;
+      font-family: inherit;
+      font-weight: 500;
+      line-height: 1.2;
+      color: inherit;
+    }
+
+    .page-container {
+      margin-top: 56px;
+    }
+
+    @media only screen and (max-width:768px) {
+      .page-container {
+        margin-top: 56px;
+        margin-left: 0px;
+      }
+
+      .page-container.representant-page {
+        margin-top: 112px;
+      }
+    }
+
+    .big-icon {
+      color: #354153;
+      font-size: 11em;
+    }
+
+    .dark-bg {
+      background-color: #354153;
+    }
+
+    .btn-link {
+      font-size: 0.95rem !important;
+    }
+
+    @media only screen and (min-width:1700px) {
+      .container-fluid.big-resolutions {
+        width: 80%;
+      }
+    }
+
+    .tab {
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    .fc-col-header-cell-cushion {
+      -webkit-text-decoration: none;
+      text-decoration: none;
+      color: black;
+      text-transform: uppercase;
+    }
+
+    .fc-daygrid-day-number {
+      -webkit-text-decoration: none;
+      text-decoration: none;
+      color: black;
+    }
+
+    .fc-daygrid-event-dot {
+      display: none;
+    }
+
+    .loading-container {
+      height: calc(100vh - 56px);
+    }
+
+    .modal-backdrop,
+    .modal {
+      z-index: 3000000000 !important;
+    }
+
+    .new-menu-header .page-container {
+      margin-left: 0;
+    }
+
+    .new-menu-header .filter-bar,
+    .new-menu-header .filter-button {
+      left: 0;
+    }
+
+    .new-menu-header.hasTopBanner .bg-open.menu-open {
+      height: calc(100vh - 56px - 80px);
+    }
+
+    .pac-container {
+      z-index: 9999999999 !important;
+    }
+
+    body.hide-tallos #megasac-chat,
+    body.hide-tallos #megasac-button,
+    body.hide-tallos #megasac-info,
+    body.hide-tallos #tallos-footer {
+      display: none !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
+    .widget-visible {
+      display: none !important;
+    }
+
+    .audio-loading-bars {
+      display: -webkit-box;
+      display: -webkit-flex;
+      display: -ms-flexbox;
+      display: flex;
+      -webkit-align-items: flex-end;
+      -webkit-box-align: flex-end;
+      -ms-flex-align: flex-end;
+      align-items: flex-end;
+      gap: 3px;
+      height: 20px;
+    }
+
+    .audio-loading-bars span {
+      width: 3px;
+      height: 6px;
+      background: #6c757d;
+      border-radius: 2px;
+      -webkit-animation: loading 1s infinite ease-in-out;
+      animation: loading 1s infinite ease-in-out;
+    }
+
+    .audio-loading-bars span:nth-child(1) {
+      -webkit-animation-delay: 0s;
+      animation-delay: 0s;
+    }
+
+    .audio-loading-bars span:nth-child(2) {
+      -webkit-animation-delay: 0.15s;
+      animation-delay: 0.15s;
+    }
+
+    .audio-loading-bars span:nth-child(3) {
+      -webkit-animation-delay: 0.3s;
+      animation-delay: 0.3s;
+    }
+
+    @-webkit-keyframes loading {
+      0% {
+        height: 6px;
+        opacity: 0.4;
+      }
+
+      50% {
+        height: 18px;
+        opacity: 1;
+      }
+
+      100% {
+        height: 6px;
+        opacity: 0.4;
+      }
+    }
+
+    @keyframes loading {
+      0% {
+        height: 6px;
+        opacity: 0.4;
+      }
+
+      50% {
+        height: 18px;
+        opacity: 1;
+      }
+
+      100% {
+        height: 6px;
+        opacity: 0.4;
+      }
+    }
+
+    .btn-ia {
+      border: 1px solid transparent;
+      background: linear-gradient(90deg, #007bff, #009f79) padding-box, linear-gradient(90deg, #007bff, #009f79) border-box;
+    }
+  </style>
+  <script type="text/javascript" async=""
+    src="https://googleads.g.doubleclick.net/pagead/viewthroughconversion/1055239920/?random=1786093821841&amp;cv=11&amp;fst=1786093821841&amp;bg=ffffff&amp;guid=ON&amp;async=1&amp;en=gtag.config&amp;gtm=45be6852h1v9198463455z8811074656za20gzb811074656zd811074656xec&amp;gcd=13l3l3l3l1l1&amp;dma=0&amp;tag_exp=115616986~115938466~115938468~118897920~118897930~119337768~119527019~119896802&amp;u_w=1920&amp;u_h=1080&amp;url=https%3A%2F%2Fconsulteonline.conlicitacao.com.br%2Fminhas_licitacoes%2Fmanagement%2F19130817%2F337602&amp;ref=https%3A%2F%2Fconsulteonline.conlicitacao.com.br%2Fboletim_web%2Fpublic%2Fboletins%2F145963843&amp;rcb=6&amp;frm=0&amp;tiba=Detalhes%20da%20licita%C3%A7%C3%A3o%20n%C2%BA%2019130817%20-%20ConLicita%C3%A7%C3%A3o&amp;hn=www.googleadservices.com&amp;npa=0&amp;pscdl=noapi&amp;auid=880592629.1784183059&amp;uaa=x86&amp;uab=64&amp;uafvl=Not%253DA%253FBrand%3B99.0.0.0%7CGoogle%2520Chrome%3B151.0.7922.76%7CChromium%3B151.0.7922.76&amp;uamb=0&amp;uam=&amp;uap=Windows&amp;uapv=10.0.0&amp;uaw=0&amp;data=event%3Dgtag.config&amp;ept=9&amp;rfmt=3&amp;fmt=4"></script>
+  <script type="text/javascript" async=""
+    src="https://googleads.g.doubleclick.net/pagead/viewthroughconversion/1055239920/?random=1786093821852&amp;cv=11&amp;fst=1786093821852&amp;bg=ffffff&amp;guid=ON&amp;async=1&amp;gtm=45be6852h1v9198463455z8811074656za20gzb811074656zd811074656xea&amp;gcd=13l3l3l3l1l1&amp;dma=0&amp;tag_exp=115616986~115938466~115938468~118897920~118897930~119337768~119527019~119896802&amp;u_w=1920&amp;u_h=1080&amp;url=https%3A%2F%2Fconsulteonline.conlicitacao.com.br%2Fminhas_licitacoes%2Fmanagement%2F19130817%2F337602&amp;ref=https%3A%2F%2Fconsulteonline.conlicitacao.com.br%2Fboletim_web%2Fpublic%2Fboletins%2F145963843&amp;rcb=6&amp;frm=0&amp;tiba=Detalhes%20da%20licita%C3%A7%C3%A3o%20n%C2%BA%2019130817%20-%20ConLicita%C3%A7%C3%A3o&amp;hn=www.googleadservices.com&amp;npa=0&amp;pscdl=noapi&amp;auid=880592629.1784183059&amp;uaa=x86&amp;uab=64&amp;uafvl=Not%253DA%253FBrand%3B99.0.0.0%7CGoogle%2520Chrome%3B151.0.7922.76%7CChromium%3B151.0.7922.76&amp;uamb=0&amp;uam=&amp;uap=Windows&amp;uapv=10.0.0&amp;uaw=0&amp;_tu=CA&amp;ept=9&amp;rfmt=3&amp;fmt=4"></script>
+  <style data-emotion="css" data-s=""></style>
+  <link rel="stylesheet" type="text/css"
+    href="https://api.tallos.com.br/widget/v2/load-styles?load=1786093822108&amp;size=medium&amp;side=right"
+    media="all">
+  <script charset="utf-8" src="https://embed.tawk.to/_s/v4/app/6a4e64e9f0d/js/twk-chunk-2d0d2b7c.js"></script>
+  <script charset="utf-8" src="https://embed.tawk.to/_s/v4/app/6a4e64e9f0d/js/twk-chunk-2d224aff.js"></script>
+  <script charset="utf-8" src="https://embed.tawk.to/_s/v4/app/6a4e64e9f0d/js/twk-chunk-3ea2c7ce.js"></script>
+  <script charset="utf-8" src="https://embed.tawk.to/_s/v4/app/6a4e64e9f0d/js/twk-chunk-2d0da3af.js"></script>
+  <script charset="utf-8" src="https://embed.tawk.to/_s/v4/app/6a4e64e9f0d/js/twk-chunk-4fe9d5dd.js"></script>
+  <script charset="utf-8" src="https://embed.tawk.to/_s/v4/app/6a4e64e9f0d/js/twk-chunk-7941cc06.js"></script>
+  <script charset="utf-8" src="https://embed.tawk.to/_s/v4/app/6a4e64e9f0d/js/twk-chunk-6289ff8e.js"></script>
+  <script charset="utf-8" src="https://embed.tawk.to/_s/v4/app/6a4e64e9f0d/js/twk-chunk-2d0c8092.js"></script>
+  <style type="text/css">
+    #euuakl8l7uu1786093822731 {
+      outline: none !important;
+      visibility: visible !important;
+      resize: none !important;
+      box-shadow: none !important;
+      overflow: visible !important;
+      background: none !important;
+      opacity: 1 !important;
+      filter: alpha(opacity=100) !important;
+      -ms-filter: progid:DXImageTransform.Microsoft.Alpha(Opacity 1
+      }) !important;
+    -mz-opacity:1 !important;
+    -khtml-opacity:1 !important;
+    top:auto !important;
+    right:0px !important;
+    bottom:0px !important;
+    left:auto !important;
+    position:fixed !important;
+    border:0 !important;
+    min-height:0px !important;
+    min-width:0px !important;
+    max-height:none !important;
+    max-width:none !important;
+    padding:0px !important;
+    margin:0px !important;
+    -moz-transition-property:none !important;
+    -webkit-transition-property:none !important;
+    -o-transition-property:none !important;
+    transition-property:none !important;
+    transform:none !important;
+    -webkit-transform:none !important;
+    -ms-transform:none !important;
+    width:auto !important;
+    height:auto !important;
+    display:none !important;
+    z-index:2000000000 !important;
+    background-color:transparent !important;
+    cursor:none !important;
+    float:none !important;
+    border-radius:unset !important;
+    pointer-events:auto !important;
+    clip:auto !important;
+    color-scheme:light !important;
+    }
+  </style>
+  <style type="text/css">
+    .tawk-button-hover[data-v-2fc2d95d]:focus,
+    .tawk-button-hover[data-v-2fc2d95d]:hover {
+      background-color: hsla(0, 0%, 100%, .2) !important;
+      border-radius: 5px !important
+    }
+  </style>
+  <style type="text/css">
+    @keyframes tawkMaxOpen {
+      0% {
+        opacity: 0;
+        transform: translate(0, 30px);
+        ;
+      }
+
+      to {
+        opacity: 1;
+        transform: translate(0, 0px);
+      }
+    }
+
+    @-moz-keyframes tawkMaxOpen {
+      0% {
+        opacity: 0;
+        transform: translate(0, 30px);
+        ;
+      }
+
+      to {
+        opacity: 1;
+        transform: translate(0, 0px);
+      }
+    }
+
+    @-webkit-keyframes tawkMaxOpen {
+      0% {
+        opacity: 0;
+        transform: translate(0, 30px);
+        ;
+      }
+
+      to {
+        opacity: 1;
+        transform: translate(0, 0px);
+      }
+    }
+
+    #wiqms138n7hg1786093822755.open {
+      animation: tawkMaxOpen .25s ease !important;
+    }
+
+    @keyframes tawkMaxClose {
+      from {
+        opacity: 1;
+        transform: translate(0, 0px);
+        ;
+      }
+
+      to {
+        opacity: 0;
+        transform: translate(0, 30px);
+        ;
+      }
+    }
+
+    @-moz-keyframes tawkMaxClose {
+      from {
+        opacity: 1;
+        transform: translate(0, 0px);
+        ;
+      }
+
+      to {
+        opacity: 0;
+        transform: translate(0, 30px);
+        ;
+      }
+    }
+
+    @-webkit-keyframes tawkMaxClose {
+      from {
+        opacity: 1;
+        transform: translate(0, 0px);
+        ;
+      }
+
+      to {
+        opacity: 0;
+        transform: translate(0, 30px);
+        ;
+      }
+    }
+
+    #wiqms138n7hg1786093822755.closed {
+      animation: tawkMaxClose .25s ease !important
+    }
+  </style>
+</head>
+
+<body class="bg-gray hide-tallos"><noscript>
+    <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PBG9BCL&gtm_auth=&gtm_preview=&gtm_cookies_win=x"
+      height="0" width="0" style="display:none;visibility:hidden" id="tag-manager"></iframe></noscript><audio
+    id="aviso_sonoro" src="https://cartas.conlicitacao.com.br/2019/sounds/push.mp3"></audio>
+  <script type="application/javascript"
+    src="https://kong.tallos.com.br:18000/megasac-api/widget/6260460370367304e591d049-626046033ac1996e155dd0d2-1.min.js"></script>
+  <title>Detalhes da licitação nº 19130817 - ConLicitação</title>
+  <link href="/static/css/2.4e856984.css" rel="stylesheet">
+  <link href="/static/css/main.5acdad52.css" rel="stylesheet"><noscript>You need to enable JavaScript to run this
+    app.</noscript>
+  <div id="root">
+    <div class="sc-kOyqGX bOrjez  
+      new-menu-header
+      " id="windowDiv">
+      <nav class="sc-dSaQTq glPoTF bg-header d-flex align-items-center flex-wrap fixed-top mb-0 d-print-none  ">
+        <div class="d-flex order-1 align-items-center py-0 h-100">
+          <div class="box-logo d-flex justify-content-between align-items-center"><a title="Logo" class="icon-logo"
+              href="/painel"><img alt="Tudo sobre Licitações Públicas e Pregão - Conlicitação"
+                src="/static/media/icon-conlicitacao.7a98fee8.svg" width="42"></a></div><a
+            class="btn-menu d-md-flex d-none" href="/">Dashboard</a><a class="btn-menu "
+            href="/minhas_licitacoes/management/19130817/337602"><span
+              class="material-icons d-inline-block d-md-none">menu</span><span
+              class="d-md-inline-block d-none">Ferramentas</span></a>
+        </div>
+        <ul class="navbar-nav order-2 order-md-3 flex-fill justify-content-end align-items-center flex-row">
+          <li class="nav-item text-center new-header-chatbot"><button type="button"
+              class="sc-bAhZh bDQZWZ d-flex text-white align-items-center position-relative"><img
+                alt="Icone Consultor Jurídico" src="/static/media/icone-ia.53762fb9.svg" aria-hidden="true"><span
+                class="d-md-inline-block d-none ml-2">Consultor Jurídico</span><span
+                class="icon-ia-badge d-md-inline-block d-none badge badge-success position-absolute">2.0</span></button>
+          </li>
+          <li class="nav-item icon-header px-3"><a class="d-flex menu-monitoring databalloon"
+              aria-label="Novas mensagens no Monitorar Chat" data-balloon-pos="down"
+              href="/facilitadores/monitoramento"><span class="material-icons">chat_bubble</span><span
+                class="monitoring-notify position-absolute p-1 bg-danger border border-light rounded-circle"></span></a>
+          </li>
+          <li class="nav-item icon-header dropdown px-3 position-relative" id="notification">
+            <div class="sc-bIaGFe bCHLMR fragment"><a class="nav-link notification-bell" href="#" role="button"><span
+                  class="material-icons " title="Notificações" aria-hidden="true"
+                  data-notification-badge="">notifications</span></a>
+              <div class="dropdown-menu dropdown-menu-right false">
+          <li class="text-center"><label>Nenhuma nova notificação.</label></li><a
+            class="dropdown-item text-center all-notifications" href="/notification/notifications">Todas
+            notificações</a>
+    </div>
+  </div>
+  </li>
+  <li class="nav-item d-md-inline-block d-none"><a class="btn btn-sm btn-primary tour-ajuda-button mx-2"
+      href="/ajuda">Ajuda</a></li>
+  <li class="nav-item dropdown position-relative"><a
+      class="nav-link nav-link-menu px-3 py-0 dropdown-toggle user-dropdown" role="button" href="#">
+      <div class="user-avatar rounded-circle overflow-hidden" title="Karine Almeida De Araújo">KA</div>
+    </a>
+    <ul class="dropdown-menu dropdown-menu-right false">
+      <li class="nav-item"><a class="dropdown-item" target="_top" href="/minha_conta">Minha Conta</a></li>
+      <li class="dropdown-divider"></li>
+      <li class="nav-item"><a class="dropdown-item" target="_top" href="/planos">Planos e Preços</a></li>
+      <li class="dropdown-divider"></li>
+      <li class="nav-item"><a class="dropdown-item" target="#feedback_bootstrap_modal" data-toggle="modal" href="">Envie
+          seu Feedback</a></li>
+      <li class="dropdown-divider"></li>
+      <li class="nav-item"><a class="dropdown-item" target="#feedback_bootstrap_modal" data-toggle="modal"
+          href="">Sair</a></li>
+    </ul>
+  </li>
+  </ul>
+  </nav>
+  <div class="sc-HEwFl kufmpd false bg-open" aria-hidden="true"></div>
+  <div class="sc-dYPfWK lkOwuN">
+    <div class="page-container">
+      <div class="container-fluid big-resolutions">
+        <div class="row mb-4 px-md-4 py-4">
+          <div class="col-12">
+            <div class="row mb-2">
+              <div class="col-12"><a class="btn btn-link btn-sm p-0" href="/minhas_licitacoes/management"><i
+                    class="material-icons align-middle">keyboard_arrow_left</i>Voltar</a></div>
+            </div>
+            <div class="row mb-4">
+              <div class="col-12 col-md-6">
+                <h4 class="mb-1">Detalhes da licitação nº 19130817</h4>
+                <p class="text-muted mb-0">Gerenciada por: Karine Almeida De Araújo</p>
+              </div>
+              <div class="col-12 col-md-6 text-md-right text-left"><button class="btn btn-sm btn-secondary ml-2"
+                  type="button">Finalizar</button><button class="btn btn-sm btn-danger mx-2" type="button">Remover do
+                  Gerenciamento</button></div>
+            </div>
+            <div class="mx-3">
+              <div class="sc-jlRLRk chgDLT row">
+                <div class="col-12 p-0">
+                  <div class="card shadow bidding rounded position-relative mb-5 d-print-none">
+                    <div class="sc-bQtKYq imWNeD">
+                      <div class="card-header bidding-bg-header bidding-info false">
+                        <div class="row align-items-center">
+                          <div class="d-flex mr-auto align-items-center">
+                            <div class="bidding-item-header-buttons mb-2 mb-md-0 d-print-none">
+                              <div class="sc-dVNjXY ewZLFj position-relative databalloon mr-2"
+                                aria-label="Adicionar licitação em Gerenciar Licitações" data-balloon-pos="up"
+                                data-balloon-length="medium">
+                                <div
+                                  class="sc-kYHfwS enhtnj bidding-item-header-button hover-pointer bidding-favorited-icon">
+                                  <div>
+                                    <div title="" role="button" aria-label="animation" tabindex="0"
+                                      style="width: 100%; height: 42px; overflow: hidden; margin: 0px auto; outline: none;">
+                                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44" width="44" height="44"
+                                        preserveAspectRatio="xMidYMid slice"
+                                        style="width: 100%; height: 100%; transform: translate3d(0px, 0px, 0px); content-visibility: visible;">
+                                        <defs>
+                                          <clipPath id="__lottie_element_7">
+                                            <rect width="44" height="44" x="0" y="0"></rect>
+                                          </clipPath>
+                                        </defs>
+                                        <g clip-path="url(#__lottie_element_7)">
+                                          <g style="display: none;">
+                                            <g>
+                                              <path></path>
+                                            </g>
+                                          </g>
+                                          <g style="display: none;">
+                                            <g>
+                                              <path stroke-linecap="butt" stroke-linejoin="miter" fill-opacity="0"
+                                                stroke-miterlimit="4"></path>
+                                            </g>
+                                          </g>
+                                          <g style="display: none;">
+                                            <g>
+                                              <path stroke-linecap="round" stroke-linejoin="miter" fill-opacity="0"
+                                                stroke-miterlimit="4"></path>
+                                            </g>
+                                          </g>
+                                          <g style="display: none;">
+                                            <g>
+                                              <path stroke-linecap="round" stroke-linejoin="miter" fill-opacity="0"
+                                                stroke-miterlimit="4"></path>
+                                            </g>
+                                          </g>
+                                          <g style="display: none;">
+                                            <g>
+                                              <path stroke-linecap="round" stroke-linejoin="miter" fill-opacity="0"
+                                                stroke-miterlimit="4"></path>
+                                            </g>
+                                          </g>
+                                          <g style="display: none;">
+                                            <g>
+                                              <path stroke-linecap="round" stroke-linejoin="miter" fill-opacity="0"
+                                                stroke-miterlimit="4"></path>
+                                            </g>
+                                          </g>
+                                          <g style="display: none;">
+                                            <g>
+                                              <path stroke-linecap="round" stroke-linejoin="miter" fill-opacity="0"
+                                                stroke-miterlimit="4"></path>
+                                            </g>
+                                          </g>
+                                          <g style="display: none;">
+                                            <g>
+                                              <path stroke-linecap="round" stroke-linejoin="miter" fill-opacity="0"
+                                                stroke-miterlimit="4"></path>
+                                            </g>
+                                          </g>
+                                          <g style="display: none;">
+                                            <g>
+                                              <path stroke-linecap="round" stroke-linejoin="miter" fill-opacity="0"
+                                                stroke-miterlimit="4"></path>
+                                            </g>
+                                          </g>
+                                          <g style="display: none;">
+                                            <g>
+                                              <path stroke-linecap="round" stroke-linejoin="miter" fill-opacity="0"
+                                                stroke-miterlimit="4"></path>
+                                            </g>
+                                          </g>
+                                          <g style="display: none;">
+                                            <g>
+                                              <path stroke-linecap="round" stroke-linejoin="miter" fill-opacity="0"
+                                                stroke-miterlimit="4"></path>
+                                            </g>
+                                          </g>
+                                          <g style="display: none;">
+                                            <g>
+                                              <path stroke-linecap="round" stroke-linejoin="miter" fill-opacity="0"
+                                                stroke-miterlimit="4"></path>
+                                            </g>
+                                          </g>
+                                          <g style="display: none;">
+                                            <g>
+                                              <path stroke-linecap="round" stroke-linejoin="miter" fill-opacity="0"
+                                                stroke-miterlimit="4"></path>
+                                            </g>
+                                          </g>
+                                          <g style="display: none;">
+                                            <g>
+                                              <path stroke-linecap="round" stroke-linejoin="miter" fill-opacity="0"
+                                                stroke-miterlimit="4"></path>
+                                            </g>
+                                          </g>
+                                          <g style="display: none;">
+                                            <g>
+                                              <path stroke-linecap="round" stroke-linejoin="miter" fill-opacity="0"
+                                                stroke-miterlimit="4"></path>
+                                            </g>
+                                          </g>
+                                          <g style="display: none;">
+                                            <g>
+                                              <path stroke-linecap="round" stroke-linejoin="miter" fill-opacity="0"
+                                                stroke-miterlimit="4"></path>
+                                            </g>
+                                          </g>
+                                          <g transform="matrix(0.10000000149011612,0,0,0.10000000149011612,9.885000228881836,8.843999862670898)"
+                                            opacity="1" style="display: block;">
+                                            <g opacity="1"
+                                              transform="matrix(1,0,0,1,125.01499938964844,126.01599884033203)">
+                                              <path fill="rgb(255,255,255)" fill-opacity="1"
+                                                d=" M-53.99300003051758,95.48400115966797 C-55.57099914550781,95.48400115966797 -57.137001037597656,95.0009994506836 -58.49300003051758,94.04100036621094 C-61.09400177001953,92.21499633789062 -62.38800048828125,89.08699798583984 -61.867000579833984,85.89099884033203 C-61.867000579833984,85.89099884033203 -52.36600112915039,27.545000076293945 -52.36600112915039,27.545000076293945 C-52.28499984741211,27.06100082397461 -52.42900085449219,26.57200050354004 -52.74100112915039,26.256999969482422 C-52.74100112915039,26.256999969482422 -92.99299621582031,-15.067000389099121 -92.99299621582031,-15.067000389099121 C-95.1780014038086,-17.312000274658203 -95.91100311279297,-20.575000762939453 -94.90399932861328,-23.584999084472656 C-93.93000030517578,-26.4950008392334 -91.48999786376953,-28.586000442504883 -88.53299713134766,-29.038999557495117 C-88.53299713134766,-29.038999557495117 -32.902000427246094,-37.55099868774414 -32.902000427246094,-37.55099868774414 C-32.55699920654297,-37.60499954223633 -32.24700164794922,-37.856998443603516 -32.071998596191406,-38.229000091552734 C-32.071998596191406,-38.229000091552734 -7.192999839782715,-91.31900024414062 -7.192999839782715,-91.31900024414062 C-5.8470001220703125,-94.18599700927734 -3.0899999141693115,-95.96800231933594 0.0010000000474974513,-95.96800231933594 C3.0920000076293945,-95.96800231933594 5.8470001220703125,-94.18599700927734 7.189000129699707,-91.31900024414062 C7.189000129699707,-91.31900024414062 7.197000026702881,-91.31900024414062 7.197000026702881,-91.31900024414062 C7.197000026702881,-91.31900024414062 32.07400131225586,-38.23500061035156 32.07400131225586,-38.23500061035156 C32.249000549316406,-37.85900115966797 32.55699920654297,-37.60499954223633 32.89799880981445,-37.55099868774414 C32.89799880981445,-37.55099868774414 88.5270004272461,-29.038999557495117 88.5270004272461,-29.038999557495117 C91.48699951171875,-28.586000442504883 93.93199920654297,-26.4950008392334 94.90399932861328,-23.584999084472656 C95.91100311279297,-20.577999114990234 95.18000030517578,-17.31599998474121 92.99800109863281,-15.069999694824219 C92.99800109863281,-15.069999694824219 52.742000579833984,26.25 52.742000579833984,26.25 C52.433998107910156,26.57200050354004 52.2859992980957,27.06800079345703 52.36600112915039,27.552000045776367 C52.36600112915039,27.552000045776367 61.8650016784668,85.89099884033203 61.8650016784668,85.89099884033203 C62.388999938964844,89.08699798583984 61.099998474121094,92.20800018310547 58.50199890136719,94.04100036621094 C56.03099822998047,95.77899932861328 52.862998962402344,95.96800231933594 50.21200180053711,94.49700164794922 C50.21200180053711,94.49700164794922 0.45399999618530273,66.947998046875 0.45399999618530273,66.947998046875 C0.16599999368190765,66.78700256347656 -0.16699999570846558,66.78700256347656 -0.4560000002384186,66.947998046875 C-0.4560000002384186,66.947998046875 -50.20800018310547,94.49700164794922 -50.20800018310547,94.49700164794922 C-51.39899826049805,95.15499877929688 -52.698001861572266,95.48400115966797 -53.99300003051758,95.48400115966797z">
+                                              </path>
+                                            </g>
+                                          </g>
+                                          <g style="display: none;">
+                                            <g>
+                                              <path></path>
+                                            </g>
+                                          </g>
+                                        </g>
+                                      </svg></div>
+                                  </div>
+                                </div>0
+                              </div>
+                            </div>
+                          </div>
+                          <div class="ml-2 text-white mr-2"><span
+                              class="rounded mr-2 bidding-situation-urgente">URGENTE</span></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="card-body p-4 ">
+                      <div class="tour-bidding-info">
+                        <div class="d-flex flex-column mb-2 bidding-info">
+                          <div class="d-flex">
+                            <div class="bidding-info-title fs-16 pr-2 text-nowrap">Objeto:</div>
+                            <div class="flex-grow-1 fs-16 mb-2">* Portal SICONV * Prestação de serviço como Instrutor de
+                              Artesanato, incluindo planejamento e condução das oficinas, acompanhamento dos alunos,
+                              ensino de técnicas artesanais e apoio às ações da Meta 1, garantindo execução pedagógica e
+                              cultural conforme o cronograma do projeto.</div>
+                          </div>
+                        </div>
+                        <hr>
+                        <div class="row bidding-info mb-2">
+                          <div class="col-md-4 d-flex align-items-center">
+                            <div class="bidding-info-title mr-2 text-nowrap">Datas:</div>
+                            <div class="text-secondary d-flex"><span class="false false"> Prazo: 09/06/2027 00:00
+                              </span></div>
+                          </div>
+                          <div class="col-md-6 d-flex">
+                            <div class="bidding-info-title mr-2 text-nowrap">Órgão:</div>
+                            <div><button type="button"
+                                aria-label="Clique para ver licitações já realizadas por esse órgão."
+                                data-balloon-pos="up"
+                                class="databalloon btn btn-link p-0 text-left break-text border-0">Associacao Favela
+                                Viva<i class="material-icons bidding-info-icon ml-1">info</i></button></div>
+                          </div>
+                          <div class="col-md-2">
+                            <div class="d-flex justify-content-md-end"></div>
+                          </div>
+                        </div>
+                        <div class="row bidding-info mb-2 ">
+                          <div class="col-md-4 d-flex align-items-center">
+                            <div class="bidding-info-title text-nowrap mr-2">Cidade:</div>
+                            <div class="d-flex align-items-center gap-1">
+                              <div class="text-secondary">Sena Madureira - AC</div><button type="button"
+                                class="btn btn-link text-left btn-sm p-0 ml-2"><i
+                                  class="material-icons bidding-info-icon">location_on</i></button>
+                            </div>
+                          </div>
+                          <div class="col-md-8 d-flex">
+                            <div class="bidding-info-title text-nowrap mr-2">Edital:</div>
+                            <div class="text-secondary">CP/7/2026</div>
+                          </div>
+                        </div>
+                        <div class="row bidding-info"></div>
+                        <div class="bidding-hidden-info d-print-block d-block">
+                          <div class="row bidding-info mb-2">
+                            <div class="col-md-12 d-flex">
+                              <div class="bidding-info-title mr-2 text-nowrap">Processo:</div>
+                              <div class="text-secondary">-</div>
+                            </div>
+                          </div>
+                          <div class="row bidding-info mb-2">
+                            <div class="col-md-12 d-flex">
+                              <div class="bidding-info-title mr-2 text-nowrap">Observação:</div>
+                              <div class="text-secondary">Código do Instrumento 999911
+                                Número da Cotação Prévia 7/2026
+                                Situação Em Andamento
+                                Data Início Disponibilização 11/07/2026
+                                Data Início Recebimento 11/07/2026
+                                Data Fim Recebimento 09/06/2027
+                                E-mail para envio da Proposta associacaofavelaviva@gmail.com
+                                Endereço para envio da Proposta Rua Aurino Brito, 151 - Bairro Vitoria
+                                Município e UF de Envio SENA MADUREIRA - AC
+                                Prazo de entrega 180
+                                Endereço para Entrega do material/serviço Rua Aurino Brito, 151 - Bairro Vitoria
+                                Município e UF de Entrega SENA MADUREIRA - AC
+                              </div>
+                            </div>
+                          </div>
+                          <div class="row bidding-info mb-2">
+                            <div class="col-md-4 d-flex">
+                              <div class="bidding-info-title mr-2 text-nowrap">Telefone:</div>
+                              <div class="text-secondary">-</div>
+                            </div>
+                            <div class="col-md-8 d-flex">
+                              <div class="bidding-info-title mr-2 text-nowrap">Site:</div><button type="button"
+                                class="btn btn-link p-0 border-0 text-left"></button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="row d-print-none">
+                        <div class="col-md-12"><button type="button"
+                            class="btn btn-sm btn-link font-weight-bold text-left px-0">Ocultar</button></div>
+                      </div>
+                      <hr class="mt-2">
+                      <div class="row bidding-info mb-3 d-print-none">
+                        <div class="col-md-12">
+                          <div class="bidding-info-title mr-2 text-nowrap mb-1">Ações:</div>
+                          <div class="d-flex flex-wrap align-items-center gap-2">
+                            <div><a class="btn btn-primary btn-sm mr-1 mb-1"
+                                href="https://consultaonline.conlicitacao.com.br/boletim_web/public/licitacoes/19130817/arquivos/edital.zip"
+                                target="_blank" rel="noreferrer">Baixar Edital</a></div>
+                          </div>
+                        </div>
+                      </div>
+                      <div
+                        class="d-flex justify-content-between align-items-center border-top pt-2 mt-3 text-secondary flex-column flex-md-row"
+                        style="font-size: 12px;">
+                        <div><span class="number-cnl font-weight-bold">Nº Conlicitação:</span>
+                          <span>19130817</span><button type="button" class="btn btn-link p-0 ml-2 " title="Copiar"><i
+                              class="material-icons"
+                              style="font-size: 18px; color: rgb(0, 0, 0);">content_copy</i></button></div>
+                        <div><span>Atualizada em: </span><span>13/07/2026 às 10:51</span></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div id="bidding-tabs">
+              <div class="row">
+                <div class="col-12">
+                  <div class="d-flex flex-nowrap overflow-auto"><button
+                      class="btn btn-link mr-2 tab text-dark rounded-top bg-white" type="button">Tarefas</button><button
+                      class="btn btn-link mx-2 tab " type="button">Anotações</button><button
+                      class="btn btn-link mx-2 tab " type="button">Anexos</button><button class="btn btn-link mx-2 tab "
+                      type="button">Resultados</button><button class="btn btn-link mx-2 tab "
+                      type="button">Habilitação</button></div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-12">
+                  <div class="shadow bg-white">
+                    <div class="col-12">
+                      <div class="py-3 d-md-flex align-items-center">
+                        <div class="sc-dkqQuH bXuHOH btn-group mr-2 mb-1" role="group"><button type="button"
+                            class="btn-change-view btn btn-management btn-sm active" aria-label="Lista"><i
+                              class="material-icons">list</i></button><button type="button"
+                            class="btn-change-view btn btn-management btn-sm false" aria-label="Calendário"><i
+                              class="material-icons">calendar_month</i></button></div>
+                        <div class="sc-gyElHZ bgseCP p-0 mr-md-3 mr-0 my-3 my-md-0">
+                          <div class="input-group"><input type="text" class="form-control border-right-0"
+                              placeholder="Buscar" value="">
+                            <div class="input-group-append"><button class="btn btn-link btn-clean-search btn-sm"
+                                type="button">Limpar</button></div>
+                          </div>
+                        </div>
+                        <div class="d-md-flex d-block align-items-center">
+                          <div class="sc-fbyfCU fVYYRg"><label for="checkbox-0.04699730688951842"
+                              class="checkbox-danger mr-4 mb-2 mb-md-0 control control-checkbox">Atrasadas(0)<input
+                                id="checkbox-0.04699730688951842" type="checkbox" checked="">
+                              <div class="control_indicator"></div>
+                            </label></div>
+                          <div class="sc-fbyfCU fVYYRg"><label for="checkbox-0.9924203095898165"
+                              class="checkbox-warning mr-4 mb-2 mb-md-0 control control-checkbox">Hoje(0)<input
+                                id="checkbox-0.9924203095898165" type="checkbox" checked="">
+                              <div class="control_indicator"></div>
+                            </label></div>
+                          <div class="sc-fbyfCU fVYYRg"><label for="checkbox-0.9613557576402747"
+                              class="checkbox-info mr-4 mb-2 mb-md-0 control control-checkbox">Futuras(0)<input
+                                id="checkbox-0.9613557576402747" type="checkbox" checked="">
+                              <div class="control_indicator"></div>
+                            </label></div>
+                          <div class="sc-fbyfCU fVYYRg"><label for="checkbox-0.9407051754228891"
+                              class="checkbox-success mr-4 mb-2 mb-md-0 control control-checkbox">Concluídas(0)<input
+                                id="checkbox-0.9407051754228891" type="checkbox">
+                              <div class="control_indicator"></div>
+                            </label></div>
+                        </div><button type="button" class="btn ml-auto btn-primary btn-sm mb-1">Adicionar
+                          tarefa</button>
+                      </div>
+                      <div class="sc-gXRojI bTRHGp">
+                        <div class="row list-tools py-1 border-bottom">
+                          <div class="position-relative col-md-6 d-block py-3 px-2 tour-remove-favorites-select-begin">
+                            <div class="sc-eGRUor gxoJIf bidding-item-header-button d-inline-flex hover-pointer"><span
+                                class="tour-remove-favorites-select-all">
+                                <div title="" role="button" aria-label="animation" tabindex="0"
+                                  style="width: 63px; height: 100%; overflow: hidden; margin: 0px auto; outline: none;">
+                                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 320" width="320" height="320"
+                                    preserveAspectRatio="xMidYMid slice"
+                                    style="width: 100%; height: 100%; transform: translate3d(0px, 0px, 0px); content-visibility: visible;">
+                                    <defs>
+                                      <clipPath id="__lottie_element_63">
+                                        <rect width="320" height="320" x="0" y="0"></rect>
+                                      </clipPath>
+                                    </defs>
+                                    <g clip-path="url(#__lottie_element_63)">
+                                      <g transform="matrix(3.7760300636291504,0,0,3.7760300636291504,160.14199829101562,159.98699951171875)"
+                                        opacity="1" style="display: block;">
+                                        <g opacity="1"
+                                          transform="matrix(1,0,0,1,-0.03799999877810478,0.003000000026077032)">
+                                          <path fill="rgb(255,255,255)" fill-opacity="1"
+                                            d=" M0,-11.157500267028809 C6.157824516296387,-11.157500267028809 11.157500267028809,-6.157824516296387 11.157500267028809,0 C11.157500267028809,6.157824516296387 6.157824516296387,11.157500267028809 0,11.157500267028809 C-6.157824516296387,11.157500267028809 -11.157500267028809,6.157824516296387 -11.157500267028809,0 C-11.157500267028809,-6.157824516296387 -6.157824516296387,-11.157500267028809 0,-11.157500267028809z">
+                                          </path>
+                                          <path stroke-linecap="butt" stroke-linejoin="miter" fill-opacity="0"
+                                            stroke-miterlimit="4" stroke="rgb(213,213,213)" stroke-opacity="1"
+                                            stroke-width="1"
+                                            d=" M0,-11.157500267028809 C6.157824516296387,-11.157500267028809 11.157500267028809,-6.157824516296387 11.157500267028809,0 C11.157500267028809,6.157824516296387 6.157824516296387,11.157500267028809 0,11.157500267028809 C-6.157824516296387,11.157500267028809 -11.157500267028809,6.157824516296387 -11.157500267028809,0 C-11.157500267028809,-6.157824516296387 -6.157824516296387,-11.157500267028809 0,-11.157500267028809z">
+                                          </path>
+                                        </g>
+                                      </g>
+                                      <g style="display: none;">
+                                        <g>
+                                          <path></path>
+                                          <path stroke-linecap="butt" stroke-linejoin="miter" fill-opacity="0"
+                                            stroke-miterlimit="4"></path>
+                                        </g>
+                                      </g>
+                                      <g style="display: none;">
+                                        <g>
+                                          <path></path>
+                                        </g>
+                                      </g>
+                                      <g style="display: none;">
+                                        <g>
+                                          <path></path>
+                                        </g>
+                                      </g>
+                                      <g style="display: none;">
+                                        <g>
+                                          <path stroke-linecap="round" stroke-linejoin="miter" fill-opacity="0"
+                                            stroke-miterlimit="5"></path>
+                                        </g>
+                                        <g>
+                                          <path stroke-linecap="butt" stroke-linejoin="miter" fill-opacity="0"
+                                            stroke-miterlimit="4"></path>
+                                        </g>
+                                      </g>
+                                      <g style="display: none;">
+                                        <g>
+                                          <path></path>
+                                        </g>
+                                        <g>
+                                          <path></path>
+                                        </g>
+                                      </g>
+                                      <g style="display: none;">
+                                        <g>
+                                          <path></path>
+                                        </g>
+                                        <g>
+                                          <path></path>
+                                        </g>
+                                      </g>
+                                      <g style="display: none;">
+                                        <g>
+                                          <path></path>
+                                        </g>
+                                        <g>
+                                          <path></path>
+                                        </g>
+                                      </g>
+                                      <g style="display: none;">
+                                        <g>
+                                          <path></path>
+                                        </g>
+                                        <g>
+                                          <path></path>
+                                        </g>
+                                      </g>
+                                      <g style="display: none;">
+                                        <g>
+                                          <path></path>
+                                        </g>
+                                        <g>
+                                          <path></path>
+                                        </g>
+                                      </g>
+                                      <g style="display: none;">
+                                        <g>
+                                          <path></path>
+                                        </g>
+                                        <g>
+                                          <path></path>
+                                        </g>
+                                      </g>
+                                      <g style="display: none;">
+                                        <g>
+                                          <path></path>
+                                        </g>
+                                        <g>
+                                          <path></path>
+                                        </g>
+                                      </g>
+                                    </g>
+                                  </svg></div>
+                              </span><span style="margin: auto 20px auto -15px;">Selecionar página</span></div>
+                          </div>
+                          <div
+                            class="col-md-6 d-flex justify-content-md-end justify-content-center mb-md-0 mb-3 flex-wrap d-print-none align-items-center">
+                            <div class="sc-dFtzxp lohvqF d-inline-block databalloon"
+                              aria-label="Selecione pelo menos uma tarefa" data-balloon-pos="down"
+                              data-balloon-length="medium"><button type="button"
+                                class="btn btn-primary btn-sm mr-1 mb-md-0 mb-1" title="Compartilhar" disabled=""
+                                style="pointer-events: none;">Compartilhar</button></div>
+                            <div class="sc-dFtzxp lohvqF d-inline-block databalloon"
+                              aria-label="Selecione pelo menos uma tarefa" data-balloon-pos="down"
+                              data-balloon-length="medium"><button type="button"
+                                class="btn btn-primary btn-sm mr-1 mb-md-0 mb-1" title="Gerar .xlsx" disabled=""
+                                style="pointer-events: none;">Gerar .xlsx</button></div>
+                            <div class="sc-dFtzxp lohvqF d-inline-block databalloon"
+                              aria-label="Selecione pelo menos uma tarefa" data-balloon-pos="down"
+                              data-balloon-length="medium"><button type="button"
+                                class="btn btn-primary btn-sm mr-1 mb-md-0 mb-1" title="Gerar .docx" disabled=""
+                                style="pointer-events: none;">Gerar .docx</button></div>
+                            <div class="sc-dFtzxp lohvqF d-inline-block databalloon"
+                              aria-label="Selecione pelo menos uma tarefa" data-balloon-pos="down"
+                              data-balloon-length="medium"><button type="button"
+                                class="btn btn-primary btn-sm mr-1 mb-md-0 mb-1" title="Imprimir" disabled=""
+                                style="pointer-events: none;">Imprimir</button></div>
+                          </div>
+                          <div class="row mb-3 px-4">
+                            <div class="col-12 col-md-auto d-print-none">
+                              <div class="d-flex mx-0 mb-2 align-items-center"><label for="resultsPerPage" class="pr-2"
+                                  style="padding-top: 0.4rem; white-space: nowrap; flex-shrink: 0;">Mostrar</label>
+                                <div style="width: 90px; flex-shrink: 0;">
+                                  <div class=" css-b62m3t-container"><span id="react-select-5-live-region"
+                                      class="css-7pg0cj-a11yText"></span><span aria-live="polite" aria-atomic="false"
+                                      aria-relevant="additions text" class="css-7pg0cj-a11yText"></span>
+                                    <div class=" css-1amsz8x-control">
+                                      <div class=" css-1cg0lol">
+                                        <div class=" css-qc6sy-singleValue">20</div>
+                                        <div class=" css-ackcql" data-value=""><input class="" autocapitalize="none"
+                                            autocomplete="off" autocorrect="off" id="react-select-5-input"
+                                            spellcheck="false" tabindex="0" type="text" aria-autocomplete="list"
+                                            aria-expanded="false" aria-haspopup="true"
+                                            aria-controls="react-select-5-listbox" aria-owns="react-select-5-listbox"
+                                            role="combobox" value=""
+                                            style="color: inherit; background: 0px center; opacity: 1; width: 100%; grid-area: 1 / 2; font: inherit; min-width: 2px; border: 0px; margin: 0px; outline: 0px; padding: 0px;">
+                                        </div>
+                                      </div>
+                                      <div class=" css-1wy0on6"><span class=" css-1okebmr-indicatorSeparator"></span>
+                                        <div class=" css-tlfecz-indicatorContainer" aria-hidden="true"><svg height="20"
+                                            width="20" viewBox="0 0 20 20" aria-hidden="true" focusable="false"
+                                            class="css-8mmkcg">
+                                            <path
+                                              d="M4.516 7.548c0.436-0.446 1.043-0.481 1.576 0l3.908 3.747 3.908-3.747c0.533-0.481 1.141-0.446 1.574 0 0.436 0.445 0.408 1.197 0 1.615-0.406 0.418-4.695 4.502-4.695 4.502-0.217 0.223-0.502 0.335-0.787 0.335s-0.57-0.112-0.789-0.335c0 0-4.287-4.084-4.695-4.502s-0.436-1.17 0-1.615z">
+                                            </path>
+                                          </svg></div>
+                                      </div>
+                                    </div><input name="resultsPerPage" type="hidden" value="20">
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="sc-dSfdvi hhsLri">
+                            <div class="sc-cHzqoD bgceYQ">
+                              <div class="sc-gjNHFA ftwmGz rdt_Table" role="table">
+                                <div class="sc-gGPzkF hNoIKr">
+                                  <div class="p-5">Você não possui tarefas.</div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div style="display: none;">
+                        <div>
+                          <div class="sc-dSfdvi hhsLri">
+                            <div class="sc-cHzqoD bgceYQ">
+                              <div class="sc-gjNHFA ftwmGz rdt_Table" role="table">
+                                <div class="sc-gGPzkF hNoIKr">
+                                  <div style="padding: 24px;">There are no records to display</div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="sc-gJbFto fGHjUb row mt-5">
+              <div class="col-12">
+                <div class="shadow bg-white">
+                  <div class="border-bottom p-3 row">
+                    <div class="col-md-2 col-12 font-weight-bold d-flex align-items-center">LINHA DO TEMPO<button
+                        class="btn btn-link p-0" type="button"><span
+                          class="material-icons">arrow_drop_down</span></button></div>
+                    <div class="col-md-10 col-12 mt-2 mt-md-0 d-block d-md-flex">
+                      <div class="sc-gyElHZ bgseCP p-0 mr-md-3 mr-0 my-3 my-md-0">
+                        <div class="input-group"><input type="text" class="form-control border-right-0"
+                            placeholder="Buscar" value="">
+                          <div class="input-group-append"><button class="btn btn-link btn-clean-search btn-sm"
+                              type="button">Limpar</button></div>
+                        </div>
+                      </div><button type="button" class="btn mr-1 btn-sm btn-primary">Andamentos</button><button
+                        type="button" class="btn btn-sm btn-primary">Tarefas</button><button type="button"
+                        class="btn ml-md-auto ml-1 btn-primary btn-sm">Adicionar andamento</button>
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="col-12">
+                      <ul class="list-unstyled m-0"></ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+  </div>
+  <script>!function (e) { function t(t) { for (var n, i, a = t[0], c = t[1], l = t[2], s = 0, p = []; s < a.length; s++)i = a[s], Object.prototype.hasOwnProperty.call(o, i) && o[i] && p.push(o[i][0]), o[i] = 0; for (n in c) Object.prototype.hasOwnProperty.call(c, n) && (e[n] = c[n]); for (f && f(t); p.length;)p.shift()(); return u.push.apply(u, l || []), r() } function r() { for (var e, t = 0; t < u.length; t++) { for (var r = u[t], n = !0, a = 1; a < r.length; a++) { var c = r[a]; 0 !== o[c] && (n = !1) } n && (u.splice(t--, 1), e = i(i.s = r[0])) } return e } var n = {}, o = { 1: 0 }, u = []; function i(t) { if (n[t]) return n[t].exports; var r = n[t] = { i: t, l: !1, exports: {} }; return e[t].call(r.exports, r, r.exports, i), r.l = !0, r.exports } i.e = function (e) { var t = [], r = o[e]; if (0 !== r) if (r) t.push(r[2]); else { var n = new Promise((function (t, n) { r = o[e] = [t, n] })); t.push(r[2] = n); var u, a = document.createElement("script"); a.charset = "utf-8", a.timeout = 120, i.nc && a.setAttribute("nonce", i.nc), a.src = function (e) { return i.p + "static/js/" + ({}[e] || e) + "." + { 3: "3a55e923", 4: "767da2c8" }[e] + ".chunk.js" }(e); var c = new Error; u = function (t) { a.onerror = a.onload = null, clearTimeout(l); var r = o[e]; if (0 !== r) { if (r) { var n = t && ("load" === t.type ? "missing" : t.type), u = t && t.target && t.target.src; c.message = "Loading chunk " + e + " failed.\n(" + n + ": " + u + ")", c.name = "ChunkLoadError", c.type = n, c.request = u, r[1](c) } o[e] = void 0 } }; var l = setTimeout((function () { u({ type: "timeout", target: a }) }), 12e4); a.onerror = a.onload = u, document.head.appendChild(a) } return Promise.all(t) }, i.m = e, i.c = n, i.d = function (e, t, r) { i.o(e, t) || Object.defineProperty(e, t, { enumerable: !0, get: r }) }, i.r = function (e) { "undefined" != typeof Symbol && Symbol.toStringTag && Object.defineProperty(e, Symbol.toStringTag, { value: "Module" }), Object.defineProperty(e, "__esModule", { value: !0 }) }, i.t = function (e, t) { if (1 & t && (e = i(e)), 8 & t) return e; if (4 & t && "object" == typeof e && e && e.__esModule) return e; var r = Object.create(null); if (i.r(r), Object.defineProperty(r, "default", { enumerable: !0, value: e }), 2 & t && "string" != typeof e) for (var n in e) i.d(r, n, function (t) { return e[t] }.bind(null, n)); return r }, i.n = function (e) { var t = e && e.__esModule ? function () { return e.default } : function () { return e }; return i.d(t, "a", t), t }, i.o = function (e, t) { return Object.prototype.hasOwnProperty.call(e, t) }, i.p = "/", i.oe = function (e) { throw console.error(e), e }; var a = this["webpackJsonpboletim-web-frontend"] = this["webpackJsonpboletim-web-frontend"] || [], c = a.push.bind(a); a.push = t, a = a.slice(); for (var l = 0; l < a.length; l++)t(a[l]); var f = c; r() }([])</script>
+  <script src="/static/js/2.f3742572.chunk.js"></script>
+  <script src="/static/js/main.cf41885d.chunk.js"></script>
+  <script async="" charset="UTF-8" crossorigin="*"
+    src="https://embed.tawk.to/5935a06a4374a471e7c5185a/default"></script>
+  <script type="text/javascript" id=""
+    charset="">(function () {
+              for (var a, c = window.location.href.slice(window.location.href.indexOf("?") + 1).split("\x26"), b = 0; b < c.length; b++)a = c[b].split("\x3d"), decodeURIComponent(a[0]), decodeURIComponent(a[1] || ""); if (a = document.querySelector('input[name\x3d"field[39]"]')) a.value = "undefined"; if (a = document.querySelector('input[name\x3d"field[40]"]')) a.value = "undefined"; if (a = document.querySelector('input[name\x3d"field[41]"]')) a.value = "undefined"; if (a = document.querySelector('input[name\x3d"field[42]"]')) a.value =
+                "undefined"; if (a = document.querySelector('input[name\x3d"field[43]"]')) a.value = "undefined"; if (a = document.querySelector('input[name\x3d"field[45]"]')) a.value = "\/minhas_licitacoes\/management\/19130817\/337602"
+            })();</script>
+  <div>
+    <div id="megasac-button" class="animated pulse position-right" title="Tallos Chat"
+      style="background: url(&quot;https://tallos-chat.s3.tallos.com.br/medias/6260460370367304e591d049-image-27-06-2024-22-58-35-group-48097055.png?load=1786093821518&quot;) center center / 105% 105%, url(&quot;https://assets.tallos.com.br/tallos-chat/public/images/logos/avatar.png?load=1786093821518&quot;) no-repeat rgb(0, 0, 0);">
+    </div>
+    <div id="megasac-chat" class="animated fadeInRight">
+      <div id="megasac-chat-close"></div>
+      <div id="chat-wrapper"></div>
+    </div><span id="tallos-footer"
+      style="display: none; font-size: 10px; padding: 4px !important; position: fixed; z-index: 9999999999; bottom: 0; color: rgba(0, 0, 0, 0.5); right: 0; width: 340px; border-top: 1px solid rgba(0, 0, 0, 0.1); text-align: center;"
+      class="animated fadeInRight"><a href="https://tallos.com.br/" target="__blank">Desenvolvido pela
+        Tallos</a></span><span id="megasac-info"
+      style="display: flex;  justify-content: space-between; align-items: center; border-radius: 25px 0px 25px 25px; width: fit-content; color: #333333CC; background: #fff; text-align: right; font-size: 13px !important; font-weight: normal !important; margin: 0; margin-right: 10px; padding: 5px 20px 5px 10px; position: fixed; right: 70pt; bottom: 20pt; z-index: 2147483647;"
+      class="animated bounceIn"><img id="favicon-footer"
+        style="display: block; height: 30px; width: auto; float: left; margin: 5px 15px 0 0; padding: 0;"
+        draggable="false" src="https://assets.tallos.com.br/images/chat-animation.svg" alt="">
+      <p style="margin: 0 !important">Olá, podemos ajudar?</p>
+    </span>
+  </div>
+  <div id="euuakl8l7uu1786093822731" style="display: block !important;"><iframe src="about:blank" frameborder="0"
+      scrolling="no" width="244px" height="44px"
+      style="outline:none !important; visibility:visible !important; resize:none !important; box-shadow:none !important; overflow:visible !important; background:none !important; opacity:1 !important; filter:alpha(opacity=100) !important; -ms-filter:progid:DXImageTransform.Microsoft.Alpha(Opacity 1}) !important; -mz-opacity:1 !important; -khtml-opacity:1 !important; top:auto !important; right:10px !important; bottom:0px !important; left:auto !important; position:fixed !important; border:0 !important; min-height:44px !important; min-width:244px !important; max-height:44px !important; max-width:244px !important; padding:0 !important; margin:0 !important; -moz-transition-property:none !important; -webkit-transition-property:none !important; -o-transition-property:none !important; transition-property:none !important; transform:none !important; -webkit-transform:none !important; -ms-transform:none !important; width:244px !important; height:44px !important; display:block !important; z-index:1000003 !important; background-color:transparent !important; cursor:none !important; float:none !important; border-radius:unset !important; pointer-events:auto !important; clip:auto !important; color-scheme:light !important;"
+      id="ngumv3d80qlc1786093822741" class="" referrerpolicy="no-referrer-when-downgrade"></iframe><iframe
+      srcdoc="&lt;html&gt;&lt;/html&gt;" frameborder="0" scrolling="no" width="350px" height="461px"
+      style="outline:none !important; visibility:visible !important; resize:none !important; box-shadow:none !important; overflow:visible !important; background:none !important; opacity:1 !important; filter:alpha(opacity=100) !important; -ms-filter:progid:DXImageTransform.Microsoft.Alpha(Opacity 1}) !important; -mz-opacity:1 !important; -khtml-opacity:1 !important; top:auto !important; right:10px !important; bottom:0px !important; left:auto !important; position:fixed !important; border:0 !important; min-height:461px !important; min-width:350px !important; max-height:461px !important; max-width:350px !important; padding:0 !important; margin:0 !important; -moz-transition-property:none !important; -webkit-transition-property:none !important; -o-transition-property:none !important; transition-property:none !important; transform:none !important; -webkit-transform:none !important; -ms-transform:none !important; width:350px !important; height:461px !important; display:none !important; z-index:1000003 !important; background-color:transparent !important; cursor:none !important; float:none !important; border-radius:18px 18px  0 0 !important; pointer-events:auto !important; clip:auto !important; color-scheme:light !important;"
+      id="wiqms138n7hg1786093822755" class="" referrerpolicy="no-referrer-when-downgrade"></iframe><!----><iframe
+      src="about:blank" frameborder="0" scrolling="no" width="360px" height="45px"
+      style="outline:none !important; visibility:visible !important; resize:none !important; box-shadow:none !important; overflow:visible !important; background:none !important; opacity:1 !important; filter:alpha(opacity=100) !important; -ms-filter:progid:DXImageTransform.Microsoft.Alpha(Opacity 1}) !important; -mz-opacity:1 !important; -khtml-opacity:1 !important; top:auto !important; right:10px !important; bottom:50px; left:auto !important; position:fixed !important; border:0 !important; min-height:45px !important; min-width:360px !important; max-height:45px !important; max-width:360px !important; padding:0 !important; margin:0 !important; -moz-transition-property:none !important; -webkit-transition-property:none !important; -o-transition-property:none !important; transition-property:none !important; transform:none !important; -webkit-transform:none !important; -ms-transform:none !important; width:360px !important; height:45px !important; display:none !important; z-index:auto !important; background-color:transparent !important; cursor:none !important; float:none !important; border-radius:unset !important; pointer-events:auto !important; clip:auto !important; color-scheme:light !important;"
+      id="mt5k2dblpjp1786093822747" class="" referrerpolicy="no-referrer-when-downgrade"></iframe>
+    <div id="chat-bubble"></div>
+  </div>
+</body>
+
+</html>

@@ -1,0 +1,1 @@
+{"version":3,"file":"alertaPage.d.ts","sourceRoot":"","sources":["../../../src/generated/types/alertaPage.ts"],"names":[],"mappings":"AAAA;;;;;;GAMG;AACH,OAAO,KAAK,EAAE,MAAM,EAAE,MAAM,UAAU,CAAC;AAEvC,MAAM,WAAW,UAAU;IACzB,IAAI,EAAE,MAAM,EAAE,CAAC;IACf,KAAK,EAAE,MAAM,CAAC;IACd,IAAI,EAAE,MAAM,CAAC;IACb,UAAU,EAAE,MAAM,CAAC;IACnB,aAAa,EAAE,MAAM,CAAC;CACvB"}

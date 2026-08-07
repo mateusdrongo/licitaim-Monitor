@@ -1,0 +1,1721 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: LicitAIM - Sistema de Monitoramento Inteligente de Licitações Públicas
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: auth
+    description: Authentication operations
+  - name: licitacoes
+    description: Licitações públicas (PNCP)
+  - name: favoritos
+    description: Licitações favoritadas
+  - name: monitoramentos
+    description: Monitoramentos automáticos
+  - name: alertas
+    description: Alertas e notificações
+  - name: documentos
+    description: Gestão de documentos
+  - name: equipe
+    description: Gestão de equipe e membros
+  - name: oportunidades
+    description: Pipeline de oportunidades
+  - name: precos
+    description: Histórico de preços
+  - name: ai
+    description: Pesquisa com IA
+  - name: dashboard
+    description: Dados do dashboard
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  # ── Auth ─────────────────────────────────────────────────────────────────────
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current authenticated user
+      responses:
+        "200":
+          description: Authenticated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout current session
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessMessage"
+
+  # ── Dashboard ────────────────────────────────────────────────────────────────
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [dashboard]
+      summary: Get dashboard overview stats
+      responses:
+        "200":
+          description: Dashboard statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dashboard"
+
+  # ── Licitações ───────────────────────────────────────────────────────────────
+  /licitacoes:
+    get:
+      operationId: listLicitacoes
+      tags: [licitacoes]
+      summary: Pesquisar e listar licitações públicas
+      parameters:
+        - name: q
+          in: query
+          description: Busca textual
+          schema:
+            type: string
+        - name: modalidade
+          in: query
+          description: Modalidade de licitação
+          schema:
+            type: string
+        - name: uf
+          in: query
+          description: UF do órgão
+          schema:
+            type: string
+        - name: municipio
+          in: query
+          description: Município do órgão
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Status da licitação
+          schema:
+            type: string
+            enum: [aberta, encerrada, suspensa, cancelada, em_andamento]
+        - name: valorMin
+          in: query
+          description: Valor mínimo estimado
+          schema:
+            type: number
+        - name: valorMax
+          in: query
+          description: Valor máximo estimado
+          schema:
+            type: number
+        - name: dataInicio
+          in: query
+          description: Data de abertura início (YYYY-MM-DD)
+          schema:
+            type: string
+        - name: dataFim
+          in: query
+          description: Data de abertura fim (YYYY-MM-DD)
+          schema:
+            type: string
+        - name: esfera
+          in: query
+          description: Esfera de governo
+          schema:
+            type: string
+            enum: [federal, estadual, municipal]
+        - name: poder
+          in: query
+          description: Poder
+          schema:
+            type: string
+            enum: [executivo, legislativo, judiciario]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Lista de licitações
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LicitacaoPage"
+
+  /licitacoes/{id}:
+    get:
+      operationId: getLicitacao
+      tags: [licitacoes]
+      summary: Detalhes de uma licitação
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Detalhes da licitação
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LicitacaoDetalhe"
+        "404":
+          description: Não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+
+  /licitacoes/{id}/itens:
+    get:
+      operationId: getLicitacaoItens
+      tags: [licitacoes]
+      summary: Itens de uma licitação
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Itens da licitação
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ItemLicitacao"
+
+  /licitacoes/{id}/documentos-pncp:
+    get:
+      operationId: getLicitacaoDocumentosPncp
+      tags: [licitacoes]
+      summary: Documentos públicos da licitação no PNCP
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Documentos públicos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DocumentoPncp"
+
+  # ── Favoritos ────────────────────────────────────────────────────────────────
+  /favoritos:
+    get:
+      operationId: listFavoritos
+      tags: [favoritos]
+      summary: Listar licitações favoritadas
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Lista de favoritos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FavoritoPage"
+    post:
+      operationId: createFavorito
+      tags: [favoritos]
+      summary: Favoritar uma licitação
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FavoritoInput"
+      responses:
+        "201":
+          description: Favoritado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Favorito"
+
+  /favoritos/{id}:
+    delete:
+      operationId: deleteFavorito
+      tags: [favoritos]
+      summary: Remover favorito
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Removido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessMessage"
+
+  # ── Monitoramentos ──────────────────────────────────────────────────────────
+  /monitoramentos:
+    get:
+      operationId: listMonitoramentos
+      tags: [monitoramentos]
+      summary: Listar monitoramentos configurados
+      responses:
+        "200":
+          description: Lista de monitoramentos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Monitoramento"
+    post:
+      operationId: createMonitoramento
+      tags: [monitoramentos]
+      summary: Criar novo monitoramento automático
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MonitoramentoInput"
+      responses:
+        "201":
+          description: Monitoramento criado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Monitoramento"
+
+  /monitoramentos/{id}:
+    get:
+      operationId: getMonitoramento
+      tags: [monitoramentos]
+      summary: Detalhes de um monitoramento
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Monitoramento
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Monitoramento"
+    put:
+      operationId: updateMonitoramento
+      tags: [monitoramentos]
+      summary: Atualizar monitoramento
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MonitoramentoUpdate"
+      responses:
+        "200":
+          description: Monitoramento atualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Monitoramento"
+    delete:
+      operationId: deleteMonitoramento
+      tags: [monitoramentos]
+      summary: Excluir monitoramento
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Excluído
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessMessage"
+
+  /monitoramentos/{id}/toggle:
+    post:
+      operationId: toggleMonitoramento
+      tags: [monitoramentos]
+      summary: Ativar/desativar monitoramento
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Status alterado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Monitoramento"
+
+  # ── Alertas ──────────────────────────────────────────────────────────────────
+  /alertas:
+    get:
+      operationId: listAlertas
+      tags: [alertas]
+      summary: Listar alertas do usuário
+      parameters:
+        - name: lido
+          in: query
+          schema:
+            type: boolean
+        - name: tipo
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 30
+      responses:
+        "200":
+          description: Lista de alertas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlertaPage"
+
+  /alertas/nao-lidos:
+    get:
+      operationId: countAlertasNaoLidos
+      tags: [alertas]
+      summary: Contar alertas não lidos
+      responses:
+        "200":
+          description: Contagem
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AlertaCount"
+
+  /alertas/{id}/ler:
+    post:
+      operationId: marcarAlertaLido
+      tags: [alertas]
+      summary: Marcar alerta como lido
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Marcado como lido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Alerta"
+
+  /alertas/ler-todos:
+    post:
+      operationId: marcarTodosAlertasLidos
+      tags: [alertas]
+      summary: Marcar todos alertas como lidos
+      responses:
+        "200":
+          description: Todos lidos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessMessage"
+
+  # ── Documentos ───────────────────────────────────────────────────────────────
+  /documentos:
+    get:
+      operationId: listDocumentos
+      tags: [documentos]
+      summary: Listar documentos do usuário
+      parameters:
+        - name: licitacaoId
+          in: query
+          schema:
+            type: string
+        - name: categoria
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Lista de documentos
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentoPage"
+    post:
+      operationId: createDocumento
+      tags: [documentos]
+      summary: Criar registro de documento
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentoInput"
+      responses:
+        "201":
+          description: Documento criado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Documento"
+
+  /documentos/{id}:
+    get:
+      operationId: getDocumento
+      tags: [documentos]
+      summary: Detalhes de um documento
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Documento
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Documento"
+    patch:
+      operationId: updateDocumento
+      tags: [documentos]
+      summary: Atualizar documento
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentoUpdate"
+      responses:
+        "200":
+          description: Documento atualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Documento"
+    delete:
+      operationId: deleteDocumento
+      tags: [documentos]
+      summary: Excluir documento
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Excluído
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessMessage"
+
+  # ── Equipe ───────────────────────────────────────────────────────────────────
+  /equipe:
+    get:
+      operationId: getEquipe
+      tags: [equipe]
+      summary: Listar membros da equipe
+      responses:
+        "200":
+          description: Membros
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MembroEquipe"
+    post:
+      operationId: convidarMembro
+      tags: [equipe]
+      summary: Convidar membro para a equipe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConviteInput"
+      responses:
+        "201":
+          description: Convite enviado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MembroEquipe"
+
+  /equipe/{id}:
+    patch:
+      operationId: updateMembro
+      tags: [equipe]
+      summary: Atualizar permissões do membro
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MembroUpdate"
+      responses:
+        "200":
+          description: Membro atualizado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MembroEquipe"
+    delete:
+      operationId: removerMembro
+      tags: [equipe]
+      summary: Remover membro da equipe
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Removido
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessMessage"
+
+  # ── Oportunidades ────────────────────────────────────────────────────────────
+  /oportunidades:
+    get:
+      operationId: listOportunidades
+      tags: [oportunidades]
+      summary: Listar oportunidades no pipeline
+      parameters:
+        - name: estagio
+          in: query
+          schema:
+            type: string
+            enum: [identificada, qualificada, proposta, disputa, ganhou, perdeu]
+        - name: responsavelId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Lista de oportunidades
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Oportunidade"
+    post:
+      operationId: createOportunidade
+      tags: [oportunidades]
+      summary: Adicionar oportunidade ao pipeline
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OportunidadeInput"
+      responses:
+        "201":
+          description: Oportunidade criada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Oportunidade"
+
+  /oportunidades/{id}:
+    get:
+      operationId: getOportunidade
+      tags: [oportunidades]
+      summary: Detalhes de uma oportunidade
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Oportunidade
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Oportunidade"
+    patch:
+      operationId: updateOportunidade
+      tags: [oportunidades]
+      summary: Atualizar oportunidade
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OportunidadeUpdate"
+      responses:
+        "200":
+          description: Oportunidade atualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Oportunidade"
+    delete:
+      operationId: deleteOportunidade
+      tags: [oportunidades]
+      summary: Remover oportunidade
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Removida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessMessage"
+
+  /oportunidades/pipeline-stats:
+    get:
+      operationId: getPipelineStats
+      tags: [oportunidades]
+      summary: Estatísticas do pipeline por estágio
+      responses:
+        "200":
+          description: Stats do pipeline
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PipelineStat"
+
+  # ── Histórico de Preços ──────────────────────────────────────────────────────
+  /precos/historico:
+    get:
+      operationId: getHistoricoPrecos
+      tags: [precos]
+      summary: Consultar histórico de preços por item/descrição
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Descrição ou código do item
+          schema:
+            type: string
+        - name: uf
+          in: query
+          schema:
+            type: string
+        - name: dataInicio
+          in: query
+          schema:
+            type: string
+        - name: dataFim
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Histórico de preços
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistoricoPrecos"
+
+  # ── AI Search ────────────────────────────────────────────────────────────────
+  /ai/search:
+    post:
+      operationId: aiSearch
+      tags: [ai]
+      summary: Pesquisa inteligente com IA
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiSearchInput"
+      responses:
+        "200":
+          description: Resultado da pesquisa IA
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiSearchResult"
+
+  /ai/sugestoes:
+    get:
+      operationId: getAiSugestoes
+      tags: [ai]
+      summary: Sugestões de licitações baseadas no perfil do usuário
+      responses:
+        "200":
+          description: Sugestões personalizadas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Licitacao"
+
+components:
+  schemas:
+    # ── Generic ────────────────────────────────────────────────────────────────
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    SuccessMessage:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    # ── User ───────────────────────────────────────────────────────────────────
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        nome:
+          type: string
+        email:
+          type: string
+        empresa:
+          type: ["string", "null"]
+        cnpj:
+          type: ["string", "null"]
+        plano:
+          type: string
+          enum: [gratuito, profissional, enterprise]
+        avatarUrl:
+          type: ["string", "null"]
+        criadoEm:
+          type: string
+      required:
+        - id
+        - nome
+        - email
+        - plano
+        - criadoEm
+
+    # ── Dashboard ──────────────────────────────────────────────────────────────
+    Dashboard:
+      type: object
+      properties:
+        totalFavoritos:
+          type: integer
+        totalMonitoramentos:
+          type: integer
+        totalAlertasNaoLidos:
+          type: integer
+        totalOportunidades:
+          type: integer
+        valorTotalPipeline:
+          type: number
+        licitacoesRecentes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Licitacao"
+        alertasRecentes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Alerta"
+        oportunidadesPorEstagio:
+          type: array
+          items:
+            $ref: "#/components/schemas/PipelineStat"
+        licitacoesPorModalidade:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModalidadeStat"
+      required:
+        - totalFavoritos
+        - totalMonitoramentos
+        - totalAlertasNaoLidos
+        - totalOportunidades
+        - valorTotalPipeline
+        - licitacoesRecentes
+        - alertasRecentes
+        - oportunidadesPorEstagio
+        - licitacoesPorModalidade
+
+    ModalidadeStat:
+      type: object
+      properties:
+        modalidade:
+          type: string
+        total:
+          type: integer
+      required:
+        - modalidade
+        - total
+
+    # ── Licitação ──────────────────────────────────────────────────────────────
+    Licitacao:
+      type: object
+      properties:
+        id:
+          type: string
+        numero:
+          type: string
+        ano:
+          type: integer
+        modalidade:
+          type: string
+        modoDisputa:
+          type: ["string", "null"]
+        situacao:
+          type: string
+        objeto:
+          type: string
+        valorEstimado:
+          type: ["number", "null"]
+        orgaoNome:
+          type: string
+        orgaoCnpj:
+          type: string
+        uf:
+          type: string
+        municipio:
+          type: ["string", "null"]
+        esfera:
+          type: string
+        poder:
+          type: string
+        dataAbertura:
+          type: ["string", "null"]
+        dataEncerramento:
+          type: ["string", "null"]
+        isFavoritada:
+          type: boolean
+        criadoEm:
+          type: string
+      required:
+        - id
+        - numero
+        - ano
+        - modalidade
+        - situacao
+        - objeto
+        - orgaoNome
+        - orgaoCnpj
+        - uf
+        - esfera
+        - poder
+        - isFavoritada
+        - criadoEm
+
+    LicitacaoDetalhe:
+      type: object
+      properties:
+        id:
+          type: string
+        numero:
+          type: string
+        ano:
+          type: integer
+        modalidade:
+          type: string
+        modoDisputa:
+          type: ["string", "null"]
+        situacao:
+          type: string
+        objeto:
+          type: string
+        descricao:
+          type: ["string", "null"]
+        valorEstimado:
+          type: ["number", "null"]
+        orgaoNome:
+          type: string
+        orgaoCnpj:
+          type: string
+        orgaoUasg:
+          type: ["string", "null"]
+        uf:
+          type: string
+        municipio:
+          type: ["string", "null"]
+        esfera:
+          type: string
+        poder:
+          type: string
+        dataAbertura:
+          type: ["string", "null"]
+        dataEncerramento:
+          type: ["string", "null"]
+        dataPublicacaoPncp:
+          type: ["string", "null"]
+        linkEdital:
+          type: ["string", "null"]
+        isFavoritada:
+          type: boolean
+        favoritoId:
+          type: ["integer", "null"]
+        itens:
+          type: array
+          items:
+            $ref: "#/components/schemas/ItemLicitacao"
+        criadoEm:
+          type: string
+      required:
+        - id
+        - numero
+        - ano
+        - modalidade
+        - situacao
+        - objeto
+        - orgaoNome
+        - orgaoCnpj
+        - uf
+        - esfera
+        - poder
+        - isFavoritada
+        - itens
+        - criadoEm
+
+    LicitacaoPage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Licitacao"
+        total:
+          type: integer
+        page:
+          type: integer
+        totalPages:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - totalPages
+
+    ItemLicitacao:
+      type: object
+      properties:
+        id:
+          type: integer
+        numero:
+          type: integer
+        descricao:
+          type: string
+        unidade:
+          type: ["string", "null"]
+        quantidade:
+          type: ["number", "null"]
+        valorUnitario:
+          type: ["number", "null"]
+        valorTotal:
+          type: ["number", "null"]
+        categoria:
+          type: ["string", "null"]
+        situacao:
+          type: ["string", "null"]
+      required:
+        - id
+        - numero
+        - descricao
+
+    DocumentoPncp:
+      type: object
+      properties:
+        id:
+          type: string
+        titulo:
+          type: string
+        tipo:
+          type: string
+        url:
+          type: string
+        tamanho:
+          type: ["integer", "null"]
+        dataPublicacao:
+          type: string
+      required:
+        - id
+        - titulo
+        - tipo
+        - url
+        - dataPublicacao
+
+    # ── Favorito ───────────────────────────────────────────────────────────────
+    Favorito:
+      type: object
+      properties:
+        id:
+          type: integer
+        licitacaoId:
+          type: string
+        nota:
+          type: ["string", "null"]
+        licitacao:
+          $ref: "#/components/schemas/Licitacao"
+        criadoEm:
+          type: string
+      required:
+        - id
+        - licitacaoId
+        - licitacao
+        - criadoEm
+
+    FavoritoInput:
+      type: object
+      properties:
+        licitacaoId:
+          type: string
+        nota:
+          type: string
+      required:
+        - licitacaoId
+
+    FavoritoPage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Favorito"
+        total:
+          type: integer
+        page:
+          type: integer
+        totalPages:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - totalPages
+
+    # ── Monitoramento ──────────────────────────────────────────────────────────
+    Monitoramento:
+      type: object
+      properties:
+        id:
+          type: integer
+        nome:
+          type: string
+        ativo:
+          type: boolean
+        palavrasChave:
+          type: array
+          items:
+            type: string
+        modalidades:
+          type: array
+          items:
+            type: string
+        ufs:
+          type: array
+          items:
+            type: string
+        valorMin:
+          type: ["number", "null"]
+        valorMax:
+          type: ["number", "null"]
+        esferas:
+          type: array
+          items:
+            type: string
+        totalAlertas:
+          type: integer
+        ultimaExecucao:
+          type: ["string", "null"]
+        criadoEm:
+          type: string
+      required:
+        - id
+        - nome
+        - ativo
+        - palavrasChave
+        - modalidades
+        - ufs
+        - esferas
+        - totalAlertas
+        - criadoEm
+
+    MonitoramentoInput:
+      type: object
+      properties:
+        nome:
+          type: string
+          minLength: 1
+        palavrasChave:
+          type: array
+          items:
+            type: string
+        modalidades:
+          type: array
+          items:
+            type: string
+        ufs:
+          type: array
+          items:
+            type: string
+        valorMin:
+          type: number
+        valorMax:
+          type: number
+        esferas:
+          type: array
+          items:
+            type: string
+      required:
+        - nome
+        - palavrasChave
+
+    MonitoramentoUpdate:
+      type: object
+      properties:
+        nome:
+          type: string
+        palavrasChave:
+          type: array
+          items:
+            type: string
+        modalidades:
+          type: array
+          items:
+            type: string
+        ufs:
+          type: array
+          items:
+            type: string
+        valorMin:
+          type: number
+        valorMax:
+          type: number
+        esferas:
+          type: array
+          items:
+            type: string
+        ativo:
+          type: boolean
+
+    # ── Alerta ─────────────────────────────────────────────────────────────────
+    Alerta:
+      type: object
+      properties:
+        id:
+          type: integer
+        tipo:
+          type: string
+          enum: [nova_licitacao, prazo_vencendo, situacao_alterada, nova_disputa, preco_referencia]
+        titulo:
+          type: string
+        descricao:
+          type: string
+        lido:
+          type: boolean
+        licitacaoId:
+          type: ["string", "null"]
+        licitacaoObjeto:
+          type: ["string", "null"]
+        monitoramentoNome:
+          type: ["string", "null"]
+        criadoEm:
+          type: string
+      required:
+        - id
+        - tipo
+        - titulo
+        - descricao
+        - lido
+        - criadoEm
+
+    AlertaPage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Alerta"
+        total:
+          type: integer
+        page:
+          type: integer
+        totalPages:
+          type: integer
+        totalNaoLidos:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - totalPages
+        - totalNaoLidos
+
+    AlertaCount:
+      type: object
+      properties:
+        count:
+          type: integer
+      required:
+        - count
+
+    # ── Documento ──────────────────────────────────────────────────────────────
+    Documento:
+      type: object
+      properties:
+        id:
+          type: integer
+        nome:
+          type: string
+        categoria:
+          type: string
+          enum: [edital, proposta, habilitacao, recurso, contrato, outro]
+        licitacaoId:
+          type: ["string", "null"]
+        licitacaoObjeto:
+          type: ["string", "null"]
+        url:
+          type: ["string", "null"]
+        tamanho:
+          type: ["integer", "null"]
+        tipo:
+          type: ["string", "null"]
+        descricao:
+          type: ["string", "null"]
+        criadoEm:
+          type: string
+      required:
+        - id
+        - nome
+        - categoria
+        - criadoEm
+
+    DocumentoInput:
+      type: object
+      properties:
+        nome:
+          type: string
+          minLength: 1
+        categoria:
+          type: string
+          enum: [edital, proposta, habilitacao, recurso, contrato, outro]
+        licitacaoId:
+          type: string
+        url:
+          type: string
+        descricao:
+          type: string
+      required:
+        - nome
+        - categoria
+
+    DocumentoUpdate:
+      type: object
+      properties:
+        nome:
+          type: string
+        categoria:
+          type: string
+          enum: [edital, proposta, habilitacao, recurso, contrato, outro]
+        descricao:
+          type: string
+        url:
+          type: string
+
+    DocumentoPage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Documento"
+        total:
+          type: integer
+        page:
+          type: integer
+        totalPages:
+          type: integer
+      required:
+        - data
+        - total
+        - page
+        - totalPages
+
+    # ── Equipe ─────────────────────────────────────────────────────────────────
+    MembroEquipe:
+      type: object
+      properties:
+        id:
+          type: integer
+        nome:
+          type: string
+        email:
+          type: string
+        papel:
+          type: string
+          enum: [admin, editor, visualizador]
+        status:
+          type: string
+          enum: [ativo, pendente, inativo]
+        avatarUrl:
+          type: ["string", "null"]
+        criadoEm:
+          type: string
+      required:
+        - id
+        - nome
+        - email
+        - papel
+        - status
+        - criadoEm
+
+    ConviteInput:
+      type: object
+      properties:
+        email:
+          type: string
+        papel:
+          type: string
+          enum: [admin, editor, visualizador]
+      required:
+        - email
+        - papel
+
+    MembroUpdate:
+      type: object
+      properties:
+        papel:
+          type: string
+          enum: [admin, editor, visualizador]
+        status:
+          type: string
+          enum: [ativo, inativo]
+
+    # ── Oportunidade ──────────────────────────────────────────────────────────
+    Oportunidade:
+      type: object
+      properties:
+        id:
+          type: integer
+        titulo:
+          type: string
+        estagio:
+          type: string
+          enum: [identificada, qualificada, proposta, disputa, ganhou, perdeu]
+        valorEstimado:
+          type: ["number", "null"]
+        probabilidade:
+          type: ["integer", "null"]
+        licitacaoId:
+          type: ["string", "null"]
+        licitacaoObjeto:
+          type: ["string", "null"]
+        responsavelNome:
+          type: ["string", "null"]
+        responsavelId:
+          type: ["integer", "null"]
+        prazo:
+          type: ["string", "null"]
+        notas:
+          type: ["string", "null"]
+        tags:
+          type: array
+          items:
+            type: string
+        criadoEm:
+          type: string
+        atualizadoEm:
+          type: string
+      required:
+        - id
+        - titulo
+        - estagio
+        - tags
+        - criadoEm
+        - atualizadoEm
+
+    OportunidadeInput:
+      type: object
+      properties:
+        titulo:
+          type: string
+          minLength: 1
+        estagio:
+          type: string
+          enum: [identificada, qualificada, proposta, disputa, ganhou, perdeu]
+        valorEstimado:
+          type: number
+        probabilidade:
+          type: integer
+          minimum: 0
+          maximum: 100
+        licitacaoId:
+          type: string
+        responsavelId:
+          type: integer
+        prazo:
+          type: string
+        notas:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+      required:
+        - titulo
+
+    OportunidadeUpdate:
+      type: object
+      properties:
+        titulo:
+          type: string
+        estagio:
+          type: string
+          enum: [identificada, qualificada, proposta, disputa, ganhou, perdeu]
+        valorEstimado:
+          type: number
+        probabilidade:
+          type: integer
+          minimum: 0
+          maximum: 100
+        responsavelId:
+          type: integer
+        prazo:
+          type: string
+        notas:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+
+    PipelineStat:
+      type: object
+      properties:
+        estagio:
+          type: string
+        total:
+          type: integer
+        valorTotal:
+          type: number
+      required:
+        - estagio
+        - total
+        - valorTotal
+
+    # ── Histórico de Preços ────────────────────────────────────────────────────
+    HistoricoPrecos:
+      type: object
+      properties:
+        item:
+          type: string
+        totalRegistros:
+          type: integer
+        precoMedio:
+          type: number
+        precoMinimo:
+          type: number
+        precoMaximo:
+          type: number
+        registros:
+          type: array
+          items:
+            $ref: "#/components/schemas/RegistroPreco"
+      required:
+        - item
+        - totalRegistros
+        - precoMedio
+        - precoMinimo
+        - precoMaximo
+        - registros
+
+    RegistroPreco:
+      type: object
+      properties:
+        data:
+          type: string
+        preco:
+          type: number
+        orgao:
+          type: string
+        uf:
+          type: string
+        licitacaoId:
+          type: string
+        quantidade:
+          type: ["number", "null"]
+      required:
+        - data
+        - preco
+        - orgao
+        - uf
+        - licitacaoId
+
+    # ── AI ─────────────────────────────────────────────────────────────────────
+    AiSearchInput:
+      type: object
+      properties:
+        query:
+          type: string
+          minLength: 3
+        contexto:
+          type: string
+      required:
+        - query
+
+    AiSearchResult:
+      type: object
+      properties:
+        query:
+          type: string
+        interpretacao:
+          type: string
+        filtrosGerados:
+          type: object
+          properties:
+            palavrasChave:
+              type: array
+              items:
+                type: string
+            modalidades:
+              type: array
+              items:
+                type: string
+            ufs:
+              type: array
+              items:
+                type: string
+            valorMin:
+              type: ["number", "null"]
+            valorMax:
+              type: ["number", "null"]
+        resultados:
+          type: array
+          items:
+            $ref: "#/components/schemas/Licitacao"
+        totalEncontrados:
+          type: integer
+      required:
+        - query
+        - interpretacao
+        - filtrosGerados
+        - resultados
+        - totalEncontrados

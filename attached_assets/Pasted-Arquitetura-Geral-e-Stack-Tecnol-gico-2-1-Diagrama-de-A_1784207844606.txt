@@ -1,0 +1,160 @@
+Arquitetura Geral e Stack Tecnológico
+2.1. Diagrama de Arquitetura (Atualizado para FastAPI)
+                        +----------------------+
+                        |       Front-end      |
+                        | React / Next.js      |
+                        +----------+-----------+
+                                   |
+                        REST API / WebSocket
+                                   |
++----------------------------------------------------------------+
+|               API Gateway (NGINX / Traefik)                    |
+|               Rate Limit, SSL, JWT Routing                     |
++----------------------------------------------------------------+
+             |                |                 |
+             |                |                 |
+      Auth Service      Licitações API     Notificações
+      (FastAPI)         (FastAPI)          (FastAPI + Celery)
+             |                |                 |
+             |                |                 |
+      PostgreSQL         Elasticsearch     RabbitMQ
+             |                |                 |
+             |                |                 |
+             +----------------+-----------------+
+                              |
+                     Coletor de Dados (Scrapers/APIs)
+                     (Python + Celery/ARQ + Playwright)
+                              |
+      --------------------------------------------------
+      |         |          |          |                 |
+      PNCP   ComprasNet   BEC-SP   BBMNET     Outros Portais
+2.2. Tecnologias
+Backend: Python 3.11+, FastAPI, SQLAlchemy 2.0, Pydantic v2, Celery (tarefas assíncronas).
+Front-end: Next.js 14+, React, TypeScript, Tailwind CSS + shadcn/ui (ou Material UI), TanStack Query, Socket.io (WebSockets).
+Banco de Dados: PostgreSQL 16 (Relacional), Redis (Cache/Filas), Elasticsearch/OpenSearch (Busca).
+Armazenamento: MinIO (S3 compatível para editais e documentos).
+Mensageria: RabbitMQ.
+Infraestrutura: Docker, Kubernetes (ou Docker Compose para MVP), GitHub Actions (CI/CD).
+Observabilidade: Prometheus, Grafana, Loki.
+IA / LLM: LangChain ou LlamaIndex integrados ao Elasticsearch para o Chat IA.
+3. Módulos e Requisitos Funcionais
+3.1. Gestão de Acesso e Multi-Tenancy
+Autenticação: Login, Cadastro, Recuperação de senha, MFA (2FA via TOTP/SMS).
+Estrutura Multi-Tenancy: Usuários -> Equipes -> Empresas.
+RBAC (Controle de Acesso): Permissões granulares (Admin, Gestor, Operador, Visualizador).
+Planos SaaS: Free (limitado), Pro (ilimitado + IA), Enterprise (API + SLA).
+3.2. Cadastro de Empresas e Conformidade
+Dados Cadastrais: CNPJ, Razão Social, CNAE, Endereço, Representantes Legais.
+Gestão Documental (Compliance): Upload de Certidões (FGTS, Receita, INSS, Trabalhista), Balanço, Contrato Social, Procurações.
+Alertas de Validade: Sistema notifica 30, 15 e 5 dias antes do vencimento de certidões.
+3.3. Dashboard e Visão Geral
+KPIs em Tempo Real: Licitações abertas hoje, novas oportunidades (últimas 24h), monitoramentos ativos, disputas em andamento, encerrando hoje.
+Widgets: Favoritas, Alertas pendentes, Documentos da empresa com validade próxima.
+3.4. Motor de Busca (Avançada e Inteligente)
+Busca Google-like (Elasticsearch): Autocomplete, correção ortográfica, busca semântica.
+Filtros Avançados:
+Textuais: Palavra-chave, Objeto, Número, Processo.
+Geográficos: Órgão, Município, Estado, Região.
+Técnicos: Modalidade (Pregão, Concorrência, Dispensa, etc.), Situação, SRP, Critério, Modo de Disputa, Esfera (Federal/Estadual/Municipal).
+Financeiros/Datas: Valor min/max, Data publicação/abertura.
+Exclusivos: ME/EPP, Consórcios.
+Lógica Booleana: Palavras obrigatórias, proibidas e combinações (("Notebook" OR "Computador") AND NOT "Usado").
+3.5. Página de Detalhe da Licitação
+Aba Resumo: Objeto, Valor, Datas, Órgão, Responsável, Links originais.
+Aba Itens: Tabela detalhada (Qtd, Unidade, Valor estimado/máximo).
+Aba Documentos: Edital, TR, Anexos (armazenados no MinIO com preview de PDF).
+Aba Histórico e Timeline: Linha do tempo visual (Publicação -> Retificação -> Esclarecimentos -> Sessão -> Homologação -> Ata -> Contrato).
+Aba Mercado: Empresas interessadas (que usam a plataforma), histórico de preços do item.
+3.6. Sistema de Monitoramento e Alertas
+Criador de Regras: Interface visual para criar filtros salvos (ex: Objeto="Notebook", UF="CE", Valor>100k, Excluir="Usado").
+Gatilhos de Notificação: Nova licitação, retificação de edital, impugnação, abertura próxima.
+Multicanal: E-mail, Push (Web), WhatsApp (via API oficial ou provedor), Telegram.
+Central de Alertas: Inbox interno com contadores (ex: "32 novas", "5 alteradas").
+3.7. Gestão de Participação e Agenda
+Agenda/Calendário: Visão de Sessões, Visitas Técnicas, Prazos de Impugnação/Recursos.
+Fluxo de Participação: Botão "Vou Participar" gera um workspace com:
+Checklist de documentos necessários.
+Atribuição de responsáveis (Equipe).
+Campo de observações e estratégia de lances.
+3.8. Inteligência Comercial e BI
+Dashboards Gerenciais: Maiores compradores, preço médio por item, histórico de preços, empresas mais vencedoras.
+Filtros de BI: Cruzamento de Ano, Cidade, Órgão, Fornecedor, Categoria.
+Estimativa de Competitividade: Indicador de quantos participantes costumam aparecer e a faixa de desconto praticada.
+3.9. Assistente IA (Chat)
+Interface: Chat lateral ou página dedicada.
+Capacidades (RAG - Retrieval-Augmented Generation):
+Exemplos: "Quais licitações abertas para notebook acima de R$500 mil?", "Quais órgãos mais compram reagentes no Nordeste?", "Resuma o objeto e as penalidades deste edital."
+3.10. Administração do SaaS (Backoffice)
+Gestão de Usuários, Empresas, Planos e Cobrança (integração Stripe/Asaas).
+Logs de Auditoria, Monitoramento de saúde dos Scrapers (Coletores), Gestão de Mensagens/Notificações enviadas.
+4. Modelo de Dados (PostgreSQL)
+O banco será estruturado em esquemas lógicos. Principais entidades:
+Core SaaS: usuarios, empresas, equipes, permissoes, planos, assinaturas.
+Licitações: licitacoes, licitacao_itens, licitacao_documentos, licitacao_historico, orgaos, unidades_compradoras.
+Interação: monitoramentos, favoritos, alertas, notificacoes, disputas (participações), eventos_disputa.
+Conformidade: documentos_empresa, validades_certidoes.
+Sistema: tarefas (filas), mensagens, logs, auditoria.
+5. O Coletor de Dados (Data Ingestion)
+Este é o coração do sistema. Será um microsserviço Python assíncrono.
+Tecnologias: Playwright/Selenium (para portais com JS/Captcha), HTTPX (para APIs como PNCP), BeautifulSoup/ParSEL (parsing).
+Arquitetura: Filas no RabbitMQ. Um Scheduler (Celery Beat) agenda as varreduras.
+Resiliência: Retry com backoff exponencial, rotação de proxies, fallback para APIs oficiais quando disponíveis (ex: API do PNCP).
+Pipeline: Coleta -> Normalização (Padronizar nomes de órgãos, cidades) -> Indexação (PostgreSQL + Elasticsearch).
+6. Requisitos Não-Funcionais
+Performance: Busca no Elasticsearch deve retornar em < 200ms. API FastAPI deve suportar > 1000 req/s por instância.
+Segurança: Criptografia de dados sensíveis em repouso e trânsito. Conformidade com LGPD. Tokens JWT com tempo de expiração curto e Refresh Tokens.
+Escalabilidade: Microsserviços e coletores devem ser escaláveis horizontalmente via Kubernetes ou Docker Swarm.
+Disponibilidade: SLA alvo de 99.9%. Healthchecks em todas as rotas do FastAPI.
+
+
+
+Crie backend Python FastAPI para SaaS de licitações. Estrutura:
+
+backend/
+├── app/
+│   ├── main.py (FastAPI app com CORS, healthcheck)
+│   ├── core/
+│   │   ├── config.py (pydantic-settings com DATABASE_URL, REDIS_URL, JWT_SECRET, etc)
+│   │   ├── security.py (JWT, bcrypt, create_access_token, get_password_hash)
+│   │   └── deps.py (get_current_user, get_db dependencies)
+│   ├── models/ (SQLAlchemy 2.0, UUID primary keys, created_at/updated_at)
+│   │   ├── base.py (DeclarativeBase)
+│   │   ├── user.py (email unique, hashed_password, full_name, is_active, mfa_enabled)
+│   │   ├── company.py (cnpj unique, razao_social, nome_fantasia, cnae)
+│   │   ├── user_company.py (user_id, company_id, role enum)
+│   │   ├── tender.py (external_id unique, source enum, numero, objeto text, orgao_id FK, 
+│   │   │   modalidade enum, situacao enum, valor_estimado, data_publicacao, data_abertura, 
+│   │   │   uf, municipio, link_original, raw_data JSONB)
+│   │   ├── tender_item.py (tender_id FK, descricao, quantidade, valor_estimado)
+│   │   ├── tender_document.py (tender_id FK, tipo enum, titulo, storage_key)
+│   │   ├── organ.py (codigo unique, nome, esfera enum, uf, municipio)
+│   │   ├── monitor.py (company_id FK, user_id FK, name, rules JSONB, notify_channels JSONB)
+│   │   ├── favorite.py (user_id FK, tender_id FK, unique constraint)
+│   │   ├── alert.py (user_id FK, tender_id FK, type enum, title, message, is_read)
+│   │   └── company_document.py (company_id FK, tipo enum, storage_key, data_validade)
+│   ├── schemas/ (Pydantic v2)
+│   │   ├── user.py (UserCreate, UserResponse, LoginRequest, TokenResponse)
+│   │   ├── company.py (CompanyCreate, CompanyResponse)
+│   │   ├── tender.py (TenderListResponse, TenderDetailResponse, TenderSearchRequest)
+│   │   └── monitor.py (MonitorCreate, MonitorResponse)
+│   ├── api/
+│   │   ├── auth.py (POST /register, /login, /refresh, GET /me)
+│   │   ├── companies.py (CRUD completo)
+│   │   ├── tenders.py (GET / com filtros, GET /{id}, POST /{id}/favorite)
+│   │   ├── monitors.py (CRUD completo)
+│   │   └── alerts.py (GET /, POST /{id}/read)
+│   ├── services/
+│   │   ├── tender_service.py (list_tenders com filtros dinâmicos, get_tender, toggle_favorite)
+│   │   └── monitor_service.py (create_monitor, list_monitors)
+│   └── db/
+│       └── session.py (async engine, async sessionmaker)
+├── alembic/ (config para migrations)
+├── requirements.txt (fastapi, uvicorn, sqlalchemy[asyncio], asyncpg, pydantic, python-jose, passlib)
+└── Dockerfile
+
+docker-compose.yml: postgres:16, redis:7, elasticsearch:8.11, rabbitmq:3
+
+Configure Alembic para async migrations. Use índices em campos frequentemente consultados 
+(email, cnpj, external_id, uf, municipio, data_publicacao).
+
+Todas as rotas exceto /health e /auth/* exigem autenticação JWT.

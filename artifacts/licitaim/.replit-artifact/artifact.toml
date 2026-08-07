@@ -1,0 +1,27 @@
+kind = "web"
+previewPath = "/"
+title = "LicitAIM"
+version = "1.0.0"
+id = "artifacts/licitaim"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21607
+
+[services.development]
+run = "pnpm --filter @workspace/licitaim run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/licitaim", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/licitaim/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21607"
+BASE_PATH = "/"
