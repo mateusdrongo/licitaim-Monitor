@@ -13,6 +13,7 @@ import {
   Trash2,
   CalendarPlus,
 } from "lucide-react";
+import { apiFetch } from "@/lib/apiFetch";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -37,7 +38,7 @@ function useAgenda() {
   return useQuery<AgendaData>({
     queryKey: ["agenda"],
     queryFn: async () => {
-      const res = await fetch(`${BASE}/api/agenda`, { credentials: "include" });
+      const res = await apiFetch(`${BASE}/api/agenda`, { credentials: "include" });
       if (!res.ok) throw new Error("Erro ao buscar agenda");
       return res.json();
     },
@@ -88,7 +89,7 @@ function NovoEventoModal({ onClose }: { onClose: () => void }) {
 
   const mutation = useMutation({
     mutationFn: async (data: EventoForm) => {
-      const res = await fetch(`${BASE}/api/agenda/eventos`, {
+      const res = await apiFetch(`${BASE}/api/agenda/eventos`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -234,7 +235,7 @@ function useDeleteEvento() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (eventoId: number) => {
-      const res = await fetch(`${BASE}/api/agenda/eventos/${eventoId}`, {
+      const res = await apiFetch(`${BASE}/api/agenda/eventos/${eventoId}`, {
         method: "DELETE",
         credentials: "include",
       });

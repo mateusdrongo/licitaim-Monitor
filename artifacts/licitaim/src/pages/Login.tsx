@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useGetMe } from "@workspace/api-client-react";
 import { Activity, ArrowRight, ShieldCheck } from "lucide-react";
+import { apiFetch } from "@/lib/apiFetch";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -45,7 +46,7 @@ export default function Login() {
     setSubmitting(true);
 
     try {
-      const res = await fetch(`${BASE}/api/auth/login`, {
+      const res = await apiFetch(`${BASE}/api/auth/login`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

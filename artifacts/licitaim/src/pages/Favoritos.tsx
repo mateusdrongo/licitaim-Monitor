@@ -5,6 +5,7 @@ import {
   Star, Building2, MapPin, Calendar, Bookmark, BookmarkCheck,
   Loader2, Trash2, ExternalLink, FileText,
 } from "lucide-react";
+import { apiFetch } from "@/lib/apiFetch";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -52,7 +53,7 @@ export default function Favoritos() {
   const { data, isLoading } = useQuery<{ data: Favorito[]; total: number }>({
     queryKey: ["favoritos"],
     queryFn: async () => {
-      const res = await fetch(`${BASE}/api/favoritos`, { credentials: "include" });
+      const res = await apiFetch(`${BASE}/api/favoritos`, { credentials: "include" });
       if (!res.ok) return { data: [], total: 0 };
       return res.json();
     },
@@ -61,7 +62,7 @@ export default function Favoritos() {
 
   const removeMutation = useMutation({
     mutationFn: async (licitacaoId: string) => {
-      const res = await fetch(`${BASE}/api/favoritos/by-licitacao/${encodeURIComponent(licitacaoId)}`, {
+      const res = await apiFetch(`${BASE}/api/favoritos/by-licitacao/${encodeURIComponent(licitacaoId)}`, {
         method: "DELETE",
         credentials: "include",
       });

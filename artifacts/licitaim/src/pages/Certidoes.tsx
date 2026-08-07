@@ -10,6 +10,7 @@ import {
   Clock,
   X,
 } from "lucide-react";
+import { apiFetch } from "@/lib/apiFetch";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -30,7 +31,7 @@ function useCertidoes() {
   return useQuery<Certidao[]>({
     queryKey: ["certidoes"],
     queryFn: async () => {
-      const res = await fetch(`${BASE}/api/certidoes`, { credentials: "include" });
+      const res = await apiFetch(`${BASE}/api/certidoes`, { credentials: "include" });
       if (!res.ok) throw new Error("Erro");
       return res.json();
     },
@@ -85,7 +86,7 @@ export default function Certidoes() {
 
   const criar = useMutation({
     mutationFn: async (body: FormData) => {
-      const res = await fetch(`${BASE}/api/certidoes`, {
+      const res = await apiFetch(`${BASE}/api/certidoes`, {
         method: "POST", credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -98,7 +99,7 @@ export default function Certidoes() {
 
   const atualizar = useMutation({
     mutationFn: async ({ id, body }: { id: number; body: Partial<FormData> }) => {
-      const res = await fetch(`${BASE}/api/certidoes/${id}`, {
+      const res = await apiFetch(`${BASE}/api/certidoes/${id}`, {
         method: "PATCH", credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -111,7 +112,7 @@ export default function Certidoes() {
 
   const remover = useMutation({
     mutationFn: async (id: number) => {
-      await fetch(`${BASE}/api/certidoes/${id}`, { method: "DELETE", credentials: "include" });
+      await apiFetch(`${BASE}/api/certidoes/${id}`, { method: "DELETE", credentials: "include" });
     },
     onSuccess: invalidate,
   });

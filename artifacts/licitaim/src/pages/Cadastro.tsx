@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useLocation, useSearch } from "wouter";
 import { useGetMe } from "@workspace/api-client-react";
 import { Activity, ArrowRight, ShieldCheck } from "lucide-react";
+import { apiFetch } from "@/lib/apiFetch";
 
 /** Returns the path to redirect to after a successful login/register. */
 function useRedirectTarget(fallback = "/dashboard"): string {
@@ -41,7 +42,7 @@ export default function Cadastro() {
     setError("");
     setSubmitting(true);
     try {
-      const res = await fetch(`${BASE}/api/auth/register`, {
+      const res = await apiFetch(`${BASE}/api/auth/register`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },

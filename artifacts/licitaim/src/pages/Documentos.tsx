@@ -4,6 +4,7 @@ import {
   FileText, Upload, Search, Filter, Download, Trash2, Eye,
   Plus, X, CheckCircle, Clock, AlertCircle, ChevronDown, FileUp,
 } from "lucide-react";
+import { apiFetch } from "@/lib/apiFetch";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -46,13 +47,13 @@ async function fetchDocumentos(params: {
   if (params.situacao)        sp.set("situacao", params.situacao);
   if (params.tipoAtualizacao) sp.set("tipo_atualizacao", params.tipoAtualizacao);
   if (params.q)               sp.set("q", params.q);
-  const res = await fetch(`${BASE}/api/documentos?${sp}`, { credentials: "include" });
+  const res = await apiFetch(`${BASE}/api/documentos?${sp}`, { credentials: "include" });
   if (!res.ok) throw new Error("Erro ao buscar documentos");
   return res.json() as Promise<{ data: Documento[]; total: number }>;
 }
 
 async function uploadDocumento(form: FormData) {
-  const res = await fetch(`${BASE}/api/documentos/upload`, {
+  const res = await apiFetch(`${BASE}/api/documentos/upload`, {
     method: "POST",
     credentials: "include",
     body: form,
@@ -65,7 +66,7 @@ async function uploadDocumento(form: FormData) {
 }
 
 async function deleteDocumento(id: number) {
-  const res = await fetch(`${BASE}/api/documentos/${id}`, {
+  const res = await apiFetch(`${BASE}/api/documentos/${id}`, {
     method: "DELETE",
     credentials: "include",
   });

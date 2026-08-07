@@ -10,6 +10,7 @@ import {
   ExternalLink, FolderOpen, Eye, EyeOff, Link2, Banknote, Package,
   SquareStack, FileDown, AlertCircle, ClipboardList,
 } from "lucide-react";
+import { apiFetch } from "@/lib/apiFetch";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 import { fmtLastSync as fmtLastSyncBRT } from "../lib/dateUtils";
@@ -285,7 +286,7 @@ export default function Licitacoes() {
   const { data: favData } = useQuery<{ data: Array<{ id: number; licitacaoId: string }> }>({
     queryKey: ["favoritos-ids"],
     queryFn: async () => {
-      const res = await fetch(`${BASE}/api/favoritos`, { credentials: "include" });
+      const res = await apiFetch(`${BASE}/api/favoritos`, { credentials: "include" });
       if (!res.ok) return { data: [] };
       return res.json();
     },
@@ -311,13 +312,13 @@ export default function Licitacoes() {
     mutationFn: async ({ id, lic, currently }: { id: string; lic: Licitacao; currently: boolean }) => {
       if (currently) {
         // Remove pelo licitacao_id
-        const res = await fetch(`${BASE}/api/favoritos/by-licitacao/${encodeURIComponent(id)}`, {
+        const res = await apiFetch(`${BASE}/api/favoritos/by-licitacao/${encodeURIComponent(id)}`, {
           method: "DELETE", credentials: "include",
         });
         if (!res.ok && res.status !== 404) throw new Error("Erro ao desfavoritar");
       } else {
         // Adiciona com metadados
-        const res = await fetch(`${BASE}/api/favoritos`, {
+        const res = await apiFetch(`${BASE}/api/favoritos`, {
           method: "POST", credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -364,7 +365,7 @@ export default function Licitacoes() {
   const { data: gerData } = useQuery<{ data: Array<{ id: number; licitacaoId: string }> }>({
     queryKey: ["gerenciamento-ids"],
     queryFn: async () => {
-      const res = await fetch(`${BASE}/api/gerenciamento`, { credentials: "include" });
+      const res = await apiFetch(`${BASE}/api/gerenciamento`, { credentials: "include" });
       if (!res.ok) return { data: [] };
       const json = await res.json();
       return { data: (json.data ?? []).map((g: { id: number; licitacao_id?: string; licitacaoId?: string }) => ({ id: g.id, licitacaoId: g.licitacaoId ?? g.licitacao_id ?? "" })) };
@@ -395,14 +396,14 @@ export default function Licitacoes() {
   const gerMutation = useMutation({
     mutationFn: async ({ id, lic, currently }: { id: string; lic: Licitacao; currently: boolean }) => {
       if (currently) {
-        const res = await fetch(`${BASE}/api/gerenciamento/by-licitacao/${encodeURIComponent(id)}`, {
+        const res = await apiFetch(`${BASE}/api/gerenciamento/by-licitacao/${encodeURIComponent(id)}`, {
           method: "DELETE", credentials: "include",
         });
         if (res.status === 401) throw new Error("401");
         if (!res.ok && res.status !== 404) throw new Error("Erro ao remover gerenciamento");
         return null;
       } else {
-        const res = await fetch(`${BASE}/api/gerenciamento`, {
+        const res = await apiFetch(`${BASE}/api/gerenciamento`, {
           method: "POST", credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -425,7 +426,7 @@ export default function Licitacoes() {
         if (res.status === 401) throw new Error("401");
         if (res.status === 409) {
           // Licitação já gerenciada: resolve o id existente via check endpoint
-          const check = await fetch(`${BASE}/api/gerenciamento/check/${encodeURIComponent(id)}`, {
+          const check = await apiFetch(`${BASE}/api/gerenciamento/check/${encodeURIComponent(id)}`, {
             credentials: "include",
           });
           if (check.ok) {
@@ -481,7 +482,7 @@ export default function Licitacoes() {
   }>({
     queryKey: ["licitacoes-cache-stats"],
     queryFn: async () => {
-      const res = await fetch(`${BASE}/api/licitacoes/admin/stats`, { credentials: "include" });
+      const res = await apiFetch(`${BASE}/api/licitacoes/admin/stats`, { credentials: "include" });
       if (!res.ok) throw new Error("Erro ao buscar stats");
       return res.json();
     },
@@ -498,7 +499,7 @@ export default function Licitacoes() {
   }>({
     queryKey: ["collector-status"],
     queryFn: async () => {
-      const res = await fetch(`${BASE}/api/collector/status`, { credentials: "include" });
+      const res = await apiFetch(`${BASE}/api/collector/status`, { credentials: "include" });
       if (!res.ok) return { lastRun: null, processed: 0, errors: 0, nextRunIn: null };
       return res.json();
     },
@@ -523,7 +524,7 @@ export default function Licitacoes() {
     stopPolling();
     pollingRef.current = setInterval(async () => {
       try {
-        const res = await fetch(`${BASE}/api/licitacoes/admin/sync/status`, { credentials: "include" });
+        const res = await apiFetch(`${BASE}/api/licitacoes/admin/sync/status`, { credentials: "include" });
         if (!res.ok) {
           stopPolling();
           setSyncStatus("error");
@@ -553,7 +554,7 @@ export default function Licitacoes() {
     syncStartMs.current = Date.now();
 
     try {
-      const res = await fetch(`${BASE}/api/licitacoes/admin/sync`, {
+      const res = await apiFetch(`${BASE}/api/licitacoes/admin/sync`, {
         method: "POST", credentials: "include",
       });
       if (!res.ok) {
@@ -645,7 +646,7 @@ export default function Licitacoes() {
     queryFn: async () => {
       // Chama exclusivamente o backend — ele serve do banco (cache) ou busca nas
       // APIs externas e faz upsert, retornando source="banco"/"pncp"/"dadosabertos"
-      const res = await fetch(`${BASE}/api/licitacoes?${backendParams}`, { credentials: "include" });
+      const res = await apiFetch(`${BASE}/api/licitacoes?${backendParams}`, { credentials: "include" });
       if (!res.ok) throw new Error("Erro ao buscar licitações");
       const json = await res.json();
       return {
@@ -1232,7 +1233,7 @@ function LicitacaoCard({ lic, index, isFav, onFav, isGer, gerId, onGer }: {
     enabled:  expanded,
     staleTime: 10 * 60 * 1000,
     queryFn: async () => {
-      const res = await fetch(
+      const res = await apiFetch(
         `${BASE}/api/licitacoes/${encodeURIComponent(lic.id)}${lic.numero ? `?pncp=${encodeURIComponent(lic.numero)}` : ""}`,
         { credentials: "include" },
       );
@@ -1248,7 +1249,7 @@ function LicitacaoCard({ lic, index, isFav, onFav, isGer, gerId, onGer }: {
     staleTime: 10 * 60 * 1000,
     queryFn: async () => {
       if (!lic.numero) return [];
-      const res = await fetch(
+      const res = await apiFetch(
         `${BASE}/api/licitacoes/arquivos?pncp=${encodeURIComponent(lic.numero)}`,
         { credentials: "include" },
       );

@@ -11,6 +11,7 @@ import {
   ChevronRight,
   BarChart3,
 } from "lucide-react";
+import { apiFetch } from "@/lib/apiFetch";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -32,7 +33,7 @@ function useAnalytics() {
   return useQuery<AnalyticsData>({
     queryKey: ["analytics"],
     queryFn: async () => {
-      const res = await fetch(`${BASE}/api/analytics`, { credentials: "include" });
+      const res = await apiFetch(`${BASE}/api/analytics`, { credentials: "include" });
       if (!res.ok) throw new Error("Erro");
       return res.json();
     },

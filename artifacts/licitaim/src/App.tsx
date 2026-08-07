@@ -1,9 +1,10 @@
 import React from "react";
 import { Route, Switch, Router as WouterRouter } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { BackendStatusProvider } from "@/contexts/BackendStatusContext";
+import { NetworkErrorBanner } from "@/components/NetworkErrorBanner";
 
 import NotFound from "@/pages/not-found";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -31,15 +32,6 @@ import Certidoes from "@/pages/Certidoes";
 import Analytics from "@/pages/Analytics";
 import GerenciamentoLista from "@/pages/GerenciamentoLista";
 import GerenciamentoDetalhe from "@/pages/GerenciamentoDetalhe";
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
 
 function AppRoutes() {
   return (
@@ -85,14 +77,15 @@ function AppRoutes() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
+    <BackendStatusProvider>
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+          <NetworkErrorBanner />
           <AppRoutes />
         </WouterRouter>
         <Toaster />
       </TooltipProvider>
-    </QueryClientProvider>
+    </BackendStatusProvider>
   );
 }
 

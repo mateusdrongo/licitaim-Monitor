@@ -7,6 +7,7 @@ import {
   Building2, MapPin, Calendar, Loader2, FolderOpen, Bell, FileWarning,
 } from "lucide-react";
 import { fmtDateBRT, fmtDateTime } from "../lib/dateUtils";
+import { apiFetch } from "@/lib/apiFetch";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -86,7 +87,7 @@ export default function GerenciamentoLista() {
   const { data, isLoading } = useQuery<{ data: GerItem[]; total: number }>({
     queryKey: ["gerenciamento"],
     queryFn: async () => {
-      const res = await fetch(`${BASE}/api/gerenciamento`, { credentials: "include" });
+      const res = await apiFetch(`${BASE}/api/gerenciamento`, { credentials: "include" });
       if (!res.ok) throw new Error("Erro ao carregar");
       return res.json();
     },
@@ -95,7 +96,7 @@ export default function GerenciamentoLista() {
   const { data: alertasData } = useQuery<{ data: Record<string, number> }>({
     queryKey: ["alertas-por-gerenciamento"],
     queryFn: async () => {
-      const res = await fetch(`${BASE}/api/alertas/por-gerenciamento`, { credentials: "include" });
+      const res = await apiFetch(`${BASE}/api/alertas/por-gerenciamento`, { credentials: "include" });
       if (!res.ok) throw new Error("Erro ao carregar alertas");
       return res.json();
     },
@@ -106,7 +107,7 @@ export default function GerenciamentoLista() {
 
   const deleteMut = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`${BASE}/api/gerenciamento/${id}`, {
+      const res = await apiFetch(`${BASE}/api/gerenciamento/${id}`, {
         method: "DELETE", credentials: "include",
       });
       if (!res.ok && res.status !== 204) throw new Error("Erro ao remover");

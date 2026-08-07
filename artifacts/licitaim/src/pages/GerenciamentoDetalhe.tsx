@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useParams, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/apiFetch";
 import {
   ArrowLeft, ClipboardList, Building2, MapPin, Calendar, ExternalLink,
   CheckCircle2, Clock, AlertTriangle, XCircle, Trophy, Plus, Trash2,
@@ -275,7 +276,7 @@ export default function GerenciamentoDetalhe() {
   const { data: ger, isLoading } = useQuery<GerItem>({
     queryKey: ["gerenciamento", gerId],
     queryFn: async () => {
-      const res = await fetch(`${BASE}/api/gerenciamento/${gerId}`, { credentials: "include" });
+      const res = await apiFetch(`${BASE}/api/gerenciamento/${gerId}`, { credentials: "include" });
       if (!res.ok) throw new Error("Não encontrado");
       return res.json();
     },
@@ -285,7 +286,7 @@ export default function GerenciamentoDetalhe() {
   const { data: tarefasData } = useQuery<{ data: Tarefa[] }>({
     queryKey: ["gerenciamento", gerId, "tarefas"],
     queryFn: async () => {
-      const res = await fetch(`${BASE}/api/gerenciamento/${gerId}/tarefas`, { credentials: "include" });
+      const res = await apiFetch(`${BASE}/api/gerenciamento/${gerId}/tarefas`, { credentials: "include" });
       if (!res.ok) throw new Error();
       return res.json();
     },
@@ -295,7 +296,7 @@ export default function GerenciamentoDetalhe() {
   const { data: anotacoesData } = useQuery<{ data: Anotacao[] }>({
     queryKey: ["gerenciamento", gerId, "anotacoes"],
     queryFn: async () => {
-      const res = await fetch(`${BASE}/api/gerenciamento/${gerId}/anotacoes`, { credentials: "include" });
+      const res = await apiFetch(`${BASE}/api/gerenciamento/${gerId}/anotacoes`, { credentials: "include" });
       if (!res.ok) throw new Error();
       return res.json();
     },
@@ -305,7 +306,7 @@ export default function GerenciamentoDetalhe() {
   const { data: habilitacaoData } = useQuery<{ data: Habilitacao[] }>({
     queryKey: ["gerenciamento", gerId, "habilitacao"],
     queryFn: async () => {
-      const res = await fetch(`${BASE}/api/gerenciamento/${gerId}/habilitacao`, { credentials: "include" });
+      const res = await apiFetch(`${BASE}/api/gerenciamento/${gerId}/habilitacao`, { credentials: "include" });
       if (!res.ok) throw new Error();
       return res.json();
     },
@@ -332,14 +333,14 @@ export default function GerenciamentoDetalhe() {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`${BASE}/api/alertas?ger_id=${gerId}&lido=false`, { credentials: "include" });
+        const res = await apiFetch(`${BASE}/api/alertas?ger_id=${gerId}&lido=false`, { credentials: "include" });
         if (!res.ok || cancelled) return;
         const json = await res.json();
         const unread: Alerta[] = json.data ?? [];
         if (unread.length === 0 || cancelled) return;
 
         // Persist dismissal on server first
-        await fetch(`${BASE}/api/alertas/ler-todos?ger_id=${gerId}`, {
+        await apiFetch(`${BASE}/api/alertas/ler-todos?ger_id=${gerId}`, {
           method: "POST", credentials: "include",
         });
         if (cancelled) return;
@@ -379,7 +380,7 @@ export default function GerenciamentoDetalhe() {
 
   const updateGer = useMutation({
     mutationFn: async (body: object) => {
-      const res = await fetch(`${BASE}/api/gerenciamento/${gerId}`, {
+      const res = await apiFetch(`${BASE}/api/gerenciamento/${gerId}`, {
         method: "PATCH", credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -392,7 +393,7 @@ export default function GerenciamentoDetalhe() {
 
   const deleteGer = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`${BASE}/api/gerenciamento/${gerId}`, { method: "DELETE", credentials: "include" });
+      const res = await apiFetch(`${BASE}/api/gerenciamento/${gerId}`, { method: "DELETE", credentials: "include" });
       if (!res.ok && res.status !== 204) throw new Error();
     },
     onSuccess: () => navigate("/gerenciamento"),
@@ -400,7 +401,7 @@ export default function GerenciamentoDetalhe() {
 
   const createTarefa = useMutation({
     mutationFn: async (body: object) => {
-      const res = await fetch(`${BASE}/api/gerenciamento/${gerId}/tarefas`, {
+      const res = await apiFetch(`${BASE}/api/gerenciamento/${gerId}/tarefas`, {
         method: "POST", credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -427,7 +428,7 @@ export default function GerenciamentoDetalhe() {
 
   const toggleTarefa = useMutation({
     mutationFn: async ({ id, concluida }: { id: number; concluida: boolean }) => {
-      const res = await fetch(`${BASE}/api/gerenciamento/${gerId}/tarefas/${id}`, {
+      const res = await apiFetch(`${BASE}/api/gerenciamento/${gerId}/tarefas/${id}`, {
         method: "PATCH", credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ concluida }),
@@ -446,7 +447,7 @@ export default function GerenciamentoDetalhe() {
 
   const deleteTarefa = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`${BASE}/api/gerenciamento/${gerId}/tarefas/${id}`, {
+      const res = await apiFetch(`${BASE}/api/gerenciamento/${gerId}/tarefas/${id}`, {
         method: "DELETE", credentials: "include",
       });
       if (!res.ok && res.status !== 204) throw new Error(String(res.status));
@@ -463,7 +464,7 @@ export default function GerenciamentoDetalhe() {
 
   const createAnot = useMutation({
     mutationFn: async (conteudo: string) => {
-      const res = await fetch(`${BASE}/api/gerenciamento/${gerId}/anotacoes`, {
+      const res = await apiFetch(`${BASE}/api/gerenciamento/${gerId}/anotacoes`, {
         method: "POST", credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ conteudo }),
@@ -476,7 +477,7 @@ export default function GerenciamentoDetalhe() {
 
   const updateAnot = useMutation({
     mutationFn: async ({ id, conteudo }: { id: number; conteudo: string }) => {
-      const res = await fetch(`${BASE}/api/gerenciamento/${gerId}/anotacoes/${id}`, {
+      const res = await apiFetch(`${BASE}/api/gerenciamento/${gerId}/anotacoes/${id}`, {
         method: "PATCH", credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ conteudo }),
@@ -488,7 +489,7 @@ export default function GerenciamentoDetalhe() {
 
   const deleteAnot = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`${BASE}/api/gerenciamento/${gerId}/anotacoes/${id}`, {
+      const res = await apiFetch(`${BASE}/api/gerenciamento/${gerId}/anotacoes/${id}`, {
         method: "DELETE", credentials: "include",
       });
       if (!res.ok && res.status !== 204) throw new Error();
@@ -498,7 +499,7 @@ export default function GerenciamentoDetalhe() {
 
   const createHab = useMutation({
     mutationFn: async (body: object) => {
-      const res = await fetch(`${BASE}/api/gerenciamento/${gerId}/habilitacao`, {
+      const res = await apiFetch(`${BASE}/api/gerenciamento/${gerId}/habilitacao`, {
         method: "POST", credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -515,7 +516,7 @@ export default function GerenciamentoDetalhe() {
 
   const updateHab = useMutation({
     mutationFn: async ({ id, ...body }: { id: number; [k: string]: unknown }) => {
-      const res = await fetch(`${BASE}/api/gerenciamento/${gerId}/habilitacao/${id}`, {
+      const res = await apiFetch(`${BASE}/api/gerenciamento/${gerId}/habilitacao/${id}`, {
         method: "PATCH", credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -527,7 +528,7 @@ export default function GerenciamentoDetalhe() {
 
   const deleteHab = useMutation({
     mutationFn: async (id: number) => {
-      const res = await fetch(`${BASE}/api/gerenciamento/${gerId}/habilitacao/${id}`, {
+      const res = await apiFetch(`${BASE}/api/gerenciamento/${gerId}/habilitacao/${id}`, {
         method: "DELETE", credentials: "include",
       });
       if (!res.ok && res.status !== 204) throw new Error();

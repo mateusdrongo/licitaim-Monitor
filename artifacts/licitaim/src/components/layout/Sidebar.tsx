@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useGetMe, useLogout } from "@workspace/api-client-react";
 import { useTheme } from "@/context/ThemeContext";
 import { useQuery } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/apiFetch";
 
 import {
   LayoutDashboard,
@@ -36,7 +37,7 @@ export function Sidebar() {
   const { data: unreadData } = useQuery({
     queryKey: ["alertas", "nao-lidos"],
     queryFn: async () => {
-      const res = await fetch(`${BASE}/api/alertas/nao-lidos`, { credentials: "include" });
+      const res = await apiFetch(`${BASE}/api/alertas/nao-lidos`, { credentials: "include" });
       if (!res.ok) return { count: 0 };
       return res.json() as Promise<{ count: number }>;
     },

@@ -23,6 +23,7 @@ import {
   X,
 } from "lucide-react";
 import { Link } from "wouter";
+import { apiFetch } from "@/lib/apiFetch";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -272,7 +273,7 @@ export default function Dashboard() {
   const { data: agendaData } = useQuery({
     queryKey: ["agenda"],
     queryFn: async () => {
-      const res = await fetch(`${BASE}/api/agenda`, { credentials: "include" });
+      const res = await apiFetch(`${BASE}/api/agenda`, { credentials: "include" });
       if (!res.ok) throw new Error("Erro ao buscar agenda");
       return res.json() as Promise<{
         eventos: Array<{

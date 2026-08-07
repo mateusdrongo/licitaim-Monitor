@@ -8,6 +8,7 @@ import {
   Hash, Layers, Globe, Shield, Copy, Check,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { apiFetch } from "@/lib/apiFetch";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -183,7 +184,7 @@ export default function LicitacaoDetail() {
   const { data: lic, isLoading, isError } = useQuery<Licitacao>({
     queryKey: ["licitacao", id, pncpParam],
     queryFn: async () => {
-      const res = await fetch(detailUrl(), { credentials: "include" });
+      const res = await apiFetch(detailUrl(), { credentials: "include" });
       if (!res.ok) throw new Error(`Erro ${res.status}`);
       return res.json();
     },
@@ -194,7 +195,7 @@ export default function LicitacaoDetail() {
   const { data: favData } = useQuery<{ isFavoritada: boolean }>({
     queryKey: ["favorito-check", licitacaoId],
     queryFn: async () => {
-      const res = await fetch(`${BASE}/api/favoritos/check/${encodeURIComponent(licitacaoId)}`, {
+      const res = await apiFetch(`${BASE}/api/favoritos/check/${encodeURIComponent(licitacaoId)}`, {
         credentials: "include",
       });
       if (!res.ok) return { isFavoritada: false };
@@ -210,7 +211,7 @@ export default function LicitacaoDetail() {
   const toggleFavMutation = useMutation({
     mutationFn: async (next: boolean) => {
       if (next) {
-        const res = await fetch(`${BASE}/api/favoritos`, {
+        const res = await apiFetch(`${BASE}/api/favoritos`, {
           method: "POST", credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -225,7 +226,7 @@ export default function LicitacaoDetail() {
         });
         if (!res.ok && res.status !== 409) throw new Error("Erro ao favoritar");
       } else {
-        const res = await fetch(`${BASE}/api/favoritos/by-licitacao/${encodeURIComponent(licitacaoId)}`, {
+        const res = await apiFetch(`${BASE}/api/favoritos/by-licitacao/${encodeURIComponent(licitacaoId)}`, {
           method: "DELETE", credentials: "include",
         });
         if (!res.ok && res.status !== 404) throw new Error("Erro ao desfavoritar");
@@ -253,7 +254,7 @@ export default function LicitacaoDetail() {
   const { data: itens, isLoading: loadingItens } = useQuery<Item[]>({
     queryKey: ["licitacao-itens", id, pncpParam],
     queryFn: async () => {
-      const res = await fetch(detailUrl("/itens"), { credentials: "include" });
+      const res = await apiFetch(detailUrl("/itens"), { credentials: "include" });
       if (!res.ok) return [];
       return res.json();
     },
@@ -264,7 +265,7 @@ export default function LicitacaoDetail() {
   const { data: documentos, isLoading: loadingDocs } = useQuery<Documento[]>({
     queryKey: ["licitacao-docs", id, pncpParam],
     queryFn: async () => {
-      const res = await fetch(detailUrl("/documentos-pncp"), { credentials: "include" });
+      const res = await apiFetch(detailUrl("/documentos-pncp"), { credentials: "include" });
       if (!res.ok) return [];
       return res.json();
     },
@@ -274,7 +275,7 @@ export default function LicitacaoDetail() {
   // ── Add to pipeline ──────────────────────────────────────────────────────
   const addPipeline = useMutation({
     mutationFn: async () => {
-      const res = await fetch(`${BASE}/api/oportunidades`, {
+      const res = await apiFetch(`${BASE}/api/oportunidades`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
