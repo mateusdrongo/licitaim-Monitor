@@ -1,19 +1,28 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { Sidebar } from "./Sidebar";
 import { useGetMe } from "@workspace/api-client-react";
 import { ThemeProvider, useTheme } from "@/context/ThemeContext";
 
 function AppLayoutInner({ children }: { children: React.ReactNode }) {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const { data: user, error, isLoading } = useGetMe();
   const { theme } = useTheme();
 
+  // Keep a ref to the current location so the auth effect can read it
+  // without being re-triggered on every navigation.
+  const locationRef = useRef(location);
+  useEffect(() => { locationRef.current = location; }, [location]);
+
   useEffect(() => {
-    if (!isLoading && error) {
-      setLocation("/entrar");
+    if (!isLoading && !user) {
+      // Preserve the intended destination so Login can redirect back after auth.
+      const intended = locationRef.current;
+      const redirect = intended && intended !== "/" ? `?redirect=${encodeURIComponent(intended)}` : "";
+      setLocation(`/entrar${redirect}`);
     }
-  }, [error, isLoading, setLocation]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, user, setLocation]);
 
   if (isLoading) {
     return (

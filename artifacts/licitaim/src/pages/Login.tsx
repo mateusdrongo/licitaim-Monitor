@@ -1,12 +1,29 @@
 import React, { useEffect, useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { useGetMe } from "@workspace/api-client-react";
 import { Activity, ArrowRight, ShieldCheck } from "lucide-react";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
+/** Returns the path to redirect to after a successful login. */
+function useRedirectTarget(fallback = "/dashboard"): string {
+  const search = useSearch();
+  const params = new URLSearchParams(search);
+  const raw = params.get("redirect");
+  if (!raw) return fallback;
+  try {
+    const decoded = decodeURIComponent(raw);
+    // Only allow internal paths (no protocol-relative or absolute URLs)
+    if (decoded.startsWith("/") && !decoded.startsWith("//")) return decoded;
+  } catch {
+    // malformed – ignore
+  }
+  return fallback;
+}
+
 export default function Login() {
   const [, setLocation] = useLocation();
+  const redirectTo = useRedirectTarget();
   const { data: user, isLoading, refetch } = useGetMe();
 
   const [email, setEmail] = useState("");
@@ -16,9 +33,9 @@ export default function Login() {
 
   useEffect(() => {
     if (user) {
-      setLocation("/dashboard");
+      setLocation(redirectTo);
     }
-  }, [user, setLocation]);
+  }, [user, setLocation, redirectTo]);
 
   const goRegister = () => setLocation("/cadastro");
 
@@ -42,7 +59,7 @@ export default function Login() {
       }
 
       await refetch();
-      setLocation("/dashboard");
+      setLocation(redirectTo);
     } catch {
       setError("Não foi possível conectar ao servidor. Verifique sua conexão.");
     } finally {

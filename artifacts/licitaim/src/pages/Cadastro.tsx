@@ -1,12 +1,28 @@
 import React, { useEffect, useState } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useSearch } from "wouter";
 import { useGetMe } from "@workspace/api-client-react";
 import { Activity, ArrowRight, ShieldCheck } from "lucide-react";
+
+/** Returns the path to redirect to after a successful login/register. */
+function useRedirectTarget(fallback = "/dashboard"): string {
+  const search = useSearch();
+  const params = new URLSearchParams(search);
+  const raw = params.get("redirect");
+  if (!raw) return fallback;
+  try {
+    const decoded = decodeURIComponent(raw);
+    if (decoded.startsWith("/") && !decoded.startsWith("//")) return decoded;
+  } catch {
+    // malformed – ignore
+  }
+  return fallback;
+}
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 export default function Cadastro() {
   const [, setLocation] = useLocation();
+  const redirectTo = useRedirectTarget();
   const { data: user, isLoading, refetch } = useGetMe();
 
   const [nome, setNome] = useState("");
@@ -17,8 +33,8 @@ export default function Cadastro() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (user) setLocation("/dashboard");
-  }, [user, setLocation]);
+    if (user) setLocation(redirectTo);
+  }, [user, setLocation, redirectTo]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +53,7 @@ export default function Cadastro() {
         return;
       }
       await refetch();
-      setLocation("/dashboard");
+      setLocation(redirectTo);
     } catch {
       setError("Não foi possível conectar ao servidor.");
     } finally {
