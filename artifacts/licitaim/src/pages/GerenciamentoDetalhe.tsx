@@ -385,18 +385,38 @@ export default function GerenciamentoDetalhe() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error(String(res.status));
       return res.json();
     },
     onSuccess: invalidate,
+    onError: (err: unknown) => {
+      const is401 = err instanceof Error && err.message === "401";
+      toast({
+        variant: "destructive",
+        title: is401 ? "Sessão expirada" : "Erro ao atualizar",
+        description: is401
+          ? "Faça login novamente para continuar."
+          : "Não foi possível atualizar o gerenciamento. Tente novamente.",
+      });
+    },
   });
 
   const deleteGer = useMutation({
     mutationFn: async () => {
       const res = await apiFetch(`${BASE}/api/gerenciamento/${gerId}`, { method: "DELETE", credentials: "include" });
-      if (!res.ok && res.status !== 204) throw new Error();
+      if (!res.ok && res.status !== 204) throw new Error(String(res.status));
     },
     onSuccess: () => navigate("/gerenciamento"),
+    onError: (err: unknown) => {
+      const is401 = err instanceof Error && err.message === "401";
+      toast({
+        variant: "destructive",
+        title: is401 ? "Sessão expirada" : "Erro ao excluir",
+        description: is401
+          ? "Faça login novamente para continuar."
+          : "Não foi possível excluir o gerenciamento. Tente novamente.",
+      });
+    },
   });
 
   const createTarefa = useMutation({
