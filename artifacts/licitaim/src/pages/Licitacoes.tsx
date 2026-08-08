@@ -1246,15 +1246,6 @@ export default function Licitacoes() {
                 </span>
               </>
             )}
-            {collectorData?.lastRun && (
-              <>
-                <span className="text-border">·</span>
-                <span className="flex items-center gap-1" title={`Collector: ${collectorData.processed} processadas, ${collectorData.errors} erros`}>
-                  <RefreshCw className="w-3 h-3" />
-                  Coleta: {fmtLastSync(collectorData.lastRun)}
-                </span>
-              </>
-            )}
             {collectorData && collectorData.portals && collectorData.portals.length > 0 && (() => {
               const stalePortals = collectorData.portals.filter(p => p.isStale);
               const tooltipLines = collectorData.portals.map(p =>
