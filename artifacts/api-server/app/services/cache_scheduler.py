@@ -151,12 +151,25 @@ async def _sync_licitacoes_job_impl() -> dict:
         logger.warning("cache_scheduler: enriquecimento falhou, continuando sem ele: %s", exc)
 
     pool = await get_pool()
-    inserted, updated = await upsert_licitacoes(pool, unique, fonte=source)
+    inserted, updated, changed_tenders = await upsert_licitacoes(pool, unique, fonte=source)
     total = inserted + updated
     is_complete = not hit_cap
 
     # Registra cobertura global — is_complete=False se alguma modalidade foi truncada pelo cap.
     await record_global_coverage(pool, total, is_complete=is_complete)
+
+    # Dispara alertas de atualização para usuários que favoritaram licitações que mudaram.
+    # Executado em background (fire-and-forget) para não atrasar o sync.
+    if changed_tenders:
+        for tender in changed_tenders:
+            asyncio.create_task(
+                _safe_notify_change(tender),
+                name=f"tender-change-{tender.get('numero', '')}",
+            )
+        logger.info(
+            "cache_scheduler: %d licitações com mudanças detectadas — alertas agendados.",
+            len(changed_tenders),
+        )
 
     logger.info(
         "cache_scheduler: sync concluído — %d inseridos, %d atualizados "
@@ -167,6 +180,21 @@ async def _sync_licitacoes_job_impl() -> dict:
         "inserted": inserted, "updated": updated, "total": total,
         "source": source, "is_complete": is_complete,
     }
+
+
+async def _safe_notify_change(tender: dict) -> None:
+    """Wrapper fire-and-forget para notify_favorited_tender_changes."""
+    try:
+        from .tender_change_service import notify_favorited_tender_changes
+        result = await notify_favorited_tender_changes(tender)
+        logger.debug(
+            "_safe_notify_change: numero=%s result=%s", tender.get("numero"), result
+        )
+    except Exception as exc:
+        logger.warning(
+            "_safe_notify_change: erro ao notificar numero=%s: %s",
+            tender.get("numero"), exc,
+        )
 
 
 def start_scheduler() -> AsyncIOScheduler:

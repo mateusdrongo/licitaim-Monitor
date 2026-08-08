@@ -151,20 +151,44 @@ def _modal_code(nome: str | None) -> int | None:
     return None
 
 
+# Campos rastreados para detecção de mudanças em licitações favoritadas.
+# Cada tupla é (chave_no_item_dict, coluna_na_licitacoes_cache).
+_CHANGE_TRACKED_FIELDS: list[tuple[str, str]] = [
+    ("situacao",       "situacao"),
+    ("valor_estimado", "valor_estimado"),
+    ("modalidade",     "modalidade"),
+    ("objeto",         "objeto"),
+]
+
+
+def _tender_field_changed(new_val: Any, old_val: Any) -> bool:
+    """Compara novo e antigo valor de um campo rastreado de forma uniforme."""
+    try:
+        return float(new_val) != float(old_val)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return str(new_val or "").strip() != str(old_val or "").strip()
+
+
 async def upsert_licitacoes(
     pool: asyncpg.Pool,
     items: list[dict],
     fonte: str = "pncp",
-) -> tuple[int, int]:
+) -> tuple[int, int, list[dict]]:
     """
     Insere ou atualiza licitações no cache.
-    Retorna (inseridos, atualizados).
+    Retorna (inseridos, atualizados, changed_tenders).
+
+    `changed_tenders` é uma lista de dicts dos itens cujos campos rastreados
+    (situacao, valor_estimado, modalidade, objeto) mudaram em relação ao snapshot
+    anterior no banco. O chamador deve usar essa lista para disparar alertas de
+    atualização para usuários que favoritaram as licitações correspondentes.
     """
     if not items or not _cache_ready:
-        return 0, 0
+        return 0, 0, []
 
     inseridos = 0
     atualizados = 0
+    changed_tenders: list[dict] = []
 
     sql = """
         INSERT INTO licitacoes_cache (
@@ -206,6 +230,34 @@ async def upsert_licitacoes(
     """
 
     async with pool.acquire() as conn:
+        # ── Pre-fetch snapshots para detecção de mudanças ──────────────────────
+        # Buscamos apenas os campos rastreados antes do upsert para compará-los
+        # depois. Isso evita depender de RETURNING old.* (requer PostgreSQL ≥ 17).
+        numeros = [
+            item.get("numero") or item.get("id")
+            for item in items
+            if item.get("numero") or item.get("id")
+        ]
+        existing_rows: dict[str, dict] = {}
+        if numeros:
+            try:
+                prefetch = await conn.fetch(
+                    """SELECT numero,
+                              situacao,
+                              valor_estimado::text AS valor_estimado,
+                              modalidade,
+                              objeto
+                         FROM licitacoes_cache
+                        WHERE numero = ANY($1::text[])""",
+                    numeros,
+                )
+                existing_rows = {r["numero"]: dict(r) for r in prefetch}
+            except Exception as exc:
+                # Falha não crítica — continuamos sem detecção de mudanças neste ciclo.
+                logger.warning(
+                    "upsert_licitacoes: pre-fetch falhou, mudanças não detectadas: %s", exc
+                )
+
         for item in items:
             numero = item.get("numero") or item.get("id")
             if not numero:
@@ -242,14 +294,25 @@ async def upsert_licitacoes(
                     json.dumps(item, default=str),
                     fonte,
                 )
-                if row and row["inserted"]:
+                was_inserted = bool(row and row["inserted"])
+                if was_inserted:
                     inseridos += 1
                 else:
                     atualizados += 1
+                    # Detecta mudanças em campos rastreados para alertas de atualização
+                    old = existing_rows.get(numero)
+                    if old:
+                        has_change = any(
+                            _tender_field_changed(item.get(item_key), old.get(cache_col))
+                            for item_key, cache_col in _CHANGE_TRACKED_FIELDS
+                            if item.get(item_key) is not None
+                        )
+                        if has_change:
+                            changed_tenders.append({**item, "numero": numero})
             except Exception as exc:
                 logger.warning("upsert_licitacoes skip '%s': %s", numero, exc)
 
-    return inseridos, atualizados
+    return inseridos, atualizados, changed_tenders
 
 
 async def get_cache_stats(pool: asyncpg.Pool) -> dict:

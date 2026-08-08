@@ -788,7 +788,13 @@ async def search_licitacoes(
         async def _bg_upsert(items: list[dict], src: str) -> None:
             try:
                 p = await get_pool()
-                await upsert_licitacoes(p, items, fonte=src)
+                _ins, _upd, changed = await upsert_licitacoes(p, items, fonte=src)
+                # Dispara alertas de atualização para usuários que favoritaram
+                # licitações cujos campos rastreados mudaram neste sync parcial.
+                if changed:
+                    from ..services.tender_change_service import notify_favorited_tender_changes as _notify
+                    for _t in changed:
+                        asyncio.ensure_future(_notify(_t))
             except Exception as exc:
                 import logging as _log
                 _log.getLogger(__name__).warning("search bg upsert: %s", exc)

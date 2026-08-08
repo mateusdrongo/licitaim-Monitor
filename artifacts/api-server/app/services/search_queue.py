@@ -280,11 +280,23 @@ async def _run_targeted_fetch(params: SearchParams) -> int:
         logger.warning("search_queue: enriquecimento falhou, continuando: %s", exc)
 
     pool = await get_pool()
-    inserted, updated = await upsert_licitacoes(pool, unique, fonte=source)
+    inserted, updated, changed_tenders = await upsert_licitacoes(pool, unique, fonte=source)
     logger.info(
         "search_queue: upsert concluído — %d inseridos, %d atualizados (fonte: %s).",
         inserted, updated, source,
     )
+
+    # Dispara alertas de atualização para licitações favoritadas que mudaram.
+    # Usa ensure_future (fire-and-forget com isolamento por-tender via _safe_notify_change).
+    if changed_tenders:
+        from .cache_scheduler import _safe_notify_change
+        for _t in changed_tenders:
+            asyncio.ensure_future(_safe_notify_change(_t))
+        logger.info(
+            "search_queue: %d licitações com mudanças — alertas agendados.",
+            len(changed_tenders),
+        )
+
     return inserted + updated
 
 
