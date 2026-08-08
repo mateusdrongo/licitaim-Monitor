@@ -239,12 +239,24 @@ def start_scheduler() -> AsyncIOScheduler:
         misfire_grace_time=300,
     )
 
+    # Saúde do collector — verifica a cada 30 min e alerta admins se parado
+    from ..services.collector_alerts import check_collector_staleness
+
+    scheduler.add_job(
+        check_collector_staleness,
+        trigger="interval",
+        minutes=30,
+        id="check_collector_staleness",
+        replace_existing=True,
+        misfire_grace_time=120,
+    )
+
     scheduler.start()
     _scheduler = scheduler
     logger.info(
         "cache_scheduler: scheduler iniciado "
         "(sync 4×/dia | monitores a cada 15min | upcoming 1×/h | "
-        "certidões 07h BRT | tarefas 08h BRT)."
+        "certidões 07h BRT | tarefas 08h BRT | collector-health a cada 30min)."
     )
     return scheduler
 

@@ -303,6 +303,24 @@ _DDL = [
         atualizado_em   TIMESTAMPTZ DEFAULT NOW()
     )
     """,
+
+    # ── 13. Collector alert state ─────────────────────────────────────────────
+    # Single-row table (id=1) that tracks whether an outage alert has already
+    # been sent for the current stale window, to avoid repeat notifications.
+    """
+    CREATE TABLE IF NOT EXISTS collector_alert_state (
+        id                  INT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+        is_stale_alerted    BOOLEAN NOT NULL DEFAULT FALSE,
+        alerted_at          TIMESTAMPTZ,
+        recovered_at        TIMESTAMPTZ
+    )
+    """,
+    # Seed the single row if it doesn't exist yet
+    """
+    INSERT INTO collector_alert_state (id, is_stale_alerted)
+    VALUES (1, FALSE)
+    ON CONFLICT (id) DO NOTHING
+    """,
 ]
 
 
