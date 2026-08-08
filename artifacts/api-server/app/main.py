@@ -20,7 +20,7 @@ from .services.websocket_manager import get_ws_manager
 from .services.cache_scheduler import start_scheduler, stop_scheduler, sync_licitacoes_job
 from .services.task_alerts import check_task_deadlines
 from .services.monitor_worker import check_document_expirations
-from .services.search_queue import queue_worker
+# search_queue removido — coletores autônomos substituem a coleta sob demanda
 
 logger = logging.getLogger(__name__)
 
@@ -50,10 +50,6 @@ async def lifespan(app: FastAPI):
         start_scheduler()
     except Exception as exc:
         logger.warning("Scheduler startup: %s", exc)
-
-    # Worker de fila de buscas — processa coletas sob demanda (Python puro)
-    worker_task = asyncio.create_task(queue_worker(), name="search_queue_worker")
-    logger.info("lifespan: search_queue worker iniciado.")
 
     # Warm-up: se a tabela estiver vazia na primeira inicialização, dispara sync imediato
     try:
@@ -117,11 +113,6 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown
-    worker_task.cancel()
-    try:
-        await worker_task
-    except asyncio.CancelledError:
-        pass
     stop_scheduler()
     await close_pool()
     try:

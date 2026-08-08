@@ -9,9 +9,7 @@ from ..core.deps import get_current_user
 from ..core.admin import get_admin_user
 from ..db.session import get_pool
 from ..db.licitacoes_repo import (
-    upsert_licitacoes,
     search_licitacoes_cache,
-    check_global_coverage,
     get_cache_stats,
     CANONICAL_WINDOW_DAYS,
 )
@@ -663,14 +661,11 @@ async def search_licitacoes(
 
     # Resolve código da modalidade para filtrar no banco
     modal_code: Optional[int] = None
-    modal_pncp  = MODALIDADES_PADRAO
-    modal_dados = MODALIDADES_DADOSABERTOS
     if modalidade:
         m_lower = modalidade.lower().strip()
-        code = next((v for k, v in _MODAL_NAME_TO_CODE.items() if k in m_lower), None)
-        modal_code  = code
-        modal_pncp  = [code] if code else MODALIDADES_PADRAO
-        modal_dados = [code] if code else MODALIDADES_DADOSABERTOS
+        modal_code = next(
+            (v for k, v in _MODAL_NAME_TO_CODE.items() if k in m_lower), None
+        )
 
     pool = await get_pool()
 
@@ -679,34 +674,9 @@ async def search_licitacoes(
     if somenteVigentes:
         situacao_filtro = "aberta"
 
-    # ── 1. Cobertura global: o banco pode responder por este intervalo de datas? ──
-    # O banco é autoritativo SOMENTE quando o scheduler populou a janela canônica
-    # de forma COMPLETA e FRESCA e o intervalo do usuário está dentro dela.
-    # Caso contrário, buscamos ao vivo — sem cache de escopos filtrados.
-    global_covers = await check_global_coverage(pool, data_ini_iso, data_fim_iso)
-
-    if global_covers:
-        cached, total = await search_licitacoes_cache(
-            pool,
-            q=q, uf=uf, modalidade_codigo=modal_code,
-            situacao=situacao_filtro, somente_vigentes=somenteVigentes,
-            valor_min=valorMin, valor_max=valorMax,
-            data_inicio=data_ini_iso, data_fim=data_fim_iso,
-            page=page_num, limit=limit,
-        )
-        return {
-            "data":        cached,
-            "total":       total,
-            "page":        page_num,
-            "total_pages": max(1, -(-total // limit)),
-            "source":      "banco",
-            "queued":      False,
-        }
-
-    # ── 1b. Banco sem cobertura global — verifica se há dados parciais ───────────
-    # O banco pode ter dados desta busca de uma coleta enfileirada anterior.
-    # Se houver dados suficientes, serve direto sem ir ao vivo.
-    partial_cached, partial_total = await search_licitacoes_cache(
+    # Busca sempre no banco local — os coletores mantêm licitacoes_cache atualizado
+    # a cada COLLECTOR_INTERVAL_MINUTES minutos (padrão 20 min).
+    cached, total = await search_licitacoes_cache(
         pool,
         q=q, uf=uf, modalidade_codigo=modal_code,
         situacao=situacao_filtro, somente_vigentes=somenteVigentes,
@@ -714,138 +684,13 @@ async def search_licitacoes(
         data_inicio=data_ini_iso, data_fim=data_fim_iso,
         page=page_num, limit=limit,
     )
-    if partial_total >= limit:
-        return {
-            "data":        partial_cached,
-            "total":       partial_total,
-            "page":        page_num,
-            "total_pages": max(1, -(-partial_total // limit)),
-            "source":      "banco",
-            "queued":      False,
-        }
-
-    # ── 1c. Dados insuficientes — enfileira coleta profunda em Python ────────────
-    # A busca rápida ao vivo acontece na etapa 2; a coleta completa (todas as páginas,
-    # rotação de headers, delays) é feita pelo worker Python em background.
-    queued = False
-    try:
-        from ..services.search_queue import enqueue_search  # noqa: PLC0415
-        queued = enqueue_search(
-            q=q, uf=uf,
-            modal_pncp=list(modal_pncp), modal_dados=list(modal_dados),
-            data_ini_iso=data_ini_iso, data_fim_iso=data_fim_iso,
-        )
-    except Exception as _eq:
-        import logging as _l
-        _l.getLogger(__name__).warning("enqueue_search falhou: %s", _eq)
-
-    # ── 2. Busca ao vivo rápida (banco ainda não cobre este intervalo) ───────────
-    results: list[dict] = []
-    source = "pncp"
-
-    data_ini_pncp = _fmt_pncp_date(data_ini_iso)
-    data_fim_pncp = _fmt_pncp_date(data_fim_iso)
-    try:
-        async with httpx.AsyncClient(timeout=6.0) as client:
-            tasks = [
-                _fetch_pncp_consulta(client, data_ini_pncp, data_fim_pncp, m, uf or None)
-                for m in modal_pncp
-            ]
-            batches = await asyncio.gather(*tasks, return_exceptions=True)
-        for batch in batches:
-            if isinstance(batch, list):
-                results.extend(batch)
-    except Exception:
-        pass
-
-    if not results:
-        source = "dadosabertos"
-        base_params: dict = {
-            "pagina": 1, "tamanhoPagina": 100,
-            "dataPublicacaoPncpInicial": data_ini_iso,
-            "dataPublicacaoPncpFinal":   data_fim_iso,
-        }
-        if uf:
-            base_params["unidadeOrgaoUfSigla"] = uf
-        try:
-            async with httpx.AsyncClient(timeout=6.0) as client:
-                tasks2 = [_fetch_dadosabertos(client, base_params, m) for m in modal_dados]
-                batches2 = await asyncio.gather(*tasks2, return_exceptions=True)
-            for batch in batches2:
-                if isinstance(batch, list):
-                    results.extend(batch)
-        except Exception:
-            pass
-
-    use_mock = not results
-    if use_mock:
-        source = "mock"
-        results = list(MOCK_LICITACOES)
-
-    # Upsert em background (best-effort) — não bloqueia a resposta e não registra
-    # cobertura: o banco só se torna autoritativo após o scheduler completar um sync global.
-    if not use_mock:
-        async def _bg_upsert(items: list[dict], src: str) -> None:
-            try:
-                p = await get_pool()
-                _ins, _upd, changed = await upsert_licitacoes(p, items, fonte=src)
-                # Dispara alertas de atualização para usuários que favoritaram
-                # licitações cujos campos rastreados mudaram neste sync parcial.
-                if changed:
-                    from ..services.tender_change_service import notify_favorited_tender_changes as _notify
-                    for _t in changed:
-                        asyncio.ensure_future(_notify(_t))
-            except Exception as exc:
-                import logging as _log
-                _log.getLogger(__name__).warning("search bg upsert: %s", exc)
-
-        # Usamos asyncio.ensure_future para não bloquear a resposta ao usuário
-        asyncio.ensure_future(_bg_upsert(results, source))
-
-    # ── Filtros locais sobre os resultados brutos ─────────────────────────────
-    filtered = results
-    if q:
-        q_lower = q.lower().strip()
-        filtered = [
-            r for r in filtered
-            if q_lower in r.get("objeto", "").lower()
-            or q_lower in r.get("orgao_nome", "").lower()
-            or q_lower in r.get("numero", "").lower()
-        ]
-    if somenteVigentes:
-        filtered = [r for r in filtered if r.get("situacao") in ("aberta", "em_andamento")]
-    elif status:
-        filtered = [r for r in filtered if r.get("situacao") == status]
-    if valorMin is not None:
-        filtered = [r for r in filtered if r.get("valor_estimado") and float(r["valor_estimado"]) >= valorMin]
-    if valorMax is not None:
-        filtered = [r for r in filtered if not r.get("valor_estimado") or float(r["valor_estimado"]) <= valorMax]
-
-    # Dedup + ordenar
-    seen: set[str] = set()
-    deduped: list[dict] = []
-    for item in filtered:
-        key = item.get("id") or item.get("numero") or str(id(item))
-        if key not in seen:
-            seen.add(key)
-            deduped.append(item)
-
-    deduped.sort(
-        key=lambda x: x.get("data_publicacao_pncp") or x.get("criado_em") or "",
-        reverse=True,
-    )
-
-    total     = len(deduped)
-    start     = (page_num - 1) * limit
-    paginated = deduped[start : start + limit]
-
     return {
-        "data":        paginated,
+        "data":        cached,
         "total":       total,
         "page":        page_num,
         "total_pages": max(1, -(-total // limit)),
-        "source":      source,
-        "queued":      queued,
+        "source":      "banco",
+        "queued":      False,
     }
 
 
@@ -920,22 +765,7 @@ async def get_licitacao(
     # 2. Determina o numeroControlePNCP a usar
     numero_busca = pncp or (licitacao_id if "/" in licitacao_id else None)
 
-    # 3. Tenta PNCP write API (individual — não bloqueada no Replit)
-    parsed = _parse_numero_pncp(numero_busca or licitacao_id)
-    if parsed:
-        cnpj, seq, ano = parsed
-        try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                resp = await client.get(
-                    f"{PNCP_WRITE_BASE}/orgaos/{cnpj}/compras/{ano}/{seq}",
-                    headers=_pncp_headers(),
-                )
-                if resp.status_code == 200:
-                    return _snake_to_camel(_normalize_pncp_item(resp.json()))
-        except Exception:
-            pass
-
-    # 4. Fallback: cache local (licitacoes_cache) — disponível mesmo sem acesso externo
+    # 3. Busca no banco local (fonte principal — coletores mantêm atualizado)
     pool = await get_pool()
     row = None
     if numero_busca:
@@ -943,28 +773,12 @@ async def get_licitacao(
             "SELECT * FROM licitacoes_cache WHERE numero = $1", numero_busca
         )
     if row is None:
-        # Tenta pelo id da licitação (campo separado do número PNCP)
         row = await pool.fetchrow(
-            "SELECT * FROM licitacoes_cache WHERE id = $1", licitacao_id
+            "SELECT * FROM licitacoes_cache WHERE id = $1 OR numero = $2",
+            licitacao_id, licitacao_id,
         )
     if row:
         return _snake_to_camel(dict(row))
-
-    # 5. Fallback: busca no dadosabertos por CNPJ + ano
-    if numero_busca:
-        cnpj_fb = numero_busca.split("-")[0]
-        try:
-            ano_fb = int(numero_busca.split("/")[-1]) if "/" in numero_busca else date.today().year
-        except ValueError:
-            ano_fb = date.today().year
-        if cnpj_fb:
-            result = await _buscar_dadosabertos_por_cnpj(
-                cnpj=cnpj_fb, ano=ano_fb,
-                id_compra=licitacao_id,
-                numero_controle=numero_busca,
-            )
-            if result:
-                return _snake_to_camel(result)
 
     raise HTTPException(status_code=404, detail="Licitação não encontrada")
 

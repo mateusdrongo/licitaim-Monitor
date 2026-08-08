@@ -35,8 +35,17 @@ logging.basicConfig(
 )
 logger = logging.getLogger("collector.standalone")
 
-INTERVAL_HOURS = int(os.environ.get("COLLECTOR_INTERVAL_HOURS", "4"))
-SCRAPE_DAYS    = int(os.environ.get("COLLECTOR_DAYS", "1"))
+# Intervalo entre ciclos em minutos (padrão 20 min, ~72 ciclos/dia).
+# Para compatibilidade retroativa, COLLECTOR_INTERVAL_HOURS ainda é lido se
+# COLLECTOR_INTERVAL_MINUTES não estiver definido.
+_hours_legacy    = int(os.environ.get("COLLECTOR_INTERVAL_HOURS", "0"))
+INTERVAL_MINUTES = int(
+    os.environ.get(
+        "COLLECTOR_INTERVAL_MINUTES",
+        str(_hours_legacy * 60) if _hours_legacy else "20",
+    )
+)
+SCRAPE_DAYS = int(os.environ.get("COLLECTOR_DAYS", "1"))
 
 
 # ── Persistência de status ────────────────────────────────────────────────────
@@ -92,6 +101,10 @@ class StandaloneTenderProcessor:
 
     async def process(self, tender: dict) -> Optional[str]:
         return await self._processor.process(tender)
+
+    def normalize(self, tender: dict) -> dict:
+        """Expõe o passo de normalização do TenderProcessor sem persistência."""
+        return self._processor._normalize(tender)
 
 
 # ── Schema ────────────────────────────────────────────────────────────────────
@@ -164,11 +177,17 @@ async def apply_schema(db_url: str) -> None:
 
 async def _run_scraper(scraper_instance, db_url: str, days: int, label: str) -> dict:
     """
-    Helper genérico: instancia pool, executa scrape_by_date e persiste tenders.
-    Cada portal recebe seu próprio pool de conexões para isolamento de falhas.
+    Helper genérico: instancia pool, executa scrape_by_date, persiste em `tenders`
+    e sincroniza `licitacoes_cache` para uso imediato pela API.
+
+    Retorna {"processed": int, "errors": int, "changed_tenders": list[dict]},
+    onde changed_tenders contém os campos '_changes' para notificação de favoritos.
     """
+    from .cache_writer import upsert_to_licitacoes_cache  # noqa: PLC0415
+
     end   = date.today()
     start = end - timedelta(days=max(1, days))
+    fonte = label.lower().replace("-", "_").replace(" ", "_")
 
     logger.info("%s: iniciando scraping %s → %s", label, start, end)
 
@@ -176,12 +195,33 @@ async def _run_scraper(scraper_instance, db_url: str, days: int, label: str) -> 
     processor = StandaloneTenderProcessor(pool)
 
     processed = errors = 0
+    cache_batch: list[dict] = []
+    all_changed: list[dict] = []
+
+    async def _flush_to_cache() -> None:
+        nonlocal cache_batch
+        if not cache_batch:
+            return
+        try:
+            _, _, changed = await upsert_to_licitacoes_cache(
+                pool, cache_batch, fonte=fonte
+            )
+            all_changed.extend(changed)
+        except Exception as exc:
+            logger.warning("%s cache_writer flush: %s", label, exc)
+        cache_batch = []
+
     try:
         await scraper_instance.on_start()
         async for tender in scraper_instance.scrape_by_date(start, end):
+            normalized = processor.normalize(tender)
             tid = await processor.process(tender)
             if tid:
                 processed += 1
+                cache_batch.append(normalized)
+                # Grava em licitacoes_cache a cada 50 tenders para não acumular
+                if len(cache_batch) >= 50:
+                    await _flush_to_cache()
                 if processed % 50 == 0:
                     logger.info("%s: %d processados...", label, processed)
             else:
@@ -190,11 +230,15 @@ async def _run_scraper(scraper_instance, db_url: str, days: int, label: str) -> 
         logger.error("%s: erro durante scraping: %s", label, exc, exc_info=True)
         errors += 1
     finally:
+        await _flush_to_cache()          # flush do restante
         await scraper_instance.on_finish()
         await pool.close()
 
-    logger.info("%s: concluído — %d processados, %d erros.", label, processed, errors)
-    return {"processed": processed, "errors": errors}
+    logger.info(
+        "%s: concluído — %d processados, %d erros, %d mudanças detectadas.",
+        label, processed, errors, len(all_changed),
+    )
+    return {"processed": processed, "errors": errors, "changed_tenders": all_changed}
 
 
 async def run_pncp_scrape(db_url: str, days: int = 1) -> dict:
@@ -260,9 +304,9 @@ async def main_loop() -> None:
         sys.exit(1)
 
     logger.info(
-        "Collector standalone iniciado (interval=%dh, days=%d, "
+        "Collector standalone iniciado (interval=%dmin, days=%d, "
         "skip_comprasnet=%s, skip_bec_sp=%s).",
-        INTERVAL_HOURS, SCRAPE_DAYS, SKIP_COMPRASNET, SKIP_BEC_SP,
+        INTERVAL_MINUTES, SCRAPE_DAYS, SKIP_COMPRASNET, SKIP_BEC_SP,
     )
 
     # Aguarda o banco estar disponível (útil quando iniciado junto com outros serviços)
@@ -272,12 +316,14 @@ async def main_loop() -> None:
 
     while True:
         cycle_totals = {"processed": 0, "errors": 0}
+        all_changed:  list[dict] = []   # tenders com mudanças detectadas este ciclo
 
         # ── PNCP ──────────────────────────────────────────────────────────────
         try:
             result = await run_pncp_scrape(db_url, days=SCRAPE_DAYS)
             cycle_totals["processed"] += result["processed"]
             cycle_totals["errors"]    += result["errors"]
+            all_changed.extend(result.get("changed_tenders", []))
             await _write_collector_status(db_url, "pncp", result["processed"], result["errors"])
         except Exception as exc:
             logger.error("Erro inesperado no scraping PNCP: %s", exc, exc_info=True)
@@ -291,6 +337,7 @@ async def main_loop() -> None:
                 result = await run_comprasnet_scrape(db_url, days=SCRAPE_DAYS)
                 cycle_totals["processed"] += result["processed"]
                 cycle_totals["errors"]    += result["errors"]
+                all_changed.extend(result.get("changed_tenders", []))
                 await _write_collector_status(db_url, "comprasnet", result["processed"], result["errors"])
             except Exception as exc:
                 logger.error("Erro inesperado no scraping ComprasNet: %s", exc, exc_info=True)
@@ -304,6 +351,7 @@ async def main_loop() -> None:
                 result = await run_bec_sp_scrape(db_url, days=SCRAPE_DAYS)
                 cycle_totals["processed"] += result["processed"]
                 cycle_totals["errors"]    += result["errors"]
+                all_changed.extend(result.get("changed_tenders", []))
                 await _write_collector_status(db_url, "bec_sp", result["processed"], result["errors"])
             except Exception as exc:
                 logger.error("Erro inesperado no scraping BEC-SP: %s", exc, exc_info=True)
@@ -315,12 +363,24 @@ async def main_loop() -> None:
             cycle_totals["processed"], cycle_totals["errors"],
         )
 
+        # ── Notifica usuários com licitações favoritadas que mudaram ──────────
+        if all_changed:
+            try:
+                from .cache_writer import notify_favorites_changes  # noqa: PLC0415
+                notif_pool = await asyncpg.create_pool(db_url, min_size=1, max_size=2)
+                try:
+                    await notify_favorites_changes(notif_pool, all_changed)
+                finally:
+                    await notif_pool.close()
+            except Exception as exc:
+                logger.warning("notify_favorites_changes: %s", exc)
+
         logger.info(
-            "Ciclo completo — total: %d processados, %d erros.",
-            cycle_totals["processed"], cycle_totals["errors"],
+            "Ciclo completo — total: %d processados, %d erros, %d mudanças.",
+            cycle_totals["processed"], cycle_totals["errors"], len(all_changed),
         )
-        logger.info("Próximo ciclo em %d hora(s).", INTERVAL_HOURS)
-        await asyncio.sleep(INTERVAL_HOURS * 3600)
+        logger.info("Próximo ciclo em %d minuto(s).", INTERVAL_MINUTES)
+        await asyncio.sleep(INTERVAL_MINUTES * 60)
 
 
 def main() -> None:

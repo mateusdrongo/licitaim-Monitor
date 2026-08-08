@@ -205,17 +205,10 @@ def start_scheduler() -> AsyncIOScheduler:
 
     scheduler = AsyncIOScheduler(timezone="America/Sao_Paulo")
 
-    # Roda 4× ao dia: 00h, 06h, 12h, 18h (horário de Brasília)
-    for hour in (0, 6, 12, 18):
-        scheduler.add_job(
-            sync_licitacoes_job,
-            trigger="cron",
-            hour=hour,
-            minute=0,
-            id=f"sync_licitacoes_{hour:02d}h",
-            replace_existing=True,
-            misfire_grace_time=300,
-        )
+    # Nota: a sincronização periódica de licitações foi removida do scheduler —
+    # os coletores (collector/app/standalone.py) são responsáveis por manter
+    # licitacoes_cache atualizado a cada ~20 minutos. O endpoint POST /admin/sync
+    # ainda permite um sync manual via sync_licitacoes_job quando necessário.
 
     # Monitor check — a cada 15 minutos
     from ..services.monitor_worker import (
