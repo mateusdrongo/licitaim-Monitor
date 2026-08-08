@@ -35,6 +35,11 @@ CREATE INDEX IF NOT EXISTS idx_tenders_situacao    ON tenders (situacao);
 CREATE INDEX IF NOT EXISTS idx_tenders_publicacao  ON tenders (data_publicacao DESC);
 CREATE INDEX IF NOT EXISTS idx_tenders_orgao       ON tenders (cnpj_orgao);
 
+-- Índice para deduplicação cross-portal (objeto + orgao + data_publicacao)
+CREATE INDEX IF NOT EXISTS idx_tenders_dedup
+    ON tenders (objeto text_pattern_ops, orgao text_pattern_ops, data_publicacao)
+    WHERE objeto IS NOT NULL AND orgao IS NOT NULL AND data_publicacao IS NOT NULL;
+
 -- ── Itens das licitações ───────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS tender_items (
     id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -148,6 +148,34 @@ class TenderProcessor:
                 return str(tender_id)
 
             else:
+                # Deduplicação cross-portal: mesmo tender pode aparecer em múltiplos portais
+                # (ex.: licitações federais publicadas tanto no PNCP quanto no ComprasNet).
+                # Antes de inserir, verificamos se já existe um registro com os mesmos
+                # campos canônicos (objeto + orgao + data_publicacao) proveniente de outra fonte.
+                cross_dup = None
+                if t.get("objeto") and t.get("orgao") and t.get("data_publicacao"):
+                    cross_dup = await conn.fetchrow(
+                        """
+                        SELECT id, source FROM tenders
+                        WHERE objeto = $1
+                          AND orgao  = $2
+                          AND data_publicacao = $3
+                          AND source <> $4
+                        LIMIT 1
+                        """,
+                        t["objeto"], t["orgao"], t["data_publicacao"], t["source"],
+                    )
+
+                if cross_dup:
+                    logger.warning(
+                        "TenderProcessor: tender duplicado ignorado — "
+                        "source=%s external_id=%s já existe como source=%s id=%s "
+                        "(objeto/orgao/data_publicacao coincidem).",
+                        t.get("source"), t.get("external_id"),
+                        cross_dup["source"], cross_dup["id"],
+                    )
+                    return str(cross_dup["id"])
+
                 row = await conn.fetchrow(
                     """
                     INSERT INTO tenders (
