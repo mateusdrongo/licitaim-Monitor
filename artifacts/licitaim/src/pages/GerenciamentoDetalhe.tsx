@@ -168,6 +168,7 @@ function TarefaItem({
       <div className="flex items-start gap-3 p-3">
         <button
           onClick={() => onToggle(t.id, !t.concluida)}
+          aria-label={t.concluida ? "Desmarcar tarefa" : "Marcar tarefa como concluída"}
           className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
             t.concluida ? "bg-emerald-500 border-emerald-500" : "border-muted-foreground hover:border-primary"
           }`}
@@ -207,7 +208,7 @@ function TarefaItem({
               {open ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
             </button>
           )}
-          <button onClick={() => onDelete(t.id)} className="p-1 text-muted-foreground hover:text-destructive transition-colors">
+          <button onClick={() => onDelete(t.id)} aria-label="Excluir tarefa" className="p-1 text-muted-foreground hover:text-destructive transition-colors">
             <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -466,11 +467,14 @@ export default function GerenciamentoDetalhe() {
       if (!res.ok) throw new Error(String(res.status));
     },
     onSuccess: invalidate,
-    onError: () => {
+    onError: (err: unknown) => {
+      const is401 = err instanceof Error && err.message === "401";
       toast({
         variant: "destructive",
-        title: "Erro ao atualizar tarefa",
-        description: "Não foi possível marcar a tarefa. Tente novamente.",
+        title: is401 ? "Sessão expirada" : "Erro ao atualizar tarefa",
+        description: is401
+          ? "Faça login novamente para continuar."
+          : "Não foi possível marcar a tarefa. Tente novamente.",
       });
     },
   });
@@ -483,11 +487,14 @@ export default function GerenciamentoDetalhe() {
       if (!res.ok && res.status !== 204) throw new Error(String(res.status));
     },
     onSuccess: invalidate,
-    onError: () => {
+    onError: (err: unknown) => {
+      const is401 = err instanceof Error && err.message === "401";
       toast({
         variant: "destructive",
-        title: "Erro ao excluir tarefa",
-        description: "Não foi possível excluir a tarefa. Tente novamente.",
+        title: is401 ? "Sessão expirada" : "Erro ao excluir tarefa",
+        description: is401
+          ? "Faça login novamente para continuar."
+          : "Não foi possível excluir a tarefa. Tente novamente.",
       });
     },
   });
