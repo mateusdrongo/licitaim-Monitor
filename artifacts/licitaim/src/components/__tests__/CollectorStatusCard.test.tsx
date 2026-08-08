@@ -407,3 +407,75 @@ describe("CollectorStatusCard – alert-state badge", () => {
     expect(screen.queryByText(/Alerta enviado em/)).not.toBeInTheDocument();
   });
 });
+
+// ─── POST /collector/run feedback messages ────────────────────────────────────
+
+describe("CollectorStatusCard – run feedback messages", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+    cleanup();
+  });
+
+  /** Click "Executar agora" and wait for the POST to settle. */
+  async function clickRunAndWait() {
+    const btn = await waitFor(() =>
+      screen.getByRole("button", { name: /Executar agora/ }),
+    );
+    fireEvent.click(btn);
+  }
+
+  it("shows 'Ciclo iniciado. Aguarde…' after a successful POST (200)", async () => {
+    // GET status → idle green; POST /run → 200 OK
+    apiFetchMock
+      .mockResolvedValueOnce(makeOk(STATUS_GREEN))
+      .mockResolvedValueOnce(makeOk({ status: "accepted" }));
+
+    renderCard(true);
+    await clickRunAndWait();
+
+    await waitFor(() =>
+      expect(screen.getByText("Ciclo iniciado. Aguarde…")).toBeInTheDocument(),
+    );
+  });
+
+  it("shows 'Já há um ciclo em andamento.' after a 409 response", async () => {
+    // GET status → idle green; POST /run → 409 Conflict
+    apiFetchMock
+      .mockResolvedValueOnce(makeOk(STATUS_GREEN))
+      .mockResolvedValueOnce(makeError(409));
+
+    renderCard(true);
+    await clickRunAndWait();
+
+    await waitFor(() =>
+      expect(screen.getByText("Já há um ciclo em andamento.")).toBeInTheDocument(),
+    );
+  });
+
+  it("shows 'Falha de conexão.' when the POST rejects (network error)", async () => {
+    // GET status → idle green; POST /run → network rejection
+    apiFetchMock
+      .mockResolvedValueOnce(makeOk(STATUS_GREEN))
+      .mockRejectedValueOnce(new Error("Network error"));
+
+    renderCard(true);
+    await clickRunAndWait();
+
+    await waitFor(() =>
+      expect(screen.getByText("Falha de conexão.")).toBeInTheDocument(),
+    );
+  });
+
+  it("shows 'Erro ao iniciar coleta.' when the POST returns a non-409 error without detail", async () => {
+    apiFetchMock
+      .mockResolvedValueOnce(makeOk(STATUS_GREEN))
+      .mockResolvedValueOnce(makeError(500));
+
+    renderCard(true);
+    await clickRunAndWait();
+
+    await waitFor(() =>
+      expect(screen.getByText("Erro ao iniciar coleta.")).toBeInTheDocument(),
+    );
+  });
+});
