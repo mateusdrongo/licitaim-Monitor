@@ -215,17 +215,22 @@ async def send_tender_update(
         "changes":   {k: {"from": v[0], "to": v[1]} for k, v in changes.items()},
     }
 
+    # Licitações favoritadas: apenas e-mail e Telegram (sem push/WhatsApp)
+    _FAVORITO_CHANNELS = [CHANNEL_EMAIL, CHANNEL_TELEGRAM]
+
     if background_tasks:
         background_tasks.add_task(
             send, user, title, body,
-            channels=None, tipo="update", metadata=metadata,
+            channels=_FAVORITO_CHANNELS, tipo="update", metadata=metadata,
             cta_url="https://licitaim.com.br/licitacoes",
             cta_label="Ver licitação",
         )
     else:
         await send(
             user, title, body,
-            channels=None, tipo="update", metadata=metadata,
+            channels=_FAVORITO_CHANNELS, tipo="update", metadata=metadata,
+            cta_url="https://licitaim.com.br/licitacoes",
+            cta_label="Ver licitação",
         )
 
 

@@ -413,10 +413,12 @@ async def check_upcoming_tenders() -> dict:
             "phone":            fav["phone"],
         }
 
+        # Licitações favoritadas: apenas e-mail e Telegram (sem push/WhatsApp)
         await send(
             user,
             title=title,
             body=body,
+            channels=["email", "telegram"],
             tipo="warning",
             metadata={"licitacao_numero": numero},
             cta_url="https://licitaim.com.br/licitacoes",
