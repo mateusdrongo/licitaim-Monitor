@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Response, Cookie, Depends
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, model_validator
 from typing import Optional
 import uuid
 from ..db.session import get_pool
@@ -29,6 +29,16 @@ class ProfileUpdate(BaseModel):
     notif_email: Optional[bool] = None
     notif_telegram: Optional[bool] = None
     telegram_chat_id: Optional[str] = None
+
+    @model_validator(mode="after")
+    def telegram_requires_chat_id(self) -> "ProfileUpdate":
+        if self.notif_telegram is True:
+            chat_id = (self.telegram_chat_id or "").strip()
+            if not chat_id:
+                raise ValueError(
+                    "O Chat ID do Telegram é obrigatório para ativar as notificações pelo Telegram."
+                )
+        return self
 
 
 def _user_response(u: dict) -> dict:

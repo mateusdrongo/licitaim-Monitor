@@ -22,7 +22,10 @@ export default function Configuracoes() {
     }
   }, [user]);
 
+  const telegramMissingChatId = notifTelegram && !telegramChatId.trim();
+
   const handleSave = async () => {
+    if (telegramMissingChatId) return;
     await patchMe.mutateAsync({
       data: {
         notif_email: notifEmail,
@@ -156,6 +159,11 @@ export default function Configuracoes() {
                   placeholder="Ex: 123456789"
                   className="w-full px-3 py-2 rounded-md border border-border bg-background text-foreground text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
+                {telegramMissingChatId && (
+                  <p className="text-xs text-destructive font-medium">
+                    O Chat ID é obrigatório para ativar as notificações pelo Telegram.
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   Não sabe seu Chat ID? Fale com{" "}
                   <a
@@ -181,8 +189,9 @@ export default function Configuracoes() {
             )}
             <button
               onClick={handleSave}
-              disabled={patchMe.isPending}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 px-4 py-2 rounded-md text-sm font-medium transition-colors"
+              disabled={patchMe.isPending || telegramMissingChatId}
+              title={telegramMissingChatId ? "Informe o Chat ID do Telegram antes de salvar" : undefined}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded-md text-sm font-medium transition-colors"
             >
               {patchMe.isPending ? "Salvando…" : "Salvar preferências"}
             </button>
