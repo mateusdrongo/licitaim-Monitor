@@ -36,6 +36,8 @@ function useCertidoes() {
       if (!res.ok) throw new Error("Erro");
       return res.json();
     },
+    retry: 2,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10_000),
   });
 }
 

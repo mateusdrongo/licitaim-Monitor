@@ -277,6 +277,8 @@ export default function Documentos() {
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["documentos"],
     queryFn: () => fetchDocumentos({ q: "" }),
+    retry: 2,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10_000),
   });
 
   const deleteMut = useMutation({
