@@ -87,24 +87,19 @@ async def cmd_scrape(source: str, days: int, target_date: str | None) -> None:
 
 
 async def cmd_sync_schema() -> None:
-    """Cria as tabelas tenders/tender_items/tender_history no banco."""
-    import asyncpg
+    """
+    Cria/atualiza as tabelas do collector e faz back-fill das colunas normalizadas.
+    Delega para standalone.apply_schema, que é a única implementação canônica
+    e também é executada na inicialização do collector standalone.
+    """
+    from .standalone import apply_schema
     settings = get_settings()
-    schema_path = os.path.join(os.path.dirname(__file__), "..", "schema.sql")
-
-    if not os.path.exists(schema_path):
-        logger.error("schema.sql não encontrado em %s", schema_path)
+    db_url = settings.database_url or os.environ.get("DATABASE_URL", "")
+    if not db_url:
+        logger.error("DATABASE_URL não configurada.")
         sys.exit(1)
-
-    with open(schema_path) as f:
-        sql = f.read()
-
-    pool = await asyncpg.create_pool(settings.database_url or os.environ["DATABASE_URL"])
-    try:
-        await pool.execute(sql)
-        logger.info("Schema aplicado com sucesso.")
-    finally:
-        await pool.close()
+    await apply_schema(db_url)
+    logger.info("sync-schema concluído.")
 
 
 async def cmd_consume_queue() -> None:

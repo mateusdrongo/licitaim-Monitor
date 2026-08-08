@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import unicodedata
 from datetime import date, datetime
 from typing import Optional
 
@@ -74,6 +75,10 @@ class TenderProcessor:
             if key in t:
                 t[key] = self._clean_str(t.get(key))
 
+        # Canonical forms for fuzzy cross-portal dedup (lowercase, no accents, collapsed spaces)
+        t["objeto_norm"] = self._normalize_for_dedup(t.get("objeto"))
+        t["orgao_norm"]  = self._normalize_for_dedup(t.get("orgao"))
+
         # CNPJ
         if t.get("cnpj_orgao"):
             t["cnpj_orgao"] = self._format_cnpj(t["cnpj_orgao"])
@@ -119,25 +124,28 @@ class TenderProcessor:
                     UPDATE tenders SET
                         numero_controle   = $3,
                         objeto            = $4,
-                        orgao             = $5,
-                        cnpj_orgao        = $6,
-                        unidade           = $7,
-                        uf                = $8,
-                        municipio         = $9,
-                        modalidade        = $10,
-                        situacao          = $11,
-                        valor_estimado    = $12,
-                        data_publicacao   = $13,
-                        data_abertura     = $14,
-                        data_encerramento = $15,
-                        srp               = $16,
-                        link_original     = $17,
-                        dados_brutos      = $18::jsonb,
+                        objeto_norm       = $5,
+                        orgao             = $6,
+                        orgao_norm        = $7,
+                        cnpj_orgao        = $8,
+                        unidade           = $9,
+                        uf                = $10,
+                        municipio         = $11,
+                        modalidade        = $12,
+                        situacao          = $13,
+                        valor_estimado    = $14,
+                        data_publicacao   = $15,
+                        data_abertura     = $16,
+                        data_encerramento = $17,
+                        srp               = $18,
+                        link_original     = $19,
+                        dados_brutos      = $20::jsonb,
                         atualizado_em     = NOW()
                     WHERE source = $1 AND external_id = $2
                     """,
                     t["source"], t["external_id"],
-                    t.get("numero_controle"), t.get("objeto"), t.get("orgao"),
+                    t.get("numero_controle"), t.get("objeto"), t.get("objeto_norm"),
+                    t.get("orgao"), t.get("orgao_norm"),
                     t.get("cnpj_orgao"), t.get("unidade"), t.get("uf"), t.get("municipio"),
                     t.get("modalidade"), t.get("situacao"),
                     t.get("valor_estimado"),
@@ -151,19 +159,21 @@ class TenderProcessor:
                 # Deduplicação cross-portal: mesmo tender pode aparecer em múltiplos portais
                 # (ex.: licitações federais publicadas tanto no PNCP quanto no ComprasNet).
                 # Antes de inserir, verificamos se já existe um registro com os mesmos
-                # campos canônicos (objeto + orgao + data_publicacao) proveniente de outra fonte.
+                # campos canônicos normalizados (objeto_norm + orgao_norm + data_publicacao)
+                # proveniente de outra fonte.  A comparação usa as colunas normalizadas
+                # (lowercase, sem acentos, espaços colapsados) para capturar variantes textuais.
                 cross_dup = None
-                if t.get("objeto") and t.get("orgao") and t.get("data_publicacao"):
+                if t.get("objeto_norm") and t.get("orgao_norm") and t.get("data_publicacao"):
                     cross_dup = await conn.fetchrow(
                         """
                         SELECT id, source FROM tenders
-                        WHERE objeto = $1
-                          AND orgao  = $2
+                        WHERE objeto_norm   = $1
+                          AND orgao_norm    = $2
                           AND data_publicacao = $3
                           AND source <> $4
                         LIMIT 1
                         """,
-                        t["objeto"], t["orgao"], t["data_publicacao"], t["source"],
+                        t["objeto_norm"], t["orgao_norm"], t["data_publicacao"], t["source"],
                     )
 
                 if cross_dup:
@@ -179,16 +189,18 @@ class TenderProcessor:
                 row = await conn.fetchrow(
                     """
                     INSERT INTO tenders (
-                        source, external_id, numero_controle, objeto, orgao, cnpj_orgao,
+                        source, external_id, numero_controle,
+                        objeto, objeto_norm, orgao, orgao_norm, cnpj_orgao,
                         unidade, uf, municipio, modalidade, situacao, valor_estimado,
                         data_publicacao, data_abertura, data_encerramento, srp,
                         link_original, dados_brutos
                     ) VALUES (
-                        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18::jsonb
+                        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20::jsonb
                     ) RETURNING id
                     """,
                     t["source"], t["external_id"], t.get("numero_controle"),
-                    t.get("objeto"), t.get("orgao"), t.get("cnpj_orgao"),
+                    t.get("objeto"), t.get("objeto_norm"), t.get("orgao"), t.get("orgao_norm"),
+                    t.get("cnpj_orgao"),
                     t.get("unidade"), t.get("uf"), t.get("municipio"),
                     t.get("modalidade"), t.get("situacao"), t.get("valor_estimado"),
                     t.get("data_publicacao"), t.get("data_abertura"), t.get("data_encerramento"),
@@ -280,6 +292,45 @@ class TenderProcessor:
         await publisher.publish("tender.sync", payload)
 
     # ── Utilitários ───────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _normalize_for_dedup(val: object) -> Optional[str]:
+        """
+        Canonical form used for cross-portal deduplication.
+
+        Steps:
+        1. Collapse whitespace (same as _clean_str)
+        2. Lowercase
+        3. Strip diacritical marks (accents) via Unicode decomposition → composition
+        4. Keep only alphanumeric characters and single spaces
+
+        This ensures that minor text variations between portals — different
+        casing, accented vs. unaccented letters, extra punctuation or spaces —
+        all map to the same canonical string.
+
+        Examples:
+            "Ministério da Educação"  → "ministerio da educacao"
+            "MINISTERIO DA EDUCACAO"  → "ministerio da educacao"
+            "Ministério  da  Educação" → "ministerio da educacao"
+        """
+        if val is None:
+            return None
+        # Collapse whitespace first
+        s = " ".join(str(val).split())
+        if not s:
+            return None
+        # Lowercase
+        s = s.lower()
+        # Decompose Unicode (NFD) so accents become separate combining characters,
+        # then filter out the combining characters (category 'Mn').
+        s = "".join(
+            ch for ch in unicodedata.normalize("NFD", s)
+            if unicodedata.category(ch) != "Mn"
+        )
+        # Collapse any whitespace again (decomposition shouldn't produce extra,
+        # but guard against edge cases)
+        s = " ".join(s.split())
+        return s or None
 
     @staticmethod
     def _clean_str(val: object) -> Optional[str]:

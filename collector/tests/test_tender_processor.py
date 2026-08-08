@@ -1,5 +1,6 @@
 """
-Tests for TenderProcessor — verifies cross-portal deduplication logic.
+Tests for TenderProcessor — verifies cross-portal deduplication logic,
+including fuzzy near-duplicate detection via normalised columns.
 
 The pool/connection is fully mocked so no real database is required.
 """
@@ -211,4 +212,185 @@ async def test_no_dedup_when_fields_missing():
     ]
     assert not insert_calls, (
         "Cross-portal dedup query should NOT be issued when objeto is None"
+    )
+
+
+# ── _normalize_for_dedup unit tests ───────────────────────────────────────────
+
+class TestNormalizeForDedup:
+    """Unit tests for the canonical normalisation helper."""
+
+    def test_lowercases(self):
+        result = TenderProcessor._normalize_for_dedup("MINISTÉRIO DA EDUCAÇÃO")
+        assert result == result.lower()
+
+    def test_strips_accents(self):
+        result = TenderProcessor._normalize_for_dedup("Aquisição de Equipamentos")
+        assert "ç" not in result
+        assert "ã" not in result
+        assert "aquisicao de equipamentos" == result
+
+    def test_collapses_whitespace(self):
+        result = TenderProcessor._normalize_for_dedup("  Ministério   da   Educação  ")
+        assert "  " not in result
+        assert result == result.strip()
+
+    def test_none_returns_none(self):
+        assert TenderProcessor._normalize_for_dedup(None) is None
+
+    def test_empty_string_returns_none(self):
+        assert TenderProcessor._normalize_for_dedup("   ") is None
+
+    def test_variant_accents_same_canonical(self):
+        """Different accent representations collapse to the same canonical form."""
+        a = TenderProcessor._normalize_for_dedup("Ministério da Educação")
+        b = TenderProcessor._normalize_for_dedup("MINISTERIO DA EDUCACAO")
+        assert a == b
+
+    def test_extra_spaces_same_canonical(self):
+        a = TenderProcessor._normalize_for_dedup("Pregão  Eletrônico")
+        b = TenderProcessor._normalize_for_dedup("Pregão Eletrônico")
+        assert a == b
+
+
+# ── near-duplicate cross-portal dedup ─────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_near_duplicate_accent_variant_detected(caplog):
+    """
+    A tender from a second portal whose objeto/orgao differ only in accents
+    should be caught by the normalised dedup query and not inserted.
+    """
+    existing_id = str(uuid.uuid4())
+    conn = AsyncMock()
+
+    cross_dup_record = MagicMock()
+    cross_dup_record.__getitem__ = lambda self, key: (
+        existing_id if key == "id" else "pncp"
+    )
+
+    # First fetchrow (source+external_id): not found
+    # Second fetchrow (normalised cross-portal dedup): found
+    conn.fetchrow.side_effect = [None, cross_dup_record]
+
+    pool = _make_pool(conn)
+    processor = TenderProcessor(pool)
+
+    with patch.object(processor, "_publish_es_event", new=AsyncMock()):
+        with caplog.at_level(logging.WARNING, logger="collector.processor"):
+            result = await processor.process(
+                _base_tender(
+                    source="comprasnet",
+                    external_id="CN-ACCENT",
+                    # Same tender as the base but without accents — portals differ
+                    objeto="Aquisicao de computadores",
+                    orgao="Ministerio da Educacao",
+                )
+            )
+
+    assert result == existing_id
+    assert any("duplicado ignorado" in r.message for r in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_near_duplicate_casing_variant_detected(caplog):
+    """
+    A tender whose objeto/orgao are in ALL CAPS should still be deduplicated
+    against a mixed-case existing row.
+    """
+    existing_id = str(uuid.uuid4())
+    conn = AsyncMock()
+
+    cross_dup_record = MagicMock()
+    cross_dup_record.__getitem__ = lambda self, key: (
+        existing_id if key == "id" else "pncp"
+    )
+
+    conn.fetchrow.side_effect = [None, cross_dup_record]
+
+    pool = _make_pool(conn)
+    processor = TenderProcessor(pool)
+
+    with patch.object(processor, "_publish_es_event", new=AsyncMock()):
+        with caplog.at_level(logging.WARNING, logger="collector.processor"):
+            result = await processor.process(
+                _base_tender(
+                    source="bbmnet",
+                    external_id="BBM-CAPS",
+                    objeto="AQUISIÇÃO DE COMPUTADORES",
+                    orgao="MINISTÉRIO DA EDUCAÇÃO",
+                )
+            )
+
+    assert result == existing_id
+    assert any("duplicado ignorado" in r.message for r in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_near_duplicate_extra_spaces_detected(caplog):
+    """
+    Extra internal spaces in objeto/orgao must not prevent dedup from matching.
+    """
+    existing_id = str(uuid.uuid4())
+    conn = AsyncMock()
+
+    cross_dup_record = MagicMock()
+    cross_dup_record.__getitem__ = lambda self, key: (
+        existing_id if key == "id" else "pncp"
+    )
+
+    conn.fetchrow.side_effect = [None, cross_dup_record]
+
+    pool = _make_pool(conn)
+    processor = TenderProcessor(pool)
+
+    with patch.object(processor, "_publish_es_event", new=AsyncMock()):
+        with caplog.at_level(logging.WARNING, logger="collector.processor"):
+            result = await processor.process(
+                _base_tender(
+                    source="bec_sp",
+                    external_id="BEC-SPACES",
+                    objeto="Aquisição  de  computadores",   # extra spaces
+                    orgao="Ministério  da  Educação",       # extra spaces
+                )
+            )
+
+    assert result == existing_id
+    assert any("duplicado ignorado" in r.message for r in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_dedup_uses_normalized_columns_in_query():
+    """
+    The cross-portal dedup query must use objeto_norm / orgao_norm columns,
+    not the raw objeto / orgao values.
+    """
+    conn = AsyncMock()
+
+    # No duplicate found — we just want to inspect what query was issued
+    new_row = MagicMock()
+    new_row.__getitem__ = lambda self, key: str(uuid.uuid4()) if key == "id" else None
+
+    async def _fetchrow_side(*args, **kwargs):
+        sql = args[0] if args else ""
+        if "INSERT INTO tenders" in sql:
+            return new_row
+        return None
+
+    conn.fetchrow.side_effect = _fetchrow_side
+
+    pool = _make_pool(conn)
+    processor = TenderProcessor(pool)
+
+    with patch.object(processor, "_publish_es_event", new=AsyncMock()):
+        await processor.process(_base_tender(source="comprasnet", external_id="CN-NORM-CHECK"))
+
+    # Inspect all fetchrow calls; the dedup query must reference objeto_norm / orgao_norm
+    dedup_calls = [
+        call for call in conn.fetchrow.call_args_list
+        if call.args and "objeto_norm" in call.args[0]
+    ]
+    assert dedup_calls, (
+        "Expected a fetchrow call referencing 'objeto_norm' for cross-portal dedup, "
+        f"but got: {[c.args[0][:80] for c in conn.fetchrow.call_args_list]}"
     )

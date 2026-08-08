@@ -23,6 +23,8 @@ import sys
 from datetime import date, timedelta
 from typing import Optional
 
+import asyncpg
+
 # Garante que o pacote collector/ está no path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
@@ -49,8 +51,6 @@ async def _write_collector_status(
     Grava (ou atualiza) a linha de status do collector na tabela collector_status.
     Falhas são ignoradas — o status é informativo, não crítico.
     """
-    import asyncpg
-
     sql = """
         INSERT INTO collector_status (portal, last_run, processed, errors, interval_hours, atualizado_em)
         VALUES ($1, NOW(), $2, $3, $4, NOW())
@@ -97,8 +97,18 @@ class StandaloneTenderProcessor:
 # ── Schema ────────────────────────────────────────────────────────────────────
 
 async def apply_schema(db_url: str) -> None:
-    """Cria as tabelas tenders/tender_items/tender_history se não existirem."""
-    import asyncpg
+    """
+    Cria/atualiza as tabelas do collector e garante que as colunas normalizadas
+    (objeto_norm, orgao_norm) estejam preenchidas em todas as linhas existentes.
+
+    Passos:
+      1. Executa schema.sql (CREATE TABLE IF NOT EXISTS + ALTER TABLE ADD COLUMN IF NOT EXISTS)
+      2. Back-fills objeto_norm / orgao_norm em linhas antigas que ainda têm NULL
+         usando a mesma lógica Python que o TenderProcessor (_normalize_for_dedup).
+         Isso garante que a deduplicação fuzzy funcione imediatamente mesmo em
+         bancos com dados pré-existentes.
+    """
+    from .processors.tender_processor import TenderProcessor
 
     schema_path = os.path.join(os.path.dirname(__file__), "..", "schema.sql")
     if not os.path.exists(schema_path):
@@ -113,7 +123,39 @@ async def apply_schema(db_url: str) -> None:
         await pool.execute(sql)
         logger.info("Schema do collector aplicado com sucesso.")
     except Exception as exc:
-        logger.warning("apply_schema: %s", exc)
+        logger.warning("apply_schema (DDL): %s", exc)
+        await pool.close()
+        return
+
+    # ── Back-fill normalised columns for pre-existing rows ────────────────────
+    # Rows inserted before this version have objeto_norm / orgao_norm = NULL.
+    # We fetch them in one query and update in a single executemany call so that
+    # the fuzzy cross-portal dedup works immediately after the first startup.
+    try:
+        rows = await pool.fetch(
+            "SELECT id, objeto, orgao FROM tenders "
+            "WHERE objeto_norm IS NULL OR orgao_norm IS NULL"
+        )
+        if rows:
+            logger.info(
+                "apply_schema: back-filling normalised columns for %d existing tender(s).",
+                len(rows),
+            )
+            updates = [
+                (
+                    TenderProcessor._normalize_for_dedup(r["objeto"]),
+                    TenderProcessor._normalize_for_dedup(r["orgao"]),
+                    r["id"],
+                )
+                for r in rows
+            ]
+            await pool.executemany(
+                "UPDATE tenders SET objeto_norm = $1, orgao_norm = $2 WHERE id = $3",
+                updates,
+            )
+            logger.info("apply_schema: back-fill concluído.")
+    except Exception as exc:
+        logger.warning("apply_schema (back-fill): %s", exc)
     finally:
         await pool.close()
 
@@ -125,8 +167,6 @@ async def _run_scraper(scraper_instance, db_url: str, days: int, label: str) -> 
     Helper genérico: instancia pool, executa scrape_by_date e persiste tenders.
     Cada portal recebe seu próprio pool de conexões para isolamento de falhas.
     """
-    import asyncpg
-
     end   = date.today()
     start = end - timedelta(days=max(1, days))
 

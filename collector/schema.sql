@@ -10,7 +10,9 @@ CREATE TABLE IF NOT EXISTS tenders (
     external_id       VARCHAR(255) NOT NULL,
     numero_controle   VARCHAR(255),
     objeto            TEXT,
+    objeto_norm       TEXT,                          -- canonical form: lowercase, no accents, collapsed spaces
     orgao             VARCHAR(500),
+    orgao_norm        TEXT,                          -- canonical form: lowercase, no accents, collapsed spaces
     cnpj_orgao        VARCHAR(20),
     unidade           VARCHAR(500),
     uf                CHAR(2),
@@ -29,13 +31,27 @@ CREATE TABLE IF NOT EXISTS tenders (
     UNIQUE (source, external_id)
 );
 
+-- Idempotent column additions for existing databases.
+-- CREATE TABLE IF NOT EXISTS skips the body when the table already exists,
+-- so new columns must be added explicitly with ALTER TABLE ... ADD COLUMN IF NOT EXISTS.
+ALTER TABLE tenders ADD COLUMN IF NOT EXISTS objeto_norm TEXT;
+ALTER TABLE tenders ADD COLUMN IF NOT EXISTS orgao_norm  TEXT;
+
 CREATE INDEX IF NOT EXISTS idx_tenders_uf         ON tenders (uf);
 CREATE INDEX IF NOT EXISTS idx_tenders_modalidade  ON tenders (modalidade);
 CREATE INDEX IF NOT EXISTS idx_tenders_situacao    ON tenders (situacao);
 CREATE INDEX IF NOT EXISTS idx_tenders_publicacao  ON tenders (data_publicacao DESC);
 CREATE INDEX IF NOT EXISTS idx_tenders_orgao       ON tenders (cnpj_orgao);
 
--- Índice para deduplicação cross-portal (objeto + orgao + data_publicacao)
+-- Índice para deduplicação cross-portal usando formas normalizadas
+-- (objeto_norm + orgao_norm + data_publicacao) — suporta variações de caixa,
+-- acentuação e espaçamento entre portais.
+CREATE INDEX IF NOT EXISTS idx_tenders_dedup_norm
+    ON tenders (objeto_norm text_pattern_ops, orgao_norm text_pattern_ops, data_publicacao)
+    WHERE objeto_norm IS NOT NULL AND orgao_norm IS NOT NULL AND data_publicacao IS NOT NULL;
+
+-- Mantém o índice legado para compatibilidade com dados existentes que ainda
+-- não possuem as colunas normalizadas preenchidas.
 CREATE INDEX IF NOT EXISTS idx_tenders_dedup
     ON tenders (objeto text_pattern_ops, orgao text_pattern_ops, data_publicacao)
     WHERE objeto IS NOT NULL AND orgao IS NOT NULL AND data_publicacao IS NOT NULL;
