@@ -321,3 +321,89 @@ describe("CollectorStatusCard – per-portal breakdown", () => {
     );
   });
 });
+
+// ─── Alert-state badge ────────────────────────────────────────────────────────
+
+describe("CollectorStatusCard – alert-state badge", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+    cleanup();
+  });
+
+  const ALERTED_AT = "2026-08-08T10:30:00.000Z";
+
+  it("shows the amber alert badge when is_stale_alerted is true and alerted_at is set", async () => {
+    apiFetchMock.mockResolvedValue(
+      makeOk({
+        ...STATUS_GREEN,
+        alert_state: {
+          is_stale_alerted: true,
+          alerted_at: ALERTED_AT,
+          recovered_at: null,
+        },
+      }),
+    );
+
+    renderCard(false);
+
+    await waitFor(() =>
+      expect(screen.getByText(/Alerta enviado em/)).toBeInTheDocument(),
+    );
+  });
+
+  it("hides the badge when is_stale_alerted is false (collector has recovered)", async () => {
+    apiFetchMock.mockResolvedValue(
+      makeOk({
+        ...STATUS_GREEN,
+        alert_state: {
+          is_stale_alerted: false,
+          alerted_at: ALERTED_AT,
+          recovered_at: "2026-08-08T11:00:00.000Z",
+        },
+      }),
+    );
+
+    renderCard(false);
+
+    // Wait for the card body to render (stats are visible)
+    await waitFor(() =>
+      expect(screen.getByText("Operacional")).toBeInTheDocument(),
+    );
+
+    expect(screen.queryByText(/Alerta enviado em/)).not.toBeInTheDocument();
+  });
+
+  it("hides the badge when alert_state is undefined (older API response)", async () => {
+    const { alert_state: _omit, ...statusWithoutAlert } = BASE_STATUS as typeof BASE_STATUS & { alert_state?: unknown };
+    apiFetchMock.mockResolvedValue(makeOk(statusWithoutAlert));
+
+    renderCard(false);
+
+    await waitFor(() =>
+      expect(screen.getByText("Operacional")).toBeInTheDocument(),
+    );
+
+    expect(screen.queryByText(/Alerta enviado em/)).not.toBeInTheDocument();
+  });
+
+  it("hides the badge when is_stale_alerted is true but alerted_at is null", async () => {
+    apiFetchMock.mockResolvedValue(
+      makeOk({
+        ...STATUS_GREEN,
+        alert_state: {
+          is_stale_alerted: true,
+          alerted_at: null,
+          recovered_at: null,
+        },
+      }),
+    );
+
+    renderCard(false);
+
+    await waitFor(() =>
+      expect(screen.getByText("Operacional")).toBeInTheDocument(),
+    );
+
+    expect(screen.queryByText(/Alerta enviado em/)).not.toBeInTheDocument();
+  });
+});
