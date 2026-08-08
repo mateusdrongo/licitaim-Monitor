@@ -5,6 +5,7 @@ import {
   Plus, X, CheckCircle, Clock, AlertCircle, ChevronDown, FileUp,
 } from "lucide-react";
 import { apiFetch } from "@/lib/apiFetch";
+import { PageErrorState } from "@/components/PageErrorState";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -273,7 +274,7 @@ export default function Documentos() {
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
 
   // Fetch all; filtering done client-side so checkboxes can combine freely
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ["documentos"],
     queryFn: () => fetchDocumentos({ q: "" }),
   });
@@ -502,7 +503,9 @@ export default function Documentos() {
 
         {/* Table */}
         <div className="flex-1 overflow-auto px-6 py-4">
-          {isLoading ? (
+          {isError ? (
+            <PageErrorState error={error} onRetry={() => refetch()} />
+          ) : isLoading ? (
             <div className="space-y-2">
               {[1, 2, 3, 4, 5].map(i => (
                 <div key={i} className="h-14 bg-muted animate-pulse rounded-lg" />

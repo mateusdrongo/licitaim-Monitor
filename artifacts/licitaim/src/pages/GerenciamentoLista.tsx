@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { fmtDateBRT, fmtDateTime } from "../lib/dateUtils";
 import { apiFetch } from "@/lib/apiFetch";
+import { PageErrorState } from "@/components/PageErrorState";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -84,7 +85,7 @@ export default function GerenciamentoLista() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location]);
 
-  const { data, isLoading } = useQuery<{ data: GerItem[]; total: number }>({
+  const { data, isLoading, isError, error, refetch } = useQuery<{ data: GerItem[]; total: number }>({
     queryKey: ["gerenciamento"],
     queryFn: async () => {
       const res = await apiFetch(`${BASE}/api/gerenciamento`, { credentials: "include" });
@@ -235,7 +236,9 @@ export default function GerenciamentoLista() {
 
       {/* Lista */}
       <div className="flex-1 overflow-y-auto px-6 py-4">
-        {isLoading ? (
+        {isError ? (
+          <PageErrorState error={error} onRetry={() => refetch()} />
+        ) : isLoading ? (
           <div className="flex items-center justify-center py-16 gap-2 text-muted-foreground">
             <Loader2 className="w-5 h-5 animate-spin" />
             Carregando…

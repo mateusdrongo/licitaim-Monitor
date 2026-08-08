@@ -11,6 +11,7 @@ import {
   X,
 } from "lucide-react";
 import { apiFetch } from "@/lib/apiFetch";
+import { PageErrorState } from "@/components/PageErrorState";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -78,7 +79,7 @@ const EMPTY_FORM: FormData = { nome: "", tipo: "receita_federal", orgaoEmissor: 
 
 export default function Certidoes() {
   const qc = useQueryClient();
-  const { data, isLoading } = useCertidoes();
+  const { data, isLoading, isError, error, refetch } = useCertidoes();
   const [modal, setModal] = useState<"create" | number | null>(null); // number = editing id
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
 
@@ -200,7 +201,9 @@ export default function Certidoes() {
       </div>
 
       {/* List */}
-      {isLoading ? (
+      {isError ? (
+        <PageErrorState error={error} onRetry={() => refetch()} />
+      ) : isLoading ? (
         <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="h-20 bg-muted animate-pulse rounded-xl" />)}</div>
       ) : certidoesOrd.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center border-2 border-dashed border-border rounded-xl">
