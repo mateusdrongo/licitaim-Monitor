@@ -9,7 +9,13 @@ import { Link } from "wouter";
 
 export default function Alertas() {
   const queryClient = useQueryClient();
-  const { data, isLoading, isError, error, refetch } = useListAlertas({ limit: 50 });
+  const { data, isLoading, isError, error, refetch } = useListAlertas({ limit: 50 }, {
+    query: {
+      queryKey: getListAlertasQueryKey({ limit: 50 }),
+      retry: 2,
+      retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10_000),
+    },
+  });
 
   /** Constrói URL do portal PNCP a partir do número de controle */
   function pncpUrl(licitacaoId: string | null | undefined): string | null {

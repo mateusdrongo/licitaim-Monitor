@@ -271,7 +271,13 @@ const tipoIcon = (tipo: string) => {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const { data: dashboard, isLoading, isError, error, refetch } = useGetDashboard();
+  const { data: dashboard, isLoading, isError, error, refetch } = useGetDashboard({
+    query: {
+      queryKey: ["dashboard"] as const,
+      retry: 2,
+      retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10_000),
+    },
+  });
 
   const today = new Date().toISOString().slice(0, 10);
   const [selectedDate, setSelectedDate] = useState(today);

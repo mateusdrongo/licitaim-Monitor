@@ -808,6 +808,8 @@ export default function Licitacoes() {
   const { data, isLoading, isFetching, isError, error, refetch } = useQuery<ApiResponse>({
     queryKey: ["licitacoes", stableQueryKey],
     enabled:  url.submitted,
+    retry: 2,
+    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10_000),
     queryFn: async () => {
       // Chama exclusivamente o backend — ele serve do banco (cache) ou busca nas
       // APIs externas e faz upsert, retornando source="banco"/"pncp"/"dadosabertos"
