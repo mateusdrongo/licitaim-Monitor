@@ -1,5 +1,5 @@
 import type { QueryKey, UseMutationOptions, UseMutationResult, UseQueryOptions, UseQueryResult } from '@tanstack/react-query';
-import type { AiSearchInput, AiSearchResult, Alerta, AlertaCount, AlertaPage, ApiError, ConviteInput, Dashboard, Documento, DocumentoInput, DocumentoPage, DocumentoPncp, DocumentoUpdate, Favorito, FavoritoInput, FavoritoPage, GetHistoricoPrecosParams, HealthStatus, HistoricoPrecos, ItemLicitacao, Licitacao, LicitacaoDetalhe, LicitacaoPage, ListAlertasParams, ListDocumentosParams, ListFavoritosParams, ListLicitacoesParams, ListOportunidadesParams, MembroEquipe, MembroUpdate, Monitoramento, MonitoramentoInput, MonitoramentoUpdate, Oportunidade, OportunidadeInput, OportunidadeUpdate, PipelineStat, SuccessMessage, User } from './api.schemas';
+import type { AiSearchInput, AiSearchResult, Alerta, AlertaCount, AlertaPage, ApiError, ConviteInput, Dashboard, Documento, DocumentoInput, DocumentoPage, DocumentoPncp, DocumentoUpdate, Favorito, FavoritoInput, FavoritoPage, GetHistoricoPrecosParams, HealthStatus, HistoricoPrecos, ItemLicitacao, Licitacao, LicitacaoDetalhe, LicitacaoPage, ListAlertasParams, ListDocumentosParams, ListFavoritosParams, ListLicitacoesParams, ListOportunidadesParams, MembroEquipe, MembroUpdate, Monitoramento, MonitoramentoInput, MonitoramentoUpdate, Oportunidade, OportunidadeInput, OportunidadeUpdate, PipelineStat, SuccessMessage, User, UserProfileUpdate } from './api.schemas';
 import { customFetch } from '../custom-fetch';
 import type { ErrorType, BodyType } from '../custom-fetch';
 type AwaitedInput<T> = PromiseLike<T> | T;
@@ -52,6 +52,32 @@ export declare function useGetMe<TData = Awaited<ReturnType<typeof getMe>>, TErr
 }): UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
 };
+/**
+ * @summary Update notification preferences for the current user
+ */
+export declare const patchMe: (userProfileUpdate: BodyType<UserProfileUpdate>, options?: RequestInit) => Promise<User>;
+export declare const getPatchMeMutationOptions: <TError = ErrorType<ApiError>, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof patchMe>>, TError, {
+        data: BodyType<UserProfileUpdate>;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationOptions<Awaited<ReturnType<typeof patchMe>>, TError, {
+    data: BodyType<UserProfileUpdate>;
+}, TContext>;
+export type PatchMeMutationResult = NonNullable<Awaited<ReturnType<typeof patchMe>>>;
+export type PatchMeMutationBody = BodyType<UserProfileUpdate>;
+export type PatchMeMutationError = ErrorType<ApiError>;
+/**
+ * @summary Update notification preferences for the current user
+ */
+export declare const usePatchMe: <TError = ErrorType<ApiError>, TContext = unknown>(options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof patchMe>>, TError, {
+        data: BodyType<UserProfileUpdate>;
+    }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseMutationResult<Awaited<ReturnType<typeof patchMe>>, TError, {
+    data: BodyType<UserProfileUpdate>;
+}, TContext>;
 export declare const getLogoutUrl: () => string;
 /**
  * @summary Logout current session

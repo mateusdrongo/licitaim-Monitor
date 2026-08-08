@@ -40,7 +40,9 @@ async def send(
     Returns: dict {channel: success}
     """
     user_id = str(user.get("id", ""))
-    active_channels = _resolve_channels(user, channels or DEFAULT_CHANNELS)
+    # When no explicit channel list is given, offer all channels and let
+    # _resolve_channels filter down to what the user has actually enabled.
+    active_channels = _resolve_channels(user, channels if channels is not None else ALL_CHANNELS)
     results: dict[str, bool] = {}
 
     for channel in active_channels:

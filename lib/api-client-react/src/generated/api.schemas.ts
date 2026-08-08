@@ -38,6 +38,17 @@ export interface User {
   /** @nullable */
   avatarUrl?: string | null;
   criadoEm: string;
+  notifEmail?: boolean;
+  notifTelegram?: boolean;
+  /** @nullable */
+  telegramChatId?: string | null;
+}
+
+export interface UserProfileUpdate {
+  notif_email?: boolean | null;
+  notif_telegram?: boolean | null;
+  /** Pass empty string to clear */
+  telegram_chat_id?: string | null;
 }
 
 export interface Licitacao {

@@ -20,7 +20,8 @@ async def get_current_user(
 
     pool = await get_pool()
     user = await pool.fetchrow(
-        "SELECT id, nome, email, empresa, cnpj, plano, avatar_url, criado_em "
+        "SELECT id, nome, email, empresa, cnpj, plano, avatar_url, criado_em, "
+        "notif_email, notif_telegram, telegram_chat_id "
         "FROM users WHERE id = $1",
         user_id,
     )

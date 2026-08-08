@@ -58,7 +58,8 @@ import type {
   OportunidadeUpdate,
   PipelineStat,
   SuccessMessage,
-  User
+  User,
+  UserProfileUpdate
 } from './api.schemas';
 
 import { customFetch } from '../custom-fetch';
@@ -238,6 +239,59 @@ export function useGetMe<TData = Awaited<ReturnType<typeof getMe>>, TError = Err
 }
 
 
+/**
+ * @summary Update notification preferences for the current user
+ */
+export const patchMe = async (
+  userProfileUpdate: BodyType<UserProfileUpdate>,
+  options?: RequestInit,
+): Promise<User> => {
+  return customFetch<User>(`/api/auth/me`, {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(userProfileUpdate),
+  });
+};
+
+export const getPatchMeMutationOptions = <TError = ErrorType<ApiError>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof patchMe>>, TError, { data: BodyType<UserProfileUpdate> }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseMutationOptions<Awaited<ReturnType<typeof patchMe>>, TError, { data: BodyType<UserProfileUpdate> }, TContext> => {
+  const mutationKey = ['patchMe'];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof patchMe>>, { data: BodyType<UserProfileUpdate> }> = (
+    props,
+  ) => {
+    const { data } = props ?? {};
+    return patchMe(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PatchMeMutationResult = NonNullable<Awaited<ReturnType<typeof patchMe>>>;
+export type PatchMeMutationBody = BodyType<UserProfileUpdate>;
+export type PatchMeMutationError = ErrorType<ApiError>;
+
+/**
+ * @summary Update notification preferences for the current user
+ */
+export const usePatchMe = <TError = ErrorType<ApiError>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof patchMe>>, TError, { data: BodyType<UserProfileUpdate> }, TContext>;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseMutationResult<Awaited<ReturnType<typeof patchMe>>, TError, { data: BodyType<UserProfileUpdate> }, TContext> => {
+  return useMutation(getPatchMeMutationOptions(options));
+};
 
 
 
