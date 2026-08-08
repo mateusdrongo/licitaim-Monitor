@@ -635,6 +635,15 @@ export default function Licitacoes() {
     errors: number;
     nextRunIn: number | null;
     isStale: boolean;
+    portals: Array<{
+      portal: string;
+      lastRun: string | null;
+      processed: number;
+      errors: number;
+      nextRunIn: number | null;
+      isStale: boolean;
+      hoursAgo: number | null;
+    }>;
   }>({
     queryKey: ["collector-status"],
     queryFn: async () => {
@@ -715,6 +724,22 @@ export default function Licitacoes() {
   }
 
   const fmtLastSync = fmtLastSyncBRT;
+
+  const PORTAL_LABELS: Record<string, string> = {
+    pncp: "PNCP",
+    comprasnet: "ComprasNet",
+    bec_sp: "BEC-SP",
+  };
+
+  function fmtPortalName(portal: string): string {
+    return PORTAL_LABELS[portal] ?? portal;
+  }
+
+  function fmtHoursAgo(hoursAgo: number | null): string {
+    if (hoursAgo === null) return "sem dados";
+    if (hoursAgo < 1) return "< 1h atrás";
+    return `há ${hoursAgo.toFixed(1).replace(".0", "")}h`;
+  }
 
   function fmtFonte(fonte: string | null): string {
     if (!fonte) return "";
@@ -1227,6 +1252,29 @@ export default function Licitacoes() {
                 </span>
               </>
             )}
+            {collectorData && collectorData.portals && collectorData.portals.length > 0 && (() => {
+              const stalePortals = collectorData.portals.filter(p => p.isStale);
+              const tooltipLines = collectorData.portals.map(p =>
+                `${fmtPortalName(p.portal)}: ${p.isStale ? "⚠ parou " : "✓ atualizado "}${fmtHoursAgo(p.hoursAgo)}`
+              ).join("\n");
+
+              if (stalePortals.length === 0) return null;
+
+              const badgeLabel = stalePortals.map(p => `${fmtPortalName(p.portal)} parou ${fmtHoursAgo(p.hoursAgo)}`).join(", ");
+
+              return (
+                <>
+                  <span className="text-border">·</span>
+                  <span
+                    title={tooltipLines}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 border border-amber-500/20 font-semibold cursor-default"
+                  >
+                    <AlertTriangle className="w-3 h-3 flex-shrink-0" />
+                    {badgeLabel}
+                  </span>
+                </>
+              );
+            })()}
             {statsData?.is_admin && (
               <div className="ml-auto">
                 <button

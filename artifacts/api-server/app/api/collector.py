@@ -79,12 +79,24 @@ async def collector_status():
             remaining = interval_h * 3600 - elapsed
             next_run_in = max(0, int(remaining))
 
+        _STALE_THRESHOLD_HOURS = 8
+        portal_is_stale: bool
+        if last_run_ts is None:
+            portal_is_stale = True
+            hours_ago = None
+        else:
+            _elapsed_h = (now - last_run_ts).total_seconds() / 3600
+            hours_ago = round(_elapsed_h, 1)
+            portal_is_stale = _elapsed_h > _STALE_THRESHOLD_HOURS
+
         entry = {
             "portal": row["portal"],
             "last_run": last_run_ts.isoformat() if last_run_ts else None,
             "processed": row["processed"] or 0,
             "errors": row["errors"] or 0,
             "next_run_in": next_run_in,
+            "is_stale": portal_is_stale,
+            "hours_ago": hours_ago,
         }
 
         if row["portal"] == "global":
