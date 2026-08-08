@@ -76,7 +76,9 @@ def _certidao(**overrides) -> dict:
 def _make_pool() -> MagicMock:
     pool = MagicMock()
     pool.execute  = AsyncMock(return_value="OK")
-    pool.fetchval = AsyncMock(return_value=None)
+    # Return a non-None row_id to simulate a successful INSERT RETURNING id.
+    # send_tender_update uses pool.fetchval (not pool.execute) for its dedup INSERT.
+    pool.fetchval = AsyncMock(return_value=1)
     pool.acquire  = MagicMock()
 
     # Suporte a `async with pool.acquire() as conn`
@@ -864,7 +866,8 @@ class TestSendTenderUpdate:
         changes = {"prazo": ("2024-03-01", "2024-04-01")}
 
         pool = _make_pool()
-        pool.execute = AsyncMock(side_effect=Exception("DB connection lost"))
+        # send_tender_update uses pool.fetchval (INSERT…RETURNING id), not execute
+        pool.fetchval = AsyncMock(side_effect=Exception("DB connection lost"))
 
         with (
             patch(f"{DB_SESSION_MOD}.get_pool", AsyncMock(return_value=pool)),
@@ -883,7 +886,8 @@ class TestSendTenderUpdate:
         changes = {"status": ("aberto", "cancelado")}
 
         pool = _make_pool()
-        pool.execute = AsyncMock(side_effect=Exception("DB unavailable"))
+        # send_tender_update uses pool.fetchval (INSERT…RETURNING id), not execute
+        pool.fetchval = AsyncMock(side_effect=Exception("DB unavailable"))
 
         mock_push = AsyncMock(return_value=True)
 

@@ -61,7 +61,9 @@ def _tender(**overrides) -> dict:
 def _make_pool() -> MagicMock:
     pool = MagicMock()
     pool.execute  = AsyncMock(return_value="OK")
-    pool.fetchval = AsyncMock(return_value=None)
+    # Return a non-None row_id to simulate a successful INSERT RETURNING id.
+    # send_tender_update uses pool.fetchval (not pool.execute) for its dedup INSERT.
+    pool.fetchval = AsyncMock(return_value=1)
     pool.acquire  = MagicMock()
     pool.fetchrow = AsyncMock(return_value=None)
 
@@ -485,7 +487,8 @@ class TestSendTenderUpdateTelegram:
         assert persisted is True, (
             "send_tender_update must return True when the DB INSERT succeeds"
         )
-        pool.execute.assert_awaited()
+        # send_tender_update uses fetchval (INSERT…RETURNING id), not execute
+        pool.fetchval.assert_awaited()
 
     @pytest.mark.asyncio
     async def test_telegram_chat_id_propagated_from_user_dict(self):
