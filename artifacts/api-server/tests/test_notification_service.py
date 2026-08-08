@@ -838,6 +838,65 @@ class TestSendTenderUpdate:
         bg.add_task.assert_called_once()
         mock_send.assert_not_awaited()
 
+    @pytest.mark.asyncio
+    async def test_returns_true_when_db_insert_succeeds(self):
+        """Quando o INSERT no banco tem sucesso, send_tender_update deve retornar True."""
+        user   = _user()
+        tender = {"id": "T7", "objeto": "Fornecimento de uniformes"}
+        changes = {"status": ("aberto", "homologado")}
+
+        pool = _make_pool()
+
+        with (
+            patch(f"{DB_SESSION_MOD}.get_pool", AsyncMock(return_value=pool)),
+            patch(f"{NOTIF_MODULE}.send", AsyncMock(return_value={})),
+        ):
+            from app.services.notification_service import send_tender_update
+            result = await send_tender_update(user, tender, changes)
+
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_returns_false_when_db_insert_fails(self):
+        """Quando o INSERT no banco falha, send_tender_update deve retornar False sem reraise."""
+        user   = _user()
+        tender = {"id": "T8", "objeto": "Serviços de vigilância"}
+        changes = {"prazo": ("2024-03-01", "2024-04-01")}
+
+        pool = _make_pool()
+        pool.execute = AsyncMock(side_effect=Exception("DB connection lost"))
+
+        with (
+            patch(f"{DB_SESSION_MOD}.get_pool", AsyncMock(return_value=pool)),
+            patch(f"{NOTIF_MODULE}.send", AsyncMock(return_value={})),
+        ):
+            from app.services.notification_service import send_tender_update
+            result = await send_tender_update(user, tender, changes)
+
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_send_still_called_when_db_insert_fails(self):
+        """Mesmo com falha no DB, as notificações de canal devem ser disparadas."""
+        user   = _user(notif_push=True, notif_email=False)
+        tender = {"id": "T9", "objeto": "Material pedagógico"}
+        changes = {"status": ("aberto", "cancelado")}
+
+        pool = _make_pool()
+        pool.execute = AsyncMock(side_effect=Exception("DB unavailable"))
+
+        mock_push = AsyncMock(return_value=True)
+
+        with (
+            patch(f"{DB_SESSION_MOD}.get_pool", AsyncMock(return_value=pool)),
+            patch(f"{PUSH_MODULE}.send_push", mock_push),
+        ):
+            from app.services.notification_service import send_tender_update
+            result = await send_tender_update(user, tender, changes)
+
+        assert result is False
+        mock_push.assert_awaited_once()
+
 
 # ============================================================================
 # Sender contract tests — email_sender

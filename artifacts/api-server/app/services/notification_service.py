@@ -188,10 +188,13 @@ async def send_tender_update(
     tender: dict,
     changes: dict,
     background_tasks=None,
-) -> None:
+) -> bool:
     """
     Notifica usuário sobre alterações em uma licitação favoritada/monitorada.
     `changes` = {campo: (valor_anterior, valor_novo)}
+
+    Returns True se o alerta foi persistido com sucesso em `alertas`, False caso contrário.
+    A notificação via canais (email, push, etc.) é sempre tentada, independente da persistência.
     """
     from ..db.session import get_pool
 
@@ -206,6 +209,7 @@ async def send_tender_update(
     body  = f"A licitação a seguir teve alterações:\n\n{objeto}\n\nMudanças:\n{changes_str}"
 
     # Persiste alerta
+    persisted = False
     try:
         pool = await get_pool()
         await pool.execute(
@@ -216,6 +220,7 @@ async def send_tender_update(
             str(tender.get("id", "")),
             objeto or None,
         )
+        persisted = True
     except Exception as exc:
         logger.warning("send_tender_update: DB error: %s", exc)
 
@@ -238,6 +243,8 @@ async def send_tender_update(
             cta_url="https://licitaim.com.br/licitacoes",
             cta_label="Ver licitação",
         )
+
+    return persisted
 
 
 async def send_document_expiration(
