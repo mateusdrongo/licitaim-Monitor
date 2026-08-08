@@ -478,4 +478,26 @@ describe("CollectorStatusCard – run feedback messages", () => {
       expect(screen.getByText("Erro ao iniciar coleta.")).toBeInTheDocument(),
     );
   });
+
+  it("shows the server-supplied detail when the POST returns a non-409 error with a detail field", async () => {
+    // GET status → idle green; POST /run → 500 with a JSON detail from the server
+    apiFetchMock
+      .mockResolvedValueOnce(makeOk(STATUS_GREEN))
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        json: async () => ({ detail: "DATABASE_URL não configurada." }),
+      } as unknown as Response);
+
+    renderCard(true);
+    await clickRunAndWait();
+
+    // The exact server message must be shown — not the generic fallback
+    await waitFor(() =>
+      expect(
+        screen.getByText("DATABASE_URL não configurada."),
+      ).toBeInTheDocument(),
+    );
+    expect(screen.queryByText("Erro ao iniciar coleta.")).not.toBeInTheDocument();
+  });
 });
