@@ -62,7 +62,7 @@ export default function Cadastro() {
     }
   };
 
-  if (isLoading) return null;
+  if (isLoading || user) return null;
 
   return (
     <div className="min-h-screen w-full flex bg-background">
