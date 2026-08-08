@@ -29,6 +29,33 @@ _run_lock = asyncio.Lock()
 _is_running: bool = False
 
 
+async def _fetch_alert_state(pool) -> dict:
+    """
+    Lê collector_alert_state e retorna um dict normalizado.
+    Nunca levanta exceção — retorna valores padrão em caso de falha.
+    """
+    try:
+        alert_row = await pool.fetchrow(
+            "SELECT is_stale_alerted, alerted_at, recovered_at"
+            " FROM collector_alert_state WHERE id = 1"
+        )
+        if alert_row:
+            alerted_at_ts = alert_row["alerted_at"]
+            if alerted_at_ts and alerted_at_ts.tzinfo is None:
+                alerted_at_ts = alerted_at_ts.replace(tzinfo=timezone.utc)
+            recovered_at_ts = alert_row["recovered_at"]
+            if recovered_at_ts and recovered_at_ts.tzinfo is None:
+                recovered_at_ts = recovered_at_ts.replace(tzinfo=timezone.utc)
+            return {
+                "is_stale_alerted": bool(alert_row["is_stale_alerted"]),
+                "alerted_at": alerted_at_ts.isoformat() if alerted_at_ts else None,
+                "recovered_at": recovered_at_ts.isoformat() if recovered_at_ts else None,
+            }
+    except Exception as exc:
+        logger.warning("collector_status: falha ao ler collector_alert_state: %s", exc)
+    return {"is_stale_alerted": False, "alerted_at": None, "recovered_at": None}
+
+
 @router.get("/status")
 async def collector_status(_admin: dict = Depends(get_admin_user)):
     """
@@ -40,8 +67,12 @@ async def collector_status(_admin: dict = Depends(get_admin_user)):
     - errors         total de erros no último ciclo
     - next_run_in    segundos estimados até o próximo ciclo (ou null)
     - portals        detalhes por portal (pncp, comprasnet, bec_sp)
+    - alert_state    { is_stale_alerted, alerted_at, recovered_at }
     """
     pool = await get_pool()
+
+    # Fetch alert state first so it is available in every response path.
+    alert_state = await _fetch_alert_state(pool)
 
     try:
         rows = await pool.fetch(
@@ -60,6 +91,7 @@ async def collector_status(_admin: dict = Depends(get_admin_user)):
             "next_run_in": None,
             "is_stale": True,
             "portals": [],
+            "alert_state": alert_state,
         }
 
     if not rows:
@@ -70,6 +102,7 @@ async def collector_status(_admin: dict = Depends(get_admin_user)):
             "next_run_in": None,
             "is_stale": True,
             "portals": [],
+            "alert_state": alert_state,
         }
 
     now = datetime.now(timezone.utc)
@@ -165,6 +198,7 @@ async def collector_status(_admin: dict = Depends(get_admin_user)):
         "is_stale":    is_stale,
         "portals":     portals,
         "is_running":  _is_running,
+        "alert_state": alert_state,
     }
 
 

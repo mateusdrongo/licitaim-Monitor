@@ -22,6 +22,12 @@ interface CollectorPortal {
   next_run_in: number | null;
 }
 
+interface AlertState {
+  is_stale_alerted: boolean;
+  alerted_at: string | null;
+  recovered_at: string | null;
+}
+
 interface CollectorStatus {
   last_run: string | null;
   processed: number;
@@ -30,6 +36,7 @@ interface CollectorStatus {
   is_stale: boolean;
   is_running: boolean;
   portals: CollectorPortal[];
+  alert_state?: AlertState;
 }
 
 const PORTAL_LABELS: Record<string, string> = {
@@ -214,6 +221,22 @@ export function CollectorStatusCard({ isAdmin }: { isAdmin: boolean }) {
               )}
             </span>
           </div>
+
+          {/* Alert state */}
+          {data.alert_state?.is_stale_alerted && data.alert_state.alerted_at && (
+            <div className="flex items-center gap-1.5 text-xs text-amber-600">
+              <AlertCircle className="w-3 h-3 flex-shrink-0" />
+              <span>
+                Alerta enviado em{" "}
+                <span className="font-medium">
+                  {new Date(data.alert_state.alerted_at).toLocaleString("pt-BR", { timeStyle: "short" })}
+                </span>
+                <span className="ml-1 opacity-70">
+                  ({new Date(data.alert_state.alerted_at).toLocaleDateString("pt-BR", { dateStyle: "short" })})
+                </span>
+              </span>
+            </div>
+          )}
 
           {/* Admin: Run now button */}
           {isAdmin && (
