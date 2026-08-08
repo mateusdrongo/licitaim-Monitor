@@ -187,6 +187,45 @@ describe("CollectorStatusCard – admin button visibility", () => {
   });
 });
 
+describe("CollectorStatusCard – Executar agora button disabled state", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+    cleanup();
+  });
+
+  it("shows 'Coletando…' and disables the button when is_running is true", async () => {
+    apiFetchMock.mockResolvedValue(
+      makeOk({ ...BASE_STATUS, is_running: true }),
+    );
+
+    renderCard(true); // admin to make button visible
+
+    // Wait for the loading state to resolve
+    await waitFor(() =>
+      expect(screen.getByText("Coletando…")).toBeInTheDocument(),
+    );
+
+    const btn = screen.getByRole("button", { name: /Coletando…/ });
+    expect(btn).toBeDisabled();
+    expect(screen.queryByText("Executar agora")).not.toBeInTheDocument();
+  });
+
+  it("shows 'Executar agora' and enables the button when is_running is false", async () => {
+    apiFetchMock.mockResolvedValue(
+      makeOk({ ...BASE_STATUS, is_running: false }),
+    );
+
+    renderCard(true);
+
+    await waitFor(() =>
+      expect(screen.getByText("Executar agora")).toBeInTheDocument(),
+    );
+
+    const btn = screen.getByRole("button", { name: /Executar agora/ });
+    expect(btn).not.toBeDisabled();
+  });
+});
+
 describe("CollectorStatusCard – per-portal breakdown", () => {
   afterEach(() => {
     vi.clearAllMocks();
