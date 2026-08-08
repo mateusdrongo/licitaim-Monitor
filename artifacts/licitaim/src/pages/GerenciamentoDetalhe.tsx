@@ -9,7 +9,7 @@ import {
   TrendingUp, Flag, ChevronDown, ChevronUp, ShieldCheck, FileCheck,
   BellRing,
 } from "lucide-react";
-import { fmtDateBRT, fmtDateTime } from "../lib/dateUtils";
+import { fmtDateBRT, fmtDateTime, extract422DateMessage } from "../lib/dateUtils";
 import { useToast } from "../hooks/use-toast";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -406,6 +406,11 @@ export default function GerenciamentoDetalhe() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+      if (res.status === 422) {
+        let msg = "Dado inválido enviado ao servidor.";
+        try { msg = extract422DateMessage(await res.json()) ?? msg; } catch { /* ignore */ }
+        throw new Error(`422:${msg}`);
+      }
       if (!res.ok) throw new Error(String(res.status));
       return res.json();
     },
@@ -415,7 +420,12 @@ export default function GerenciamentoDetalhe() {
       setShowTarefaForm(false);
     },
     onError: (err: unknown) => {
-      const is401 = err instanceof Error && err.message === "401";
+      const msg = err instanceof Error ? err.message : String(err);
+      const is401 = msg === "401";
+      if (msg.startsWith("422:")) {
+        toast({ variant: "destructive", title: "Erro de validação", description: msg.slice(4) });
+        return;
+      }
       toast({
         variant: "destructive",
         title: is401 ? "Sessão expirada" : "Erro ao salvar tarefa",
@@ -534,6 +544,11 @@ export default function GerenciamentoDetalhe() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+      if (res.status === 422) {
+        let msg = "Dado inválido enviado ao servidor.";
+        try { msg = extract422DateMessage(await res.json()) ?? msg; } catch { /* ignore */ }
+        throw new Error(`422:${msg}`);
+      }
       if (!res.ok) throw new Error(String(res.status));
       return res.json();
     },
@@ -543,7 +558,12 @@ export default function GerenciamentoDetalhe() {
       setShowHabForm(false);
     },
     onError: (err: unknown) => {
-      const is401 = err instanceof Error && err.message === "401";
+      const msg = err instanceof Error ? err.message : String(err);
+      const is401 = msg === "401";
+      if (msg.startsWith("422:")) {
+        toast({ variant: "destructive", title: "Erro de validação", description: msg.slice(4) });
+        return;
+      }
       toast({
         variant: "destructive",
         title: is401 ? "Sessão expirada" : "Erro ao salvar documento",
@@ -561,11 +581,21 @@ export default function GerenciamentoDetalhe() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+      if (res.status === 422) {
+        let msg = "Dado inválido enviado ao servidor.";
+        try { msg = extract422DateMessage(await res.json()) ?? msg; } catch { /* ignore */ }
+        throw new Error(`422:${msg}`);
+      }
       if (!res.ok) throw new Error(String(res.status));
     },
     onSuccess: () => { invalidate(); setEditHabId(null); },
     onError: (err: unknown) => {
-      const is401 = err instanceof Error && err.message === "401";
+      const msg = err instanceof Error ? err.message : String(err);
+      const is401 = msg === "401";
+      if (msg.startsWith("422:")) {
+        toast({ variant: "destructive", title: "Erro de validação", description: msg.slice(4) });
+        return;
+      }
       toast({
         variant: "destructive",
         title: is401 ? "Sessão expirada" : "Erro ao atualizar documento",

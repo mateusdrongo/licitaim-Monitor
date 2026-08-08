@@ -15,7 +15,7 @@ import { ToastAction } from "@/components/ui/toast";
 import { PageErrorState } from "@/components/PageErrorState";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
-import { fmtLastSync as fmtLastSyncBRT } from "../lib/dateUtils";
+import { fmtLastSync as fmtLastSyncBRT, isValidIsoDate, extract422DateMessage } from "../lib/dateUtils";
 import { useToast } from "../hooks/use-toast";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -409,6 +409,19 @@ export default function Licitacoes() {
         if (!res.ok && res.status !== 404) throw new Error("Erro ao remover gerenciamento");
         return null;
       } else {
+        // Validate date fields client-side before sending — tender data may carry
+        // non-standard strings that the backend would reject with a 422.
+        const dateChecks: Array<{ value: string | null | undefined; label: string }> = [
+          { value: lic.dataEncerramento,   label: "Data de Encerramento" },
+          { value: lic.dataAbertura,       label: "Data de Abertura" },
+          { value: lic.dataPublicacaoPncp, label: "Data de Publicação" },
+        ];
+        for (const { value, label } of dateChecks) {
+          if (value && !isValidIsoDate(value)) {
+            throw new Error(`DATE_INVALID:${label}:${value}`);
+          }
+        }
+
         const res = await apiFetch(`${BASE}/api/gerenciamento`, {
           method: "POST", credentials: "include",
           headers: { "Content-Type": "application/json" },
@@ -442,6 +455,14 @@ export default function Licitacoes() {
           // check falhou — retorna null e aguarda o refetch da query resolver
           return null;
         }
+        if (res.status === 422) {
+          let msg = "Dado inválido enviado ao servidor.";
+          try {
+            const json = await res.json();
+            msg = extract422DateMessage(json) ?? msg;
+          } catch { /* ignore parse errors */ }
+          throw new Error(`422:${msg}`);
+        }
         if (!res.ok) throw new Error("Erro ao gerenciar");
         // Retorna o novo gerenciamento (com id) para eliminar race condition
         return res.json() as Promise<{ id: number }>;
@@ -464,6 +485,30 @@ export default function Licitacoes() {
       const msg = err instanceof Error ? err.message : String(err);
       const is401 = msg === "401" || msg.toLowerCase().includes("unauthorized");
       const returnTo = window.location.pathname + window.location.search;
+
+      // Client-side date validation failure
+      if (msg.startsWith("DATE_INVALID:")) {
+        const parts = msg.split(":");
+        const label = parts[1] ?? "data";
+        const value = parts.slice(2).join(":");
+        toast({
+          variant: "destructive",
+          title: "Formato de data inválido",
+          description: `O valor "${value}" no campo "${label}" não está em um formato reconhecido. A licitação não pôde ser gerenciada.`,
+        });
+        return;
+      }
+
+      // Server-side 422 validation error (e.g. unrecognised date string)
+      if (msg.startsWith("422:")) {
+        toast({
+          variant: "destructive",
+          title: "Erro de validação",
+          description: msg.slice(4),
+        });
+        return;
+      }
+
       toast({
         variant: "destructive",
         title: is401 ? "Sessão expirada" : currently ? "Erro ao remover gerenciamento" : "Erro ao gerenciar licitação",

@@ -86,3 +86,64 @@ export function fmtLastSync(iso: string | null | undefined, fallback = "nunca"):
     return fallback;
   }
 }
+
+/**
+ * Returns true when `s` is a non-empty string that parses to a valid date.
+ * Accepts ISO 8601 date-only ("YYYY-MM-DD") and datetime variants with or
+ * without timezone offset (e.g. "2026-07-17T08:00:00Z").
+ */
+export function isValidIsoDate(s: string | null | undefined): boolean {
+  if (!s) return false;
+  const d = new Date(s.replace(/Z$/i, "+00:00"));
+  return !isNaN(d.getTime());
+}
+
+// Maps Pydantic field names to Portuguese labels for user-facing messages.
+const DATE_FIELD_LABELS: Record<string, string> = {
+  licitacaoDataEncerramento: "Data de Encerramento",
+  licitacaoDataAbertura:     "Data de Abertura",
+  licitacaoDataPublicacao:   "Data de Publicação",
+  prazo:                     "Prazo",
+  dataEntrega:               "Data de Entrega",
+};
+
+/**
+ * Parses a FastAPI 422 response body and returns a Portuguese description for
+ * the first date-related validation error found, or null if none is found.
+ *
+ * FastAPI/Pydantic 422 detail is an array of { loc, msg, type } objects.
+ */
+export function extract422DateMessage(body: unknown): string | null {
+  if (!body || typeof body !== "object") return null;
+  const { detail } = body as Record<string, unknown>;
+  if (!Array.isArray(detail)) return null;
+
+  for (const err of detail) {
+    if (!err || typeof err !== "object") continue;
+    const e = err as Record<string, unknown>;
+    const msg = typeof e.msg === "string" ? e.msg.toLowerCase() : "";
+    const loc = Array.isArray(e.loc) ? e.loc : [];
+    const fieldName = loc[loc.length - 1];
+
+    const isDateMsg =
+      msg.includes("formato de data") ||
+      msg.includes("iso 8601") ||
+      msg.includes("date");
+    const isDateField =
+      typeof fieldName === "string" &&
+      (fieldName.toLowerCase().includes("data") ||
+       fieldName === "prazo" ||
+       fieldName === "dataEntrega");
+
+    if (isDateMsg || isDateField) {
+      const label =
+        typeof fieldName === "string"
+          ? (DATE_FIELD_LABELS[fieldName] ?? fieldName)
+          : "";
+      return label
+        ? `Formato de data inválido no campo "${label}". Use o formato AAAA-MM-DD.`
+        : "Formato de data inválido. Use o formato AAAA-MM-DD.";
+    }
+  }
+  return null;
+}
