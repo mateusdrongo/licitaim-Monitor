@@ -1,6 +1,7 @@
 # HTTP async + retry
 httpx[http2]>=0.27.0
 tenacity>=8.5.0
+respx>=0.21.0          # test-only: mock httpx in unit/integration tests
 
 # Scraping headless (BEC-SP via Playwright; Comprasnet via httpx)
 playwright>=1.45.0
