@@ -16,11 +16,27 @@ from typing import AsyncIterator, Optional
 
 import httpx
 from bs4 import BeautifulSoup
+from tenacity import (
+    AsyncRetrying,
+    retry_if_exception,
+    stop_after_attempt,
+    wait_exponential,
+    before_sleep_log,
+)
 
 from ..base_scraper import BaseScraper
 from ..config import CollectorSettings
 
 logger = logging.getLogger("collector.comprasnet")
+
+
+def _is_retryable(exc: BaseException) -> bool:
+    """True for transient errors that are worth retrying: timeouts, network drops, 5xx, 429."""
+    if isinstance(exc, (httpx.TimeoutException, httpx.NetworkError)):
+        return True
+    if isinstance(exc, httpx.HTTPStatusError):
+        return exc.response.status_code >= 500 or exc.response.status_code == 429
+    return False
 
 BASE_URL = "https://www.comprasnet.gov.br/ConsultaLicitacoes/ConsLicitacao_Relacao.asp"
 DETAIL_URL = "https://www.comprasnet.gov.br/ConsultaLicitacoes/download/download_editais_detalhe.asp"
@@ -89,10 +105,9 @@ class ComprasNetScraper(BaseScraper):
 
         try:
             logger.info("ComprasNet: consultando %s → %s", start, end)
-            response = await self._client.get(BASE_URL, params=params)
-            response.raise_for_status()
+            html = await self._get_with_retry(BASE_URL, params)
 
-            items = self._parse_listing(response.text)
+            items = self._parse_listing(html)
 
             if not items:
                 # Could be JS-rendered content that httpx cannot execute
@@ -110,16 +125,8 @@ class ComprasNetScraper(BaseScraper):
                 yield item
                 await asyncio.sleep(self.settings.pncp_rate_limit_sleep)
 
-        except httpx.HTTPStatusError as exc:
-            logger.error(
-                "ComprasNet scrape_by_date: HTTP %s — %s",
-                exc.response.status_code,
-                exc,
-            )
-        except httpx.RequestError as exc:
-            logger.error("ComprasNet scrape_by_date: erro de rede — %s", exc)
         except Exception as exc:
-            logger.error("ComprasNet scrape_by_date: erro inesperado — %s", exc)
+            logger.error("ComprasNet scrape_by_date: falhou definitivamente — %s", exc)
 
     # ── scrape_by_id ──────────────────────────────────────────────────────────
 
@@ -130,27 +137,33 @@ class ComprasNetScraper(BaseScraper):
         params = {"coduasg": "", "numprp": external_id}
 
         try:
-            response = await self._client.get(DETAIL_URL, params=params)
-            response.raise_for_status()
-            return self._parse_detail(response.text, external_id)
-        except httpx.HTTPStatusError as exc:
+            html = await self._get_with_retry(DETAIL_URL, params)
+            return self._parse_detail(html, external_id)
+        except Exception as exc:
             logger.error(
-                "ComprasNet scrape_by_id(%s): HTTP %s — %s",
+                "ComprasNet scrape_by_id(%s): falhou definitivamente — %s",
                 external_id,
-                exc.response.status_code,
                 exc,
             )
             return None
-        except httpx.RequestError as exc:
-            logger.error(
-                "ComprasNet scrape_by_id(%s): erro de rede — %s", external_id, exc
-            )
-            return None
-        except Exception as exc:
-            logger.error(
-                "ComprasNet scrape_by_id(%s): erro inesperado — %s", external_id, exc
-            )
-            return None
+
+    # ── HTTP com retry ────────────────────────────────────────────────────────
+
+    async def _get_with_retry(self, url: str, params: dict) -> str:
+        async for attempt in AsyncRetrying(
+            retry=retry_if_exception(_is_retryable),
+            stop=stop_after_attempt(self.settings.retry_attempts),
+            wait=wait_exponential(
+                min=self.settings.retry_min_wait,
+                max=self.settings.retry_max_wait,
+            ),
+            before_sleep=before_sleep_log(logger, logging.WARNING),
+            reraise=True,
+        ):
+            with attempt:
+                resp = await self._client.get(url, params=params)
+                resp.raise_for_status()
+                return resp.text
 
     # ── Parsers ───────────────────────────────────────────────────────────────
 
