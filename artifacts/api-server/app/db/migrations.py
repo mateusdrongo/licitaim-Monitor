@@ -88,7 +88,11 @@ _DDL = [
     "CREATE INDEX IF NOT EXISTS idx_ale_user_lido ON alertas(user_id, lido)",
     "CREATE INDEX IF NOT EXISTS idx_ale_criado    ON alertas(criado_em DESC)",
     # Coluna link adicionada após o schema inicial — idempotente
-    "ALTER TABLE alertas ADD COLUMN IF NOT EXISTS link TEXT",
+    "ALTER TABLE alertas ADD COLUMN IF NOT EXISTS link      TEXT",
+    # dedup_key: short idempotency token for atomic duplicate-prevention via
+    # ON CONFLICT DO NOTHING — set by send_tender_update() and friends.
+    "ALTER TABLE alertas ADD COLUMN IF NOT EXISTS dedup_key TEXT",
+    "CREATE UNIQUE INDEX IF NOT EXISTS alertas_uq_dedup ON alertas (dedup_key) WHERE dedup_key IS NOT NULL",
 
     # ── 4. Favoritos — depende de users ──────────────────────────────────────
     """

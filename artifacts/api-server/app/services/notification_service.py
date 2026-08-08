@@ -193,13 +193,19 @@ async def send_tender_update(
     Notifica usuário sobre alterações em uma licitação favoritada/monitorada.
     `changes` = {campo: (valor_anterior, valor_novo)}
 
-    Returns True se o alerta foi persistido com sucesso em `alertas`, False caso contrário.
-    A notificação via canais (email, push, etc.) é sempre tentada, independente da persistência.
+    Returns
+    -------
+    True   — alerta inserido e notificação enviada.
+    False  — alerta duplicado detectado atomicamente via ON CONFLICT; nenhuma
+             notificação enviada (outro worker já a entregou nesta janela de 5min).
+    None   — alerta não pôde ser persistido por erro de DB; notificação tentada.
     """
+    import time as _time
     from ..db.session import get_pool
 
-    objeto  = tender.get("objeto", "")[:150]
-    user_id = str(user.get("id", ""))
+    objeto    = tender.get("objeto", "")[:150]
+    user_id   = str(user.get("id", ""))
+    tender_id = str(tender.get("id", ""))
 
     changes_str = "\n".join(
         f"  • {campo}: {ant} → {novo}"
@@ -208,24 +214,40 @@ async def send_tender_update(
     title = f"⚠️ Licitação atualizada: {objeto[:60]}"
     body  = f"A licitação a seguir teve alterações:\n\n{objeto}\n\nMudanças:\n{changes_str}"
 
-    # Persiste alerta
+    # ── Atomic deduplication ─────────────────────────────────────────────────
+    # dedup_key groups (user, tender, tipo) inside a 5-minute bucket.
+    # Two job runs within the same bucket share the same key; the second INSERT
+    # hits ON CONFLICT and returns no row, signalling a duplicate.
+    bucket    = int(_time.time() // 300)
+    dedup_key = f"sc:{user_id}:{tender_id[:64]}:{bucket}"
+
     persisted = False
     try:
         pool = await get_pool()
-        await pool.execute(
+        row_id = await pool.fetchval(
             """INSERT INTO alertas
-               (user_id, tipo, titulo, descricao, licitacao_id, licitacao_objeto, lido)
-               VALUES ($1,'situacao_alterada',$2,$3,$4,$5,false)""",
+               (user_id, tipo, titulo, descricao, licitacao_id, licitacao_objeto, lido, dedup_key)
+               VALUES ($1,'situacao_alterada',$2,$3,$4,$5,false,$6)
+               ON CONFLICT (dedup_key) WHERE dedup_key IS NOT NULL DO NOTHING
+               RETURNING id""",
             user_id, title, body,
-            str(tender.get("id", "")),
+            tender_id,
             objeto or None,
+            dedup_key,
         )
+        if row_id is None:
+            # Conflict: a concurrent or recent run already inserted this alert.
+            logger.debug(
+                "send_tender_update: alerta duplicado (dedup_key=%s) — ignorado.",
+                dedup_key,
+            )
+            return False
         persisted = True
     except Exception as exc:
         logger.warning("send_tender_update: DB error: %s", exc)
 
     metadata = {
-        "tender_id": str(tender.get("id", "")),
+        "tender_id": tender_id,
         "changes":   {k: {"from": v[0], "to": v[1]} for k, v in changes.items()},
     }
 

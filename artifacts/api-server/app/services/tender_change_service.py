@@ -144,6 +144,7 @@ async def notify_favorited_tender_changes(
 
     for row in rows:
         fav_row = dict(row)
+
         diff = _build_diff(tender, fav_row)
 
         if not diff:
@@ -172,7 +173,18 @@ async def notify_favorited_tender_changes(
             "objeto": tender.get("objeto") or fav_row.get("licitacao_objeto", ""),
         }
 
-        await _notif_svc.send_tender_update(user, tender_with_obj, diff, background_tasks=background_tasks)
+        was_sent = await _notif_svc.send_tender_update(user, tender_with_obj, diff, background_tasks=background_tasks)
+
+        if was_sent is False:
+            # Atomic dedup in send_tender_update: another run already inserted
+            # this alert in the same 5-minute window — skip snapshot update too.
+            users_skipped += 1
+            logger.debug(
+                "notify_favorited_tender_changes: user=%s licitacao=%s"
+                " — dedup atômico em send_tender_update, ignorado.",
+                fav_row["user_id"], candidate_ids,
+            )
+            continue
 
         # Actualiza snapshot no favorito para próximos cycles.
         # Normaliza valor para forma canónica (2 casas decimais) para evitar que

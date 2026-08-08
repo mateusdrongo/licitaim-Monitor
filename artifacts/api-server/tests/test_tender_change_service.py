@@ -503,6 +503,174 @@ class TestNotifyFavoritedTenderChanges:
         assert result["users_notified"] == 2
         assert result["users_skipped"]  == 1
 
+    @pytest.mark.asyncio
+    async def test_send_tender_update_returning_false_counts_as_skipped(self):
+        """
+        Quando send_tender_update retorna False (dedup atômico via ON CONFLICT),
+        o usuário deve ser contado em users_skipped, não em users_notified,
+        e o snapshot NÃO deve ser atualizado.
+        """
+        fav = _fav_row(licitacao_situacao="aberto")
+        pool = _make_pool_with_raw([fav])
+
+        tender = _tender(situacao="encerrado")
+
+        async def _deduped(user, t, changes, background_tasks=None):
+            return False  # simula dedup atômico
+
+        with (
+            patch(f"{DB_SESSION}.get_pool", AsyncMock(return_value=pool)),
+            patch(SEND_TENDER_UPDATE_TARGET, side_effect=_deduped),
+        ):
+            from app.services.tender_change_service import notify_favorited_tender_changes
+            result = await notify_favorited_tender_changes(tender)
+
+        assert result["users_notified"] == 0, (
+            "Alerta deduplicado não deve incrementar users_notified"
+        )
+        assert result["users_skipped"]  == 1, (
+            "Alerta deduplicado deve incrementar users_skipped"
+        )
+        # Snapshot não deve ser atualizado quando dedup foi ativado
+        pool.execute.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_dedup_does_not_affect_different_users(self):
+        """
+        Dedup de send_tender_update para um usuário não deve suprimir a
+        notificação de outro usuário que favoritou a mesma licitação.
+        """
+        fav1 = _fav_row(fav_id=1, user_id="user-1", licitacao_situacao="aberto")
+        fav2 = _fav_row(fav_id=2, user_id="user-2", email="u2@x.com",
+                        licitacao_situacao="aberto")
+        pool = _make_pool_with_raw([fav1, fav2])
+
+        tender = _tender(situacao="encerrado")
+
+        call_count = 0
+
+        async def _first_deduped_second_ok(user, t, changes, background_tasks=None):
+            nonlocal call_count
+            call_count += 1
+            # Primeiro usuário: dedup ativado; segundo: ok
+            return False if call_count == 1 else True
+
+        with (
+            patch(f"{DB_SESSION}.get_pool", AsyncMock(return_value=pool)),
+            patch(SEND_TENDER_UPDATE_TARGET, side_effect=_first_deduped_second_ok),
+        ):
+            from app.services.tender_change_service import notify_favorited_tender_changes
+            result = await notify_favorited_tender_changes(tender)
+
+        assert result["users_checked"]  == 2
+        assert result["users_notified"] == 1
+        assert result["users_skipped"]  == 1
+
+
+# ============================================================================
+# Testes de deduplicação atômica em send_tender_update
+# ============================================================================
+
+class TestSendTenderUpdateAtomicDedup:
+    """
+    Confirma que send_tender_update usa fetchval com ON CONFLICT DO NOTHING
+    e retorna False quando o INSERT não produz nenhuma linha (dedup ativado).
+    """
+
+    @pytest.mark.asyncio
+    async def test_returns_false_when_insert_conflicts(self):
+        """
+        Quando fetchval retorna None (conflito na dedup_key), send_tender_update
+        deve retornar False sem chamar send().
+        """
+        pool = MagicMock()
+        # fetchval retorna None → simula ON CONFLICT DO NOTHING (nenhuma linha inserida)
+        pool.fetchval = AsyncMock(return_value=None)
+
+        mock_send = AsyncMock()
+
+        with (
+            patch("app.db.session.get_pool", AsyncMock(return_value=pool)),
+            patch("app.services.notification_service.send", mock_send),
+        ):
+            from app.services.notification_service import send_tender_update
+            result = await send_tender_update(
+                user=_user_row(),
+                tender=_tender(),
+                changes={"situacao": ("aberto", "encerrado")},
+            )
+
+        assert result is False, (
+            f"Esperado False quando INSERT conflita, obtido: {result!r}"
+        )
+        mock_send.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_returns_true_when_insert_succeeds(self):
+        """
+        Quando fetchval retorna um id (linha inserida), send_tender_update deve
+        retornar True e chamar send() para os canais externos.
+        """
+        pool = MagicMock()
+        # fetchval retorna id → INSERT bem-sucedido
+        pool.fetchval = AsyncMock(return_value=42)
+
+        mock_send = AsyncMock()
+
+        with (
+            patch("app.db.session.get_pool", AsyncMock(return_value=pool)),
+            patch("app.services.notification_service.send", mock_send),
+        ):
+            from app.services.notification_service import send_tender_update
+            result = await send_tender_update(
+                user=_user_row(),
+                tender=_tender(),
+                changes={"situacao": ("aberto", "encerrado")},
+            )
+
+        assert result is True, (
+            f"Esperado True quando INSERT insere uma linha, obtido: {result!r}"
+        )
+        mock_send.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_dedup_key_covers_5_minute_bucket(self):
+        """
+        Dois calls dentro do mesmo bucket de 5 minutos produzem o mesmo dedup_key.
+        Confirma que o fetchval é chamado com o mesmo $6 em ambas as chamadas.
+        """
+        import time
+
+        pool = MagicMock()
+        captured_keys: list[str] = []
+
+        async def _capture(*args):
+            # $6 é o dedup_key (sexto argumento posicional após a query)
+            captured_keys.append(args[6])
+            return 42  # primeiro call bem-sucedido
+
+        pool.fetchval = _capture
+
+        mock_send = AsyncMock()
+
+        user   = _user_row()
+        tender = _tender()
+        diff   = {"situacao": ("aberto", "encerrado")}
+
+        with (
+            patch("app.db.session.get_pool", AsyncMock(return_value=pool)),
+            patch("app.services.notification_service.send", mock_send),
+        ):
+            from app.services.notification_service import send_tender_update
+            await send_tender_update(user, tender, diff)
+            await send_tender_update(user, tender, diff)
+
+        assert len(captured_keys) == 2
+        assert captured_keys[0] == captured_keys[1], (
+            "Dois calls no mesmo bucket de 5min devem compartilhar o mesmo dedup_key; "
+            f"obtido: {captured_keys}"
+        )
+
 
 # ============================================================================
 # Testes de integração — cadeia de produção
