@@ -21,8 +21,8 @@ vi.mock("@/lib/apiFetch", () => ({
 }));
 
 // ─── Imports ──────────────────────────────────────────────────────────────────
-import React from "react";
-import { render, screen, waitFor, cleanup } from "@testing-library/react";
+import React, { act } from "react";
+import { render, screen, waitFor, cleanup, fireEvent } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { CollectorStatusCard } from "@/components/CollectorStatusCard";
@@ -223,6 +223,55 @@ describe("CollectorStatusCard – Executar agora button disabled state", () => {
 
     const btn = screen.getByRole("button", { name: /Executar agora/ });
     expect(btn).not.toBeDisabled();
+  });
+
+  it("shows 'Iniciando…' and disables the button while POST /collector/run is in flight", async () => {
+    // Deferred promise — controls when the POST resolves
+    let resolvePost!: (value: Response) => void;
+    const postPromise = new Promise<Response>((res) => {
+      resolvePost = res;
+    });
+
+    // First call = GET /collector/status → green idle state
+    // Second call = POST /collector/run → hangs until we resolve
+    apiFetchMock
+      .mockResolvedValueOnce(makeOk(STATUS_GREEN))
+      .mockReturnValueOnce(postPromise);
+
+    renderCard(true);
+
+    // Wait for the component to finish loading and show the idle button
+    const btn = await waitFor(() =>
+      screen.getByRole("button", { name: /Executar agora/ }),
+    );
+    expect(btn).not.toBeDisabled();
+
+    // Click — handleRunNow fires; setIsTriggering(true) runs before the await
+    fireEvent.click(btn);
+
+    // Component re-renders with isTriggering=true → "Iniciando…" + disabled
+    await waitFor(() =>
+      expect(screen.getByText("Iniciando…")).toBeInTheDocument(),
+    );
+    const initBtn = screen.getByRole("button", { name: /Iniciando…/ });
+    expect(initBtn).toBeDisabled();
+    expect(screen.queryByText("Executar agora")).not.toBeInTheDocument();
+
+    // The RefreshCw SVG inside the run button must be spinning
+    const spinner = initBtn.querySelector("svg");
+    expect(spinner).not.toBeNull();
+    expect(spinner).toHaveClass("animate-spin");
+
+    // Resolve the POST → finally block sets isTriggering back to false
+    await act(async () => {
+      resolvePost(makeOk({ message: "started" }));
+    });
+
+    // Button returns to idle "Executar agora" and is re-enabled
+    await waitFor(() =>
+      expect(screen.getByText("Executar agora")).toBeInTheDocument(),
+    );
+    expect(screen.getByRole("button", { name: /Executar agora/ })).not.toBeDisabled();
   });
 });
 
