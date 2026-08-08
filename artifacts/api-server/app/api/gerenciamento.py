@@ -203,7 +203,7 @@ class GerenciamentoUpdate(StrictDateMixin):
     valorProposta: Optional[float] = None
 
 
-class TarefaCreate(BaseModel):
+class TarefaCreate(StrictDateMixin):
     titulo: str
     descricao: Optional[str] = None
     prazo: Optional[date] = None
@@ -211,7 +211,7 @@ class TarefaCreate(BaseModel):
     categoria: str = "geral"
 
 
-class TarefaUpdate(BaseModel):
+class TarefaUpdate(StrictDateMixin):
     titulo: Optional[str] = None
     descricao: Optional[str] = None
     prazo: Optional[date] = None
