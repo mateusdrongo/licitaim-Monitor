@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { apiFetch } from "@/lib/apiFetch";
 import { ToastAction } from "@/components/ui/toast";
+import { PageErrorState } from "@/components/PageErrorState";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 import { fmtLastSync as fmtLastSyncBRT } from "../lib/dateUtils";
@@ -650,7 +651,7 @@ export default function Licitacoes() {
     return p.toString();
   })();
 
-  const { data, isLoading, isFetching, refetch } = useQuery<ApiResponse>({
+  const { data, isLoading, isFetching, isError, error, refetch } = useQuery<ApiResponse>({
     queryKey: ["licitacoes", stableQueryKey],
     enabled:  url.submitted,
     queryFn: async () => {
@@ -1164,6 +1165,8 @@ export default function Licitacoes() {
                 <div key={i} className="h-44 bg-muted animate-pulse rounded-xl" />
               ))}
             </div>
+          ) : isError ? (
+            <PageErrorState error={error} onRetry={() => refetch()} />
           ) : items.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24 text-center">
               <FileText className="w-14 h-14 text-muted-foreground opacity-30 mb-4" />

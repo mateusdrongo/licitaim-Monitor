@@ -4,11 +4,12 @@ import { useListAlertas, useMarcarAlertaLido, useMarcarTodosAlertasLidos } from 
 import { useQueryClient } from "@tanstack/react-query";
 import { getListAlertasQueryKey, getGetDashboardQueryKey } from "@workspace/api-client-react";
 import { Bell, CheckCheck, Clock, FileText, Target, AlertCircle } from "lucide-react";
+import { PageErrorState } from "@/components/PageErrorState";
 import { Link } from "wouter";
 
 export default function Alertas() {
   const queryClient = useQueryClient();
-  const { data, isLoading, isError } = useListAlertas({ limit: 50 });
+  const { data, isLoading, isError, error, refetch } = useListAlertas({ limit: 50 });
 
   /** Constrói URL do portal PNCP a partir do número de controle */
   function pncpUrl(licitacaoId: string | null | undefined): string | null {
@@ -125,10 +126,7 @@ export default function Alertas() {
             ))}
           </div>
         ) : isError ? (
-          <div className="text-center py-16 text-muted-foreground">
-            <AlertCircle className="w-10 h-10 mx-auto mb-3 opacity-40" />
-            <p className="text-sm">Não foi possível carregar os alertas. Tente recarregar a página.</p>
-          </div>
+          <PageErrorState error={error} onRetry={() => refetch()} compact />
         ) : (
           <div className="text-center py-16">
             <Bell className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-30" />

@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 import { apiFetch } from "@/lib/apiFetch";
+import { PageErrorState } from "@/components/PageErrorState";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -270,7 +271,7 @@ const tipoIcon = (tipo: string) => {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const { data: dashboard, isLoading } = useGetDashboard();
+  const { data: dashboard, isLoading, isError, error, refetch } = useGetDashboard();
 
   const today = new Date().toISOString().slice(0, 10);
   const [selectedDate, setSelectedDate] = useState(today);
@@ -306,6 +307,14 @@ export default function Dashboard() {
             <div key={i} className="h-32 bg-muted animate-pulse rounded-xl" />
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="p-8">
+        <PageErrorState error={error} onRetry={() => refetch()} />
       </div>
     );
   }

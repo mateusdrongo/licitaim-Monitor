@@ -14,6 +14,7 @@ import {
   CalendarPlus,
 } from "lucide-react";
 import { apiFetch } from "@/lib/apiFetch";
+import { PageErrorState } from "@/components/PageErrorState";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -247,7 +248,7 @@ function useDeleteEvento() {
 
 // ─── Página ───────────────────────────────────────────────────────────────────
 export default function Agenda() {
-  const { data, isLoading } = useAgenda();
+  const { data, isLoading, isError, error, refetch } = useAgenda();
   const [filtro, setFiltro] = useState<"todos" | "critico" | "atencao">("todos");
   const [showModal, setShowModal] = useState(false);
   const deleteEvento = useDeleteEvento();
@@ -381,6 +382,8 @@ export default function Agenda() {
         <div className="space-y-3">
           {[1,2,3,4,5].map(i => <div key={i} className="h-20 bg-muted animate-pulse rounded-xl" />)}
         </div>
+      ) : isError ? (
+        <PageErrorState error={error} onRetry={() => refetch()} />
       ) : eventos.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
           <CalendarDays className="w-12 h-12 text-muted-foreground mb-4 opacity-50" />
