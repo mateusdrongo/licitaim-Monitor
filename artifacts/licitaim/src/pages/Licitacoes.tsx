@@ -15,7 +15,7 @@ import { ToastAction } from "@/components/ui/toast";
 import { PageErrorState } from "@/components/PageErrorState";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
-import { fmtLastSync as fmtLastSyncBRT, isValidIsoDate, extract422DateMessage } from "../lib/dateUtils";
+import { fmtLastSync as fmtLastSyncBRT, isValidIsoDate, extract422DateMessage, parseDateInvalidError } from "../lib/dateUtils";
 import { useToast } from "../hooks/use-toast";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -542,15 +542,9 @@ export default function Licitacoes() {
       const returnTo = window.location.pathname + window.location.search;
 
       // Client-side date validation failure
-      if (msg.startsWith("DATE_INVALID:")) {
-        const parts = msg.split(":");
-        const label = parts[1] ?? "data";
-        const value = parts.slice(2).join(":");
-        toast({
-          variant: "destructive",
-          title: "Formato de data inválido",
-          description: `O valor "${value}" no campo "${label}" não está em um formato reconhecido. A licitação não pôde ser gerenciada.`,
-        });
+      const dateToast = parseDateInvalidError(msg);
+      if (dateToast) {
+        toast({ variant: "destructive", ...dateToast });
         return;
       }
 

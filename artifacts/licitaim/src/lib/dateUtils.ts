@@ -108,6 +108,31 @@ const DATE_FIELD_LABELS: Record<string, string> = {
 };
 
 /**
+ * Parses a "DATE_INVALID:<label>:<value>" error message (thrown by the
+ * client-side date validation in gerMutation) and returns the toast payload
+ * that should be shown to the user, or null if the message is not a date
+ * error.
+ *
+ * Keeping this as a pure function makes it straightforward to unit-test the
+ * exact toast title/description without mounting any React component.
+ */
+export interface DateInvalidToast {
+  title: string;
+  description: string;
+}
+
+export function parseDateInvalidError(msg: string): DateInvalidToast | null {
+  if (!msg.startsWith("DATE_INVALID:")) return null;
+  const parts = msg.split(":");
+  const label = parts[1] || "data";
+  const value = parts.slice(2).join(":");
+  return {
+    title: "Formato de data inválido",
+    description: `O valor "${value}" no campo "${label}" não está em um formato reconhecido. A licitação não pôde ser gerenciada.`,
+  };
+}
+
+/**
  * Parses a FastAPI 422 response body and returns a Portuguese description for
  * the first date-related validation error found, or null if none is found.
  *
