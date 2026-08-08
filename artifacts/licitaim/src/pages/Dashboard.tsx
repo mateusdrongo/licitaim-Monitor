@@ -369,14 +369,6 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* ── Collector Health ───────────────────────────────────────────────── */}
-      <section>
-        <h2 className="text-base font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-          Saúde do Sistema
-        </h2>
-        <CollectorStatusCard />
-      </section>
-
       {/* ── Novidades / Oportunidades ──────────────────────────────────────── */}
       <section>
         <h2 className="text-base font-semibold text-muted-foreground uppercase tracking-wider mb-3">
