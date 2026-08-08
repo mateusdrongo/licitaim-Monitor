@@ -1,0 +1,235 @@
+// @vitest-environment jsdom
+/**
+ * Smoke-tests for CollectorStatusCard:
+ *  - Renders in all three health states (green / yellow / red) without runtime errors
+ *  - "Executar agora" button is visible only for admin users
+ *  - Per-portal breakdown renders when portals data is present
+ */
+
+import { vi } from "vitest";
+
+// ─── Hoisted spy ─────────────────────────────────────────────────────────────
+const { apiFetchMock } = vi.hoisted(() => ({
+  apiFetchMock: vi.fn(),
+}));
+
+vi.mock("@/lib/apiFetch", () => ({
+  apiFetch: apiFetchMock,
+  dispatchOfflineEvent: vi.fn(),
+  onOfflineEvent: vi.fn(() => () => {}),
+  isNetworkError: vi.fn(() => false),
+}));
+
+// ─── Imports ──────────────────────────────────────────────────────────────────
+import React from "react";
+import { render, screen, waitFor, cleanup } from "@testing-library/react";
+import { afterEach, describe, expect, it } from "vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { CollectorStatusCard } from "@/components/CollectorStatusCard";
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function makeOk(body: unknown): Response {
+  return {
+    ok: true,
+    status: 200,
+    json: async () => body,
+  } as unknown as Response;
+}
+
+function makeError(status = 500): Response {
+  return {
+    ok: false,
+    status,
+    json: async () => ({}),
+  } as unknown as Response;
+}
+
+function renderCard(isAdmin: boolean) {
+  const qc = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={qc}>
+      <CollectorStatusCard isAdmin={isAdmin} />
+    </QueryClientProvider>,
+  );
+}
+
+// ─── Fixtures ────────────────────────────────────────────────────────────────
+
+const BASE_STATUS = {
+  last_run: new Date(Date.now() - 5 * 60 * 1000).toISOString(), // 5 min ago
+  processed: 120,
+  errors: 0,
+  next_run_in: 1800,
+  is_stale: false,
+  is_running: false,
+  portals: [],
+  alert_state: null,
+};
+
+const STATUS_GREEN = { ...BASE_STATUS };
+
+const STATUS_YELLOW = { ...BASE_STATUS, errors: 3 };
+
+const STATUS_RED_STALE = { ...BASE_STATUS, is_stale: true };
+
+const STATUS_RED_NEVER = {
+  ...BASE_STATUS,
+  last_run: null,
+  is_stale: true,
+  is_running: false,
+};
+
+const PORTALS = [
+  { portal: "pncp", last_run: new Date().toISOString(), processed: 80, errors: 0, next_run_in: 900 },
+  { portal: "comprasnet", last_run: new Date().toISOString(), processed: 40, errors: 2, next_run_in: null },
+];
+
+// ─── Tests ───────────────────────────────────────────────────────────────────
+
+describe("CollectorStatusCard – health states", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+    cleanup();
+  });
+
+  it("renders green / Operacional when collector is healthy", async () => {
+    apiFetchMock.mockResolvedValue(makeOk(STATUS_GREEN));
+
+    renderCard(false);
+
+    await waitFor(() =>
+      expect(screen.getByText("Operacional")).toBeInTheDocument(),
+    );
+
+    // Stats are rendered
+    expect(screen.getByText("120")).toBeInTheDocument();
+    // No error label
+    expect(screen.queryByText("Inativo")).not.toBeInTheDocument();
+    expect(screen.queryByText("Com erros")).not.toBeInTheDocument();
+  });
+
+  it("renders yellow / Com erros when collector reports errors", async () => {
+    apiFetchMock.mockResolvedValue(makeOk(STATUS_YELLOW));
+
+    renderCard(false);
+
+    await waitFor(() =>
+      expect(screen.getByText("Com erros")).toBeInTheDocument(),
+    );
+
+    // Error count is highlighted
+    expect(screen.getByText("3")).toBeInTheDocument();
+  });
+
+  it("renders red / Inativo when collector is stale", async () => {
+    apiFetchMock.mockResolvedValue(makeOk(STATUS_RED_STALE));
+
+    renderCard(false);
+
+    await waitFor(() =>
+      expect(screen.getByText("Inativo")).toBeInTheDocument(),
+    );
+  });
+
+  it("renders red / Nunca executou when last_run is null", async () => {
+    apiFetchMock.mockResolvedValue(makeOk(STATUS_RED_NEVER));
+
+    renderCard(false);
+
+    await waitFor(() =>
+      expect(screen.getByText("Nunca executou")).toBeInTheDocument(),
+    );
+  });
+
+  it("renders an error message when the API call fails", async () => {
+    apiFetchMock.mockResolvedValue(makeError(500));
+
+    renderCard(false);
+
+    await waitFor(() =>
+      expect(
+        screen.getByText("Não foi possível obter o status do collector."),
+      ).toBeInTheDocument(),
+    );
+  });
+});
+
+describe("CollectorStatusCard – admin button visibility", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+    cleanup();
+  });
+
+  it("shows the Executar agora button for admin users", async () => {
+    apiFetchMock.mockResolvedValue(makeOk(STATUS_GREEN));
+
+    renderCard(true);
+
+    await waitFor(() =>
+      expect(screen.getByText("Executar agora")).toBeInTheDocument(),
+    );
+  });
+
+  it("hides the Executar agora button for non-admin users", async () => {
+    apiFetchMock.mockResolvedValue(makeOk(STATUS_GREEN));
+
+    renderCard(false);
+
+    await waitFor(() =>
+      expect(screen.getByText("Operacional")).toBeInTheDocument(),
+    );
+
+    expect(screen.queryByText("Executar agora")).not.toBeInTheDocument();
+    expect(screen.queryByText("Iniciando…")).not.toBeInTheDocument();
+  });
+});
+
+describe("CollectorStatusCard – per-portal breakdown", () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+    cleanup();
+  });
+
+  it("renders the portal breakdown section when portals data is present", async () => {
+    apiFetchMock.mockResolvedValue(
+      makeOk({ ...STATUS_GREEN, portals: PORTALS }),
+    );
+
+    renderCard(false);
+
+    await waitFor(() =>
+      expect(screen.getByText("Por portal")).toBeInTheDocument(),
+    );
+
+    expect(screen.getByText("PNCP")).toBeInTheDocument();
+    expect(screen.getByText("ComprasNet")).toBeInTheDocument();
+  });
+
+  it("does not render the portal section when portals array is empty", async () => {
+    apiFetchMock.mockResolvedValue(makeOk(STATUS_GREEN));
+
+    renderCard(false);
+
+    await waitFor(() =>
+      expect(screen.getByText("Operacional")).toBeInTheDocument(),
+    );
+
+    expect(screen.queryByText("Por portal")).not.toBeInTheDocument();
+  });
+
+  it("shows an error count badge for portals that have errors", async () => {
+    apiFetchMock.mockResolvedValue(
+      makeOk({ ...STATUS_GREEN, portals: PORTALS }),
+    );
+
+    renderCard(false);
+
+    // ComprasNet has 2 errors — a "✕ 2" marker should appear
+    await waitFor(() =>
+      expect(screen.getByText(/✕ 2/)).toBeInTheDocument(),
+    );
+  });
+});
