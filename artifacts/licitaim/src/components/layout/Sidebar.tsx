@@ -4,6 +4,7 @@ import { useGetMe, useLogout } from "@workspace/api-client-react";
 import { useTheme } from "@/context/ThemeContext";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/apiFetch";
+import { clearAuthCache } from "@/lib/authCache";
 
 import {
   LayoutDashboard,
@@ -54,6 +55,7 @@ export function Sidebar() {
   const handleLogout = () => {
     logout.mutate(undefined, {
       onSuccess: () => {
+        clearAuthCache();
         window.location.href = "/entrar";
       }
     });
