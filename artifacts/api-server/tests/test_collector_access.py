@@ -180,3 +180,68 @@ class TestCollectorStatusAccessControl:
             f"Esperava 503 quando ADMIN_EMAILS ausente, "
             f"recebeu {response.status_code}: {response.text}"
         )
+
+
+# ── POST /run — access control ────────────────────────────────────────────────
+
+async def _noop_cycle() -> None:
+    """Substituto seguro para _run_collection_cycle nos testes.
+    Apenas reseta o flag _is_running sem tentar importar o collector."""
+    import app.api.collector as _col
+    _col._is_running = False
+
+
+class TestCollectorRunAccessControl:
+    """Testes de controle de acesso para POST /api/collector/run."""
+
+    def test_unauthenticated_returns_401(self):
+        """Requisição sem sessão deve ser rejeitada com 401 Unauthorized."""
+        mini_app = _make_test_app()
+        mini_app.dependency_overrides[get_current_user] = _raise_401
+
+        with patch("app.api.collector._run_collection_cycle", new=_noop_cycle):
+            with TestClient(mini_app, raise_server_exceptions=False) as client:
+                response = client.post("/api/collector/run")
+
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED, (
+            f"Esperava 401, recebeu {response.status_code}: {response.text}"
+        )
+
+    def test_non_admin_returns_403(self):
+        """Usuário autenticado mas não-admin deve receber 403 Forbidden."""
+        mini_app = _make_test_app()
+        mini_app.dependency_overrides[get_current_user] = _regular_user
+
+        with patch.dict(os.environ, {"ADMIN_EMAILS": "admin@example.com"}):
+            with patch("app.api.collector._run_collection_cycle", new=_noop_cycle):
+                with TestClient(mini_app, raise_server_exceptions=False) as client:
+                    response = client.post("/api/collector/run")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN, (
+            f"Esperava 403, recebeu {response.status_code}: {response.text}"
+        )
+        detail = response.json().get("detail", "")
+        assert "administradores" in detail.lower(), (
+            f"Mensagem de erro inesperada: {detail!r}"
+        )
+
+    def test_admin_returns_202_accepted(self):
+        """Usuário admin deve receber 202 Accepted com payload de status."""
+        mini_app = _make_test_app()
+        mini_app.dependency_overrides[get_current_user] = _admin_user
+
+        with patch.dict(os.environ, {"ADMIN_EMAILS": "admin@example.com"}):
+            with patch("app.api.collector._run_collection_cycle", new=_noop_cycle):
+                with TestClient(mini_app, raise_server_exceptions=False) as client:
+                    response = client.post("/api/collector/run")
+
+        assert response.status_code == status.HTTP_202_ACCEPTED, (
+            f"Esperava 202, recebeu {response.status_code}: {response.text}"
+        )
+        payload = response.json()
+        assert payload.get("status") == "accepted", (
+            f"Campo 'status' inesperado: {payload!r}"
+        )
+        assert "message" in payload, (
+            f"Campo 'message' ausente na resposta: {list(payload.keys())}"
+        )
