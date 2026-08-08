@@ -142,7 +142,42 @@ def _anot_row(r: dict) -> dict:
 
 # ── Schemas ────────────────────────────────────────────────────────────────
 
-class GerenciamentoCreate(BaseModel):
+class StrictDateMixin(BaseModel):
+    """
+    Mixin that applies strict ISO-8601 date validation to any date field
+    named with the 'Data' convention (e.g. licitacaoDataAbertura, dataEntrega).
+
+    Subclasses that add new Optional[date] fields whose camelCase name
+    contains 'Data' automatically receive this validation without any
+    additional code.  If a future field uses a different naming pattern,
+    add it explicitly to the validator below.
+    """
+
+    @field_validator("*", mode="before")
+    @classmethod
+    def validate_date_fields(cls, v: object, info) -> object:
+        # Only intercept fields whose annotation resolves to Optional[date] / date.
+        field_name = info.field_name
+        field_info = cls.model_fields.get(field_name)
+        if field_info is None:
+            return v
+        # Check annotation for `date` type (handles Optional[date] too).
+        annotation = field_info.annotation
+        origin = getattr(annotation, "__args__", None)
+        # annotation is `date` directly, or Optional[date] (Union[date, None])
+        involves_date = annotation is date or (
+            origin is not None and date in origin
+        )
+        if not involves_date:
+            return v
+        if isinstance(v, date):
+            return v
+        if isinstance(v, str) or v is None:
+            return _parse_date_strict(v)  # type: ignore[arg-type]
+        raise ValueError(f"Tipo inválido para campo de data: {type(v).__name__}")
+
+
+class GerenciamentoCreate(StrictDateMixin):
     licitacaoId: str
     licitacaoNumero: Optional[str] = None
     licitacaoObjeto: Optional[str] = None
@@ -159,17 +194,8 @@ class GerenciamentoCreate(BaseModel):
     licitacaoLinkPncp: Optional[str] = None
     responsavel: Optional[str] = None
 
-    @field_validator("licitacaoDataAbertura", "licitacaoDataEncerramento", "licitacaoDataPublicacao", mode="before")
-    @classmethod
-    def validate_date_fields(cls, v: object) -> Optional[date]:
-        if isinstance(v, date):
-            return v
-        if isinstance(v, str) or v is None:
-            return _parse_date_strict(v)  # type: ignore[arg-type]
-        raise ValueError(f"Tipo inválido para campo de data: {type(v).__name__}")
 
-
-class GerenciamentoUpdate(BaseModel):
+class GerenciamentoUpdate(StrictDateMixin):
     status: Optional[str] = None
     notasGerais: Optional[str] = None
     responsavel: Optional[str] = None
