@@ -276,6 +276,19 @@ export default function Dashboard() {
   const today = new Date().toISOString().slice(0, 10);
   const [selectedDate, setSelectedDate] = useState(today);
 
+  // Admin check — reuses the stats endpoint already available; gracefully fails for non-admins
+  const { data: adminStats } = useQuery({
+    queryKey: ["admin-stats"],
+    queryFn: async () => {
+      const res = await apiFetch(`${BASE}/api/licitacoes/admin/stats`, { credentials: "include" });
+      if (!res.ok) return { is_admin: false };
+      return res.json() as Promise<{ is_admin: boolean }>;
+    },
+    retry: false,
+    staleTime: 5 * 60 * 1000,
+  });
+  const isAdmin = adminStats?.is_admin ?? false;
+
   const { data: agendaData } = useQuery({
     queryKey: ["agenda"],
     queryFn: async () => {
@@ -368,6 +381,18 @@ export default function Dashboard() {
           bg="bg-blue-500/10"
         />
       </div>
+
+      {/* ── Collector (admin only) ─────────────────────────────────────────── */}
+      {isAdmin && (
+        <section>
+          <h2 className="text-base font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+            Infraestrutura
+          </h2>
+          <div className="max-w-sm">
+            <CollectorStatusCard isAdmin={isAdmin} />
+          </div>
+        </section>
+      )}
 
       {/* ── Novidades / Oportunidades ──────────────────────────────────────── */}
       <section>
@@ -637,6 +662,7 @@ interface CollectorStatus {
   errors: number;
   next_run_in: number | null;
   is_stale: boolean;
+  is_running: boolean;
   portals: CollectorPortal[];
 }
 
@@ -663,7 +689,7 @@ function formatNextRun(seconds: number | null): string {
   return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
 }
 
-function CollectorStatusCard() {
+function CollectorStatusCard({ isAdmin }: { isAdmin: boolean }) {
   const { data, isLoading, isError, refetch, isFetching } = useQuery<CollectorStatus>({
     queryKey: ["collector-status"],
     queryFn: async () => {
@@ -671,8 +697,40 @@ function CollectorStatusCard() {
       if (!res.ok) throw new Error("Falha ao buscar status do collector");
       return res.json();
     },
-    refetchInterval: 60_000,
+    refetchInterval: 30_000,
   });
+
+  const [isTriggering, setIsTriggering] = useState(false);
+  const [runMsg, setRunMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  const handleRunNow = async () => {
+    setIsTriggering(true);
+    setRunMsg(null);
+    try {
+      const res = await apiFetch(`${BASE}/api/collector/run`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (res.status === 409) {
+        setRunMsg({ type: "err", text: "Já há um ciclo em andamento." });
+      } else if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setRunMsg({ type: "err", text: body?.detail ?? "Erro ao iniciar coleta." });
+      } else {
+        setRunMsg({ type: "ok", text: "Ciclo iniciado. Aguarde…" });
+        // Poll more frequently while running
+        setTimeout(() => refetch(), 3_000);
+        setTimeout(() => refetch(), 10_000);
+        setTimeout(() => refetch(), 30_000);
+      }
+    } catch {
+      setRunMsg({ type: "err", text: "Falha de conexão." });
+    } finally {
+      setIsTriggering(false);
+    }
+  };
+
+  const isRunning = data?.is_running ?? false;
 
   // Determine health colour
   const health: "green" | "yellow" | "red" =
@@ -788,6 +846,25 @@ function CollectorStatusCard() {
               )}
             </span>
           </div>
+
+          {/* Admin: Run now button */}
+          {isAdmin && (
+            <div className="border-t border-border/50 pt-3 space-y-2">
+              <button
+                onClick={handleRunNow}
+                disabled={isRunning || isTriggering}
+                className="w-full flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isRunning || isTriggering ? "animate-spin" : ""}`} />
+                {isRunning ? "Coletando…" : isTriggering ? "Iniciando…" : "Executar agora"}
+              </button>
+              {runMsg && (
+                <p className={`text-[11px] text-center ${runMsg.type === "ok" ? "text-emerald-600" : "text-red-500"}`}>
+                  {runMsg.text}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Per-portal breakdown */}
           {data.portals.length > 0 && (

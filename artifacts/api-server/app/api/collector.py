@@ -1,14 +1,18 @@
 """
-collector.py — Endpoint de status do collector standalone.
-GET /api/collector/status  →  { last_run, processed, errors, next_run_in, is_stale, portals }
+collector.py — Endpoints do collector standalone.
+GET  /api/collector/status  →  { last_run, processed, errors, next_run_in, is_stale, portals, is_running }
+POST /api/collector/run     →  inicia ciclo manual (admin only)
 """
 from __future__ import annotations
 
+import asyncio
 import logging
+import os
 from datetime import datetime, timezone
 
-from fastapi import APIRouter
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 
+from ..core.admin import get_admin_user
 from ..db.session import get_pool
 
 logger = logging.getLogger(__name__)
@@ -18,6 +22,11 @@ router = APIRouter(prefix="/collector", tags=["collector"])
 # Intervalo padrão assumido pelo endpoint quando não há linha no banco.
 # Mantido em sincronia com COLLECTOR_INTERVAL_HOURS do standalone.
 _DEFAULT_INTERVAL_HOURS = 4
+
+# ── Estado de execução em memória ─────────────────────────────────────────────
+# Simples flag para evitar ciclos sobrepostos disparados pelo botão "Executar agora".
+_run_lock = asyncio.Lock()
+_is_running: bool = False
 
 
 @router.get("/status")
@@ -155,4 +164,142 @@ async def collector_status():
         "next_run_in": global_row["next_run_in"],
         "is_stale":    is_stale,
         "portals":     portals,
+        "is_running":  _is_running,
+    }
+
+
+# ── Collector package path ────────────────────────────────────────────────────
+# The API server runs from artifacts/api-server/; the collector package lives
+# four directories up at the workspace root. We resolve this once at module
+# load time so the import works regardless of CWD.
+_WORKSPACE_ROOT = os.path.abspath(
+    os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")
+)
+
+
+def _ensure_collector_on_path() -> None:
+    """Insert the workspace root into sys.path if it is not already present."""
+    import sys
+    if _WORKSPACE_ROOT not in sys.path:
+        sys.path.insert(0, _WORKSPACE_ROOT)
+
+
+# Validate that the collector package is reachable at startup (warn, don't crash).
+try:
+    _ensure_collector_on_path()
+    import importlib
+    importlib.util.find_spec("collector.app.standalone")  # type: ignore[attr-defined]
+    logger.info("collector package found at %s", _WORKSPACE_ROOT)
+except Exception as _exc:
+    logger.warning("collector package not importable: %s", _exc)
+
+
+# ── Trigger manual run ────────────────────────────────────────────────────────
+
+async def _run_collection_cycle() -> None:
+    """
+    Executa um ciclo completo de coleta (PNCP + ComprasNet + BEC-SP) de forma
+    assíncrona. Chamado como BackgroundTask pelo endpoint /run.
+
+    O flag _is_running já está definido como True pelo endpoint antes de
+    esta função ser enfileirada, garantindo que checagens concorrentes retornem
+    409 imediatamente. Esta função só é responsável por resetá-lo no finally.
+    """
+    global _is_running
+
+    db_url = os.environ.get("DATABASE_URL", "")
+    if not db_url:
+        logger.error("collector/run: DATABASE_URL não configurada.")
+        _is_running = False
+        return
+
+    logger.info("collector/run: ciclo manual iniciado.")
+    try:
+        _ensure_collector_on_path()
+
+        from collector.app.standalone import (  # type: ignore[import]
+            run_pncp_scrape,
+            run_comprasnet_scrape,
+            run_bec_sp_scrape,
+            _write_collector_status,
+            SKIP_COMPRASNET,
+            SKIP_BEC_SP,
+            SCRAPE_DAYS,
+        )
+
+        cycle_totals = {"processed": 0, "errors": 0}
+
+        try:
+            result = await run_pncp_scrape(db_url, days=SCRAPE_DAYS)
+            cycle_totals["processed"] += result["processed"]
+            cycle_totals["errors"]    += result["errors"]
+            await _write_collector_status(db_url, "pncp", result["processed"], result["errors"])
+        except Exception as exc:
+            logger.error("collector/run PNCP: %s", exc, exc_info=True)
+            cycle_totals["errors"] += 1
+
+        if not SKIP_COMPRASNET:
+            try:
+                result = await run_comprasnet_scrape(db_url, days=SCRAPE_DAYS)
+                cycle_totals["processed"] += result["processed"]
+                cycle_totals["errors"]    += result["errors"]
+                await _write_collector_status(db_url, "comprasnet", result["processed"], result["errors"])
+            except Exception as exc:
+                logger.error("collector/run ComprasNet: %s", exc, exc_info=True)
+                cycle_totals["errors"] += 1
+
+        if not SKIP_BEC_SP:
+            try:
+                result = await run_bec_sp_scrape(db_url, days=SCRAPE_DAYS)
+                cycle_totals["processed"] += result["processed"]
+                cycle_totals["errors"]    += result["errors"]
+                await _write_collector_status(db_url, "bec_sp", result["processed"], result["errors"])
+            except Exception as exc:
+                logger.error("collector/run BEC-SP: %s", exc, exc_info=True)
+                cycle_totals["errors"] += 1
+
+        await _write_collector_status(
+            db_url, "global",
+            cycle_totals["processed"], cycle_totals["errors"],
+        )
+        logger.info(
+            "collector/run: ciclo manual concluído — %d processados, %d erros.",
+            cycle_totals["processed"], cycle_totals["errors"],
+        )
+    except Exception as exc:
+        logger.error("collector/run: erro inesperado: %s", exc, exc_info=True)
+    finally:
+        _is_running = False
+
+
+@router.post("/run", status_code=202)
+async def collector_run(
+    background_tasks: BackgroundTasks,
+    _admin: dict = Depends(get_admin_user),
+):
+    """
+    Inicia um ciclo de coleta manual em background (admin only).
+
+    Retorna 202 Accepted imediatamente; o ciclo roda de forma assíncrona.
+    Retorna 409 Conflict se já houver um ciclo em andamento.
+
+    A reserva de _is_running ocorre atomicamente sob _run_lock antes de
+    enfileirar o BackgroundTask, evitando que dois POSTs concorrentes ambos
+    retornem 202.
+    """
+    global _is_running
+
+    # Atomic check-and-reserve under lock to prevent concurrent triggers
+    async with _run_lock:
+        if _is_running:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Já existe um ciclo de coleta em andamento.",
+            )
+        _is_running = True  # Reserve before yielding control
+
+    background_tasks.add_task(_run_collection_cycle)
+    return {
+        "status": "accepted",
+        "message": "Ciclo de coleta iniciado. Acompanhe o status pelo card do Collector.",
     }
