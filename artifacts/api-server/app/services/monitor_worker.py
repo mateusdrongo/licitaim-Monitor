@@ -279,8 +279,9 @@ async def _check_single_monitor(mon, pool, now: datetime) -> int:
         tid = str(tender["id"])
         if tid in already_ids:
             continue
-        await send_monitor_match(user, monitor_dict, tender)
-        sent += 1
+        persisted = await send_monitor_match(user, monitor_dict, tender)
+        if persisted:
+            sent += 1
 
     return sent
 
@@ -386,8 +387,11 @@ async def check_upcoming_tenders() -> dict:
             f"Abertura: {abertura}"
         )
 
-        # Persiste alerta em `alertas` — necessário tanto para exibição na UI
-        # quanto para a deduplicação em execuções futuras do job no mesmo dia.
+        # Persiste alerta em `alertas` — necessário para exibição na UI e deduplicação.
+        # Se o INSERT falhar (ex.: coluna ausente / schema drift), a notificação ainda é
+        # entregue via canais, mas NÃO é contada em notifications_sent (evita contagem
+        # positiva enganosa — o registro não existe para deduplicação futura).
+        insert_ok = True
         try:
             await pool.execute(
                 """INSERT INTO alertas
@@ -396,6 +400,7 @@ async def check_upcoming_tenders() -> dict:
                 user_id_str, title, body, numero,
             )
         except Exception as exc:
+            insert_ok = False
             logger.warning(
                 "check_upcoming_tenders: erro ao persistir alerta user=%s licitacao=%s: %s",
                 user_id_str, numero, exc,
@@ -422,7 +427,8 @@ async def check_upcoming_tenders() -> dict:
             cta_url="https://licitaim.com.br/licitacoes",
             cta_label="Ver licitação",
         )
-        sent += 1
+        if insert_ok:
+            sent += 1
 
     logger.info(
         "check_upcoming_tenders: %d notificações enviadas | %d ignoradas (dedup).",
@@ -527,8 +533,9 @@ async def check_document_expirations() -> dict:
                 "data_vencimento": dv.isoformat(),
             }
 
-            await send_document_expiration(user, certidao, dias, ref_key=ref_key)
-            sent += 1
+            persisted = await send_document_expiration(user, certidao, dias, ref_key=ref_key)
+            if persisted:
+                sent += 1
         except Exception as exc:
             logger.warning(
                 "check_document_expirations: erro ao processar cert %d: %s",

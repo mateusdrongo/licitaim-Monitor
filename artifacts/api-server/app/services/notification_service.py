@@ -97,10 +97,13 @@ async def send_monitor_match(
     monitor: dict,
     tender: dict,
     background_tasks=None,
-) -> None:
+) -> bool:
     """
     Notifica usuário sobre novo tender que fez match com um monitor.
     Também cria registro em `alertas`.
+
+    Returns True se o alerta foi persistido com sucesso em `alertas`, False caso contrário.
+    A notificação via canais (email, push, etc.) é sempre tentada, independente da persistência.
     """
     from ..db.session import get_pool
 
@@ -128,6 +131,7 @@ async def send_monitor_match(
     monitor_id = monitor.get("id")
 
     # Persiste alerta no banco (com monitoramento_id para FK correta)
+    persisted = False
     try:
         pool = await get_pool()
         async with pool.acquire() as conn:
@@ -149,6 +153,7 @@ async def send_monitor_match(
                         "UPDATE monitoramentos SET total_alertas = COALESCE(total_alertas,0)+1 WHERE id=$1",
                         monitor_id,
                     )
+        persisted = True
     except Exception as exc:
         logger.warning("send_monitor_match: alerta DB error: %s", exc)
 
@@ -172,6 +177,8 @@ async def send_monitor_match(
             cta_url="https://licitaim.com.br/licitacoes",
             cta_label="Ver licitação",
         )
+
+    return persisted
 
 
 async def send_tender_update(
@@ -237,12 +244,15 @@ async def send_document_expiration(
     dias_restantes: int,
     background_tasks=None,
     ref_key: str | None = None,
-) -> None:
+) -> bool:
     """Alerta de vencimento de certidão.
 
     ref_key — chave de deduplicação opcional (armazenada em alertas.licitacao_id).
     Quando fornecida, permite que chamadores detectem registros já existentes antes
     de invocar esta função para evitar envios duplicados em reruns.
+
+    Returns True se o alerta foi persistido com sucesso em `alertas`, False caso contrário.
+    A notificação via canais (email, push, etc.) é sempre tentada, independente da persistência.
     """
     from ..db.session import get_pool
 
@@ -263,6 +273,7 @@ async def send_document_expiration(
         tipo  = "warning"
 
     # Persiste alerta (licitacao_id guarda ref_key para deduplicação futura)
+    persisted = False
     try:
         pool = await get_pool()
         await pool.execute(
@@ -270,6 +281,7 @@ async def send_document_expiration(
                VALUES ($1,'prazo_vencendo',$2,$3,$4,false)""",
             user_id, title, body, ref_key,
         )
+        persisted = True
     except Exception as exc:
         logger.warning("send_document_expiration: DB error: %s", exc)
 
@@ -283,6 +295,8 @@ async def send_document_expiration(
     else:
         await send(user, title, body, channels=None, tipo=tipo,
                    metadata={"certidao_id": certidao.get("id")})
+
+    return persisted
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

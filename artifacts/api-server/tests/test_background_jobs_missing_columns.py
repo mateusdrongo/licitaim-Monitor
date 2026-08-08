@@ -1,16 +1,24 @@
 """
 test_background_jobs_missing_columns.py
 
-Testa que os três background jobs de alerta (check_all_monitors,
-check_upcoming_tenders, check_document_expirations) e o job de prazos de
-tarefas (check_task_deadlines) continuam funcionando mesmo quando as colunas
-de notificação (notif_email, notif_push, etc.) estão ausentes no schema do DB.
+Testa dois cenários de degradação de schema para os três background jobs de alerta
+(check_all_monitors, check_upcoming_tenders, check_document_expirations) e o job
+de prazos de tarefas (check_task_deadlines):
+
+1. Colunas de notificação ausentes na tabela `users`
+   - O job cai no caminho de fallback (_fetch_with_notif_fallback) e usa
+     preferências padrão em vez de abortar.
+
+2. Falha no INSERT da tabela `alertas` (schema drift — coluna ausente)
+   - O job NÃO conta o registro como enviado (alerts_sent permanece correto).
+   - Um warning é registrado.
+   - O job continua processando os demais registros.
 
 Cada teste:
-  1. Simula um pool que lança exceção ao tentar a query com colunas de notif.
+  1. Simula um pool que lança exceção no ponto relevante.
   2. Verifica que o job retorna um dicionário de resumo válido (sem exceção).
-  3. Verifica que alertas ainda são criados/enviados usando as preferências padrão.
-  4. Verifica que um warning foi registrado indicando as colunas indisponíveis.
+  3. Verifica contagens corretas (sem valores positivos enganosos).
+  4. Verifica que um warning foi registrado.
 """
 from __future__ import annotations
 
@@ -175,6 +183,7 @@ class TestCheckAllMonitors:
 
         async def _fake_send(user, monitor, tender):
             captured_users.append(dict(user))
+            return True  # simula INSERT persistido com sucesso
 
         with (
             patch(f"{DB_SESSION_MODULE}.get_pool", AsyncMock(return_value=pool)),
@@ -466,6 +475,7 @@ class TestCheckDocumentExpirations:
 
         async def _fake_send_doc_exp(user, certidao, dias, *, ref_key):
             captured_users.append(dict(user))
+            return True  # simula INSERT persistido com sucesso
 
         with (
             patch(f"{DB_SESSION_MODULE}.get_pool", AsyncMock(return_value=pool)),
@@ -650,3 +660,404 @@ class TestCheckTaskDeadlines:
         assert result["tasks_checked"]  == 1
         assert result["alerts_created"] == 0
         assert result["alerts_skipped"] == 1
+
+
+# ===========================================================================
+# INSERT failures on the `alertas` table (schema drift)
+# ===========================================================================
+
+def _make_user_row(**extra) -> dict:
+    """Linha de usuário completa com colunas notif (sem fallback necessário)."""
+    defaults = dict(
+        notif_email=True, notif_push=True,
+        notif_whatsapp=False, notif_telegram=False,
+        telegram_chat_id=None, phone=None,
+    )
+    return _make_row(**{**defaults, **extra})
+
+
+def _make_failing_notif_pool(exc_msg: str = "column monitoramento_id does not exist") -> MagicMock:
+    """
+    Pool que simula falha no INSERT da tabela `alertas` dentro das funções do
+    notification_service.  pool.acquire() retorna um context-manager com uma
+    conexão cujo execute() sempre levanta exceção.
+    """
+    conn = MagicMock()
+    conn.execute = AsyncMock(side_effect=Exception(exc_msg))
+
+    tx_cm = MagicMock()
+    tx_cm.__aenter__ = AsyncMock(return_value=conn)
+    tx_cm.__aexit__ = AsyncMock(return_value=False)
+    conn.transaction = MagicMock(return_value=tx_cm)
+
+    acq_cm = MagicMock()
+    acq_cm.__aenter__ = AsyncMock(return_value=conn)
+    acq_cm.__aexit__ = AsyncMock(return_value=False)
+
+    pool = MagicMock()
+    pool.acquire = MagicMock(return_value=acq_cm)
+    pool.execute = AsyncMock(side_effect=Exception(exc_msg))
+    return pool
+
+
+def _make_ok_notif_pool() -> MagicMock:
+    """
+    Pool que simula sucesso no INSERT da tabela `alertas` dentro das funções do
+    notification_service.
+    """
+    conn = MagicMock()
+    conn.execute = AsyncMock(return_value="OK")
+
+    tx_cm = MagicMock()
+    tx_cm.__aenter__ = AsyncMock(return_value=conn)
+    tx_cm.__aexit__ = AsyncMock(return_value=False)
+    conn.transaction = MagicMock(return_value=tx_cm)
+
+    acq_cm = MagicMock()
+    acq_cm.__aenter__ = AsyncMock(return_value=conn)
+    acq_cm.__aexit__ = AsyncMock(return_value=False)
+
+    pool = MagicMock()
+    pool.acquire = MagicMock(return_value=acq_cm)
+    pool.execute = AsyncMock(return_value="OK")
+    return pool
+
+
+class TestAlertasInsertFailures:
+    """
+    Confirma que falhas no INSERT da tabela `alertas` (ex.: coluna ausente por
+    schema drift) NÃO produzem contagens positivas enganosas e que o job
+    continua processando os registros seguintes.
+
+    Estes testes exercem as funções REAIS de notification_service
+    (send_monitor_match, send_document_expiration) — sem mocká-las
+    completamente — e injetam um pool que falha na execução do INSERT para
+    simular a falha de schema drift no caminho de persistência.
+
+    Cada sub-grupo cobre um dos três jobs do monitor_worker.
+    """
+
+    # ── check_all_monitors ─────────────────────────────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_all_monitors_does_not_count_when_alertas_insert_fails(self, caplog):
+        """
+        Quando o INSERT em alertas falha dentro de send_monitor_match (ex.:
+        coluna monitoramento_id ausente), send_monitor_match retorna False e o
+        job não contabiliza o match.
+        Um warning é registrado dentro de send_monitor_match.
+        """
+        now = datetime.now(timezone.utc)
+
+        monitor_row = _make_user_row(
+            id=101, user_id=1001, nome="Monitor INSERT-fail",
+            palavras_chave='["limpeza"]', modalidades="[]", ufs='["SP"]',
+            valor_min=None, valor_max=None,
+            last_checked_at=now - timedelta(hours=1),
+            email="fail@example.com", user_nome="Fail User",
+        )
+        tender_row = _make_row(
+            numero="2024/M1", objeto="Serviços de limpeza",
+            orgao_nome="Prefeitura SP", uf="SP", modalidade="pregao",
+            valor_estimado=100000.0,
+            data_abertura=now + timedelta(days=5),
+            data_publicacao=now - timedelta(hours=30),
+        )
+
+        # main_pool: atende às queries do monitor_worker (monitors, search_cache, dedup alertas)
+        main_pool = _make_pool(
+            fetch_side_effects=[
+                [monitor_row],  # monitors query (_fetch_with_notif_fallback)
+                [tender_row],   # _search_cache
+                [],             # alertas dedup fetch
+            ]
+        )
+        # notif_pool: usado por send_monitor_match; conn.execute lança → INSERT falha
+        notif_pool = _make_failing_notif_pool("column monitoramento_id does not exist")
+
+        # get_pool() é chamado 1× pelo monitor_worker, 1× pelo send_monitor_match
+        get_pool_seq = [main_pool, notif_pool]
+
+        with (
+            patch(f"{DB_SESSION_MODULE}.get_pool", AsyncMock(side_effect=get_pool_seq)),
+            patch(f"{NOTIF_SERVICE_MODULE}.send", AsyncMock()),
+            caplog.at_level(logging.WARNING, logger="licitaim.notifications"),
+        ):
+            from app.services.monitor_worker import check_all_monitors
+            result = await check_all_monitors()
+
+        assert result["monitors_checked"] == 1
+        assert result["matches_found"] == 0, (
+            f"matches_found deve ser 0 quando alertas INSERT falha; "
+            f"got {result['matches_found']}"
+        )
+        warning_text = " ".join(caplog.messages)
+        assert any(
+            kw in warning_text.lower()
+            for kw in ("monitoramento_id", "alerta db", "db error", "error")
+        ), f"Warning de send_monitor_match esperado. Mensagens: {caplog.messages}"
+
+    @pytest.mark.asyncio
+    async def test_all_monitors_continues_to_next_monitor_after_insert_failure(self, caplog):
+        """
+        Quando o INSERT falha para o monitor 1, send_monitor_match retorna False
+        e o job continua para o monitor 2, que tem INSERT bem-sucedido e conta 1 match.
+        """
+        now = datetime.now(timezone.utc)
+
+        def _mon(id_, user_id, email):
+            return _make_user_row(
+                id=id_, user_id=user_id, nome=f"Monitor {id_}",
+                palavras_chave='["obra"]', modalidades="[]", ufs='["MG"]',
+                valor_min=None, valor_max=None,
+                last_checked_at=now - timedelta(hours=1),
+                email=email, user_nome=f"User {id_}",
+            )
+
+        tender_row = _make_row(
+            numero="2024/M2", objeto="Obra de reforma",
+            orgao_nome="Estado MG", uf="MG", modalidade="concorrencia",
+            valor_estimado=500000.0,
+            data_abertura=now + timedelta(days=10),
+            data_publicacao=now - timedelta(hours=20),
+        )
+
+        main_pool = _make_pool(
+            fetch_side_effects=[
+                [_mon(1, 10, "a@mg.com"), _mon(2, 20, "b@mg.com")],  # monitors
+                [tender_row],  # _search_cache monitor 1
+                [],            # alertas dedup monitor 1
+                [tender_row],  # _search_cache monitor 2
+                [],            # alertas dedup monitor 2
+            ]
+        )
+        failing_pool = _make_failing_notif_pool("column monitoramento_id does not exist")
+        ok_pool      = _make_ok_notif_pool()
+
+        # get_pool calls: 1 (monitor_worker) + 1 (send_monitor_match m1) + 1 (send_monitor_match m2)
+        get_pool_seq = [main_pool, failing_pool, ok_pool]
+
+        with (
+            patch(f"{DB_SESSION_MODULE}.get_pool", AsyncMock(side_effect=get_pool_seq)),
+            patch(f"{NOTIF_SERVICE_MODULE}.send", AsyncMock()),
+        ):
+            from app.services.monitor_worker import check_all_monitors
+            result = await check_all_monitors()
+
+        assert result["monitors_checked"] == 2
+        # monitor 1: INSERT falhou → persisted=False → não conta
+        # monitor 2: INSERT ok → persisted=True → conta 1
+        assert result["matches_found"] == 1, (
+            f"Expected 1 match (monitor 2 ok); got {result['matches_found']}"
+        )
+
+    # ── check_upcoming_tenders ────────────────────────────────────────────
+    # O INSERT em alertas é executado diretamente via pool.execute neste job,
+    # por isso o pool principal é suficiente para simular a falha.
+    # Com insert_ok=False, a notificação ainda é entregue via send() mas NÃO
+    # é contada em notifications_sent.
+
+    @pytest.mark.asyncio
+    async def test_upcoming_tenders_count_zero_when_alertas_insert_fails(self, caplog):
+        """
+        Quando o INSERT em alertas falha, notifications_sent deve ser 0 (a
+        notificação ainda é enviada via canais, mas não é contada pois não
+        está persistida para deduplicação futura).
+        """
+        now = datetime.now(timezone.utc)
+        today = now.date()
+        tomorrow = today + timedelta(days=1)
+
+        upcoming_row = _make_row(
+            numero="2024/UP10", objeto="Compra de equipamentos",
+            orgao_nome="Estado CE", uf="CE",
+            data_abertura=datetime.combine(tomorrow, datetime.min.time()),
+        )
+        fav_row = _make_user_row(
+            user_id=301, licitacao_id="2024/UP10",
+            email="ce@example.com", nome="CE Teste",
+        )
+
+        pool = _make_pool(
+            fetch_side_effects=[
+                [upcoming_row],  # licitações upcoming
+                [fav_row],       # favoritos (full query — notif cols ok)
+                [],              # already_sent dedup
+            ]
+        )
+        # INSERT em alertas falha
+        pool.execute = AsyncMock(side_effect=Exception("column lido does not exist"))
+
+        with (
+            patch(f"{DB_SESSION_MODULE}.get_pool", AsyncMock(return_value=pool)),
+            patch(f"{NOTIF_SERVICE_MODULE}.send", AsyncMock()),
+            patch(f"{NOTIF_SERVICE_MODULE}.send_document_expiration", AsyncMock()),
+            caplog.at_level(logging.WARNING, logger="licitaim.monitor_worker"),
+        ):
+            from app.services.monitor_worker import check_upcoming_tenders
+            result = await check_upcoming_tenders()
+
+        assert result["notifications_sent"] == 0, (
+            f"Expected notifications_sent=0 when alertas INSERT fails; "
+            f"got {result['notifications_sent']}"
+        )
+        assert any(
+            kw in m.lower()
+            for m in caplog.messages
+            for kw in ("persistir", "erro", "error", "lido")
+        ), f"Warning sobre falha no INSERT esperado. Mensagens: {caplog.messages}"
+
+    @pytest.mark.asyncio
+    async def test_upcoming_tenders_still_delivers_and_counts_when_second_insert_succeeds(self, caplog):
+        """
+        Quando o INSERT falha para fav1 e tem êxito para fav2:
+        - send() é chamado para AMBOS (notificação entregue independente da persistência)
+        - notifications_sent = 1 (apenas fav2 foi persistido com sucesso)
+        O job continua processando após a falha do primeiro.
+        """
+        now = datetime.now(timezone.utc)
+        today = now.date()
+        tomorrow = today + timedelta(days=1)
+
+        upcoming1 = _make_row(
+            numero="2024/UP11", objeto="Obra de ponte",
+            orgao_nome="Estado RS", uf="RS",
+            data_abertura=datetime.combine(tomorrow, datetime.min.time()),
+        )
+        upcoming2 = _make_row(
+            numero="2024/UP12", objeto="Compra de mobiliário",
+            orgao_nome="Estado RS", uf="RS",
+            data_abertura=datetime.combine(tomorrow, datetime.min.time()),
+        )
+        fav1 = _make_user_row(
+            user_id=302, licitacao_id="2024/UP11",
+            email="rs1@example.com", nome="RS Teste 1",
+        )
+        fav2 = _make_user_row(
+            user_id=303, licitacao_id="2024/UP12",
+            email="rs2@example.com", nome="RS Teste 2",
+        )
+
+        pool = _make_pool(
+            fetch_side_effects=[
+                [upcoming1, upcoming2],  # licitações upcoming
+                [fav1, fav2],            # favoritos
+                [],                      # already_sent dedup
+            ]
+        )
+        # INSERT fav1 → falha; INSERT fav2 → ok
+        pool.execute = AsyncMock(
+            side_effect=[Exception("column monitoramento_id does not exist"), "OK"]
+        )
+
+        send_calls: list = []
+
+        async def _fake_send(user, *, title, body, tipo, metadata, cta_url, cta_label):
+            send_calls.append(user["id"])
+
+        with (
+            patch(f"{DB_SESSION_MODULE}.get_pool", AsyncMock(return_value=pool)),
+            patch(f"{NOTIF_SERVICE_MODULE}.send", side_effect=_fake_send),
+            patch(f"{NOTIF_SERVICE_MODULE}.send_document_expiration", AsyncMock()),
+            caplog.at_level(logging.WARNING, logger="licitaim.monitor_worker"),
+        ):
+            from app.services.monitor_worker import check_upcoming_tenders
+            result = await check_upcoming_tenders()
+
+        # Apenas fav2 persistido → notifications_sent = 1
+        assert result["notifications_sent"] == 1, (
+            f"Expected 1 (fav2 ok); got {result['notifications_sent']}"
+        )
+        # send() é chamado para AMBOS os favoritos (entrega sempre ocorre)
+        assert len(send_calls) == 2, (
+            f"send() deve ser chamado para ambos os favs; got {len(send_calls)} calls"
+        )
+        user_ids_notified = {str(uid) for uid in send_calls}
+        assert str(fav1["user_id"]) in user_ids_notified, "fav1 deve ter recebido notificação via canais"
+        assert str(fav2["user_id"]) in user_ids_notified, "fav2 deve ter recebido notificação via canais"
+
+    # ── check_document_expirations ────────────────────────────────────────
+
+    @pytest.mark.asyncio
+    async def test_document_expirations_count_zero_when_alertas_insert_fails(self, caplog):
+        """
+        Quando o INSERT em alertas falha dentro de send_document_expiration
+        (ex.: coluna link ausente), a função retorna False e alerts_sent fica 0.
+        Um warning é registrado dentro de send_document_expiration.
+        """
+        today = date.today()
+
+        cert_row = _make_user_row(
+            id=201, nome="Certidão Trabalhista", tipo="trabalhista",
+            data_vencimento=today + timedelta(days=7),
+            user_id=601, email="trab@example.com", user_nome="Trab Teste",
+        )
+
+        # main_pool: atende às queries do monitor_worker (certs fetch, dedup fetchval)
+        main_pool = _make_pool(fetch_side_effects=[[cert_row]])
+        main_pool.fetchval = AsyncMock(return_value=None)  # sem dedup
+        # notif_pool: usado por send_document_expiration; pool.execute lança → INSERT falha
+        notif_pool = _make_failing_notif_pool("column link does not exist")
+
+        # get_pool calls: 1 (monitor_worker) + 1 (send_document_expiration)
+        get_pool_seq = [main_pool, notif_pool]
+
+        with (
+            patch(f"{DB_SESSION_MODULE}.get_pool", AsyncMock(side_effect=get_pool_seq)),
+            patch(f"{NOTIF_SERVICE_MODULE}.send", AsyncMock()),
+            caplog.at_level(logging.WARNING, logger="licitaim.notifications"),
+        ):
+            from app.services.monitor_worker import check_document_expirations
+            result = await check_document_expirations()
+
+        assert result["alerts_sent"] == 0, (
+            f"Expected alerts_sent=0 when alertas INSERT fails; got {result['alerts_sent']}"
+        )
+        warning_text = " ".join(caplog.messages)
+        assert any(
+            kw in warning_text.lower()
+            for kw in ("link", "db error", "error")
+        ), f"Warning de send_document_expiration esperado. Mensagens: {caplog.messages}"
+
+    @pytest.mark.asyncio
+    async def test_document_expirations_continues_after_first_cert_insert_failure(self):
+        """
+        Quando o INSERT falha para cert 1 e tem êxito para cert 2,
+        alerts_sent = 1 e o job ainda envia notificação para cert 2.
+        """
+        today = date.today()
+
+        cert1 = _make_user_row(
+            id=202, nome="Certidão Federal", tipo="federal",
+            data_vencimento=today + timedelta(days=7),
+            user_id=701, email="fed@example.com", user_nome="Fed Teste",
+        )
+        cert2 = _make_user_row(
+            id=203, nome="Certidão Estadual", tipo="estadual",
+            data_vencimento=today + timedelta(days=30),
+            user_id=702, email="est@example.com", user_nome="Est Teste",
+        )
+
+        main_pool = _make_pool(fetch_side_effects=[[cert1, cert2]])
+        main_pool.fetchval = AsyncMock(return_value=None)  # sem dedup para ambas
+
+        failing_pool = _make_failing_notif_pool("column link does not exist")
+        ok_pool      = _make_ok_notif_pool()
+
+        # get_pool calls: 1 (monitor_worker) + 1 (send_doc_exp cert1) + 1 (send_doc_exp cert2)
+        # + 1 (job_runs INSERT at the end, which uses the already-fetched main_pool — no extra get_pool)
+        # Actually job_runs uses main_pool.execute (via the pool variable in check_document_expirations)
+        get_pool_seq = [main_pool, failing_pool, ok_pool]
+
+        with (
+            patch(f"{DB_SESSION_MODULE}.get_pool", AsyncMock(side_effect=get_pool_seq)),
+            patch(f"{NOTIF_SERVICE_MODULE}.send", AsyncMock()),
+        ):
+            from app.services.monitor_worker import check_document_expirations
+            result = await check_document_expirations()
+
+        assert result["certidoes_checked"] == 2
+        assert result["alerts_sent"] == 1, (
+            f"Expected 1 (cert1 INSERT failed → False, cert2 ok → True); "
+            f"got {result['alerts_sent']}"
+        )
