@@ -1408,6 +1408,21 @@ function LicitacaoCard({ lic, index, isFav, onFav, isGer, gerId, onGer }: {
   const days     = daysUntil(lic.dataEncerramento);
   const isUrgent = days !== null && days >= 0 && days <= 2;
 
+  // If any date field carries an unrecognisable value the Gerenciar button
+  // should be disabled before the user even clicks it, surfacing the problem
+  // through a tooltip rather than a post-click toast.
+  const gerDateError: string | null = !isGer ? (() => {
+    const checks: Array<{ value: string | null | undefined; label: string }> = [
+      { value: lic.dataEncerramento,   label: "Data de Encerramento" },
+      { value: lic.dataAbertura,       label: "Data de Abertura" },
+      { value: lic.dataPublicacaoPncp, label: "Data de Publicação" },
+    ];
+    for (const { value, label } of checks) {
+      if (value && !isValidIsoDate(value)) return label;
+    }
+    return null;
+  })() : null;
+
   // Busca detalhe enriquecido somente quando o painel é aberto
   const { data: detail, isFetching: loadingDetail } = useQuery<Licitacao>({
     queryKey: ["licitacao-detail", lic.id, lic.numero],
@@ -1553,6 +1568,20 @@ function LicitacaoCard({ lic, index, isFav, onFav, isGer, gerId, onGer }: {
                   Carregando…
                 </span>
               )
+            ) : gerDateError ? (
+              /* Date field carries an unrecognisable value — show disabled button
+                 with a tooltip so ops can see the problem before clicking. */
+              <div className="relative group">
+                <button
+                  disabled
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-border text-xs font-semibold text-muted-foreground opacity-50 cursor-not-allowed">
+                  <ClipboardList className="w-3.5 h-3.5" />
+                  Gerenciar
+                </button>
+                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-max max-w-[220px] px-2.5 py-1.5 rounded-md bg-popover border border-border text-xs text-foreground shadow-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-center leading-snug">
+                  Formato de data inválido em «{gerDateError}». Não é possível gerenciar esta licitação.
+                </div>
+              </div>
             ) : (
               <button
                 onClick={onGer}
