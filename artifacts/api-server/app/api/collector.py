@@ -30,9 +30,9 @@ _is_running: bool = False
 
 
 @router.get("/status")
-async def collector_status():
+async def collector_status(_admin: dict = Depends(get_admin_user)):
     """
-    Retorna o status consolidado do collector standalone.
+    Retorna o status consolidado do collector standalone. Requer admin.
 
     Campos:
     - last_run       ISO-8601 da última execução completa (ou null)

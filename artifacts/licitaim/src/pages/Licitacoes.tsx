@@ -654,6 +654,7 @@ export default function Licitacoes() {
     staleTime: 60_000,
     refetchInterval: 120_000,
     retry: false,
+    enabled: statsData?.is_admin === true,
   });
 
   const [syncStatus, setSyncStatus] = useState<"idle" | "running" | "done" | "error">("idle");
