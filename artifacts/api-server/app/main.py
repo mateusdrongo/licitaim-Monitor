@@ -34,12 +34,16 @@ async def lifespan(app: FastAPI):
     # (cache fica desativado via set_cache_ready(False) e queries caem no fallback externo)
     await run_migrations(pool)
 
-    # Elasticsearch — ensure index exists (não bloqueia se ES offline)
+    # Elasticsearch — só inicializa se ELASTICSEARCH_URL estiver explicitamente
+    # configurado; evita log de erro desnecessário quando ES não está disponível.
     es = get_es_service()
-    try:
-        await es.ensure_index()
-    except Exception as exc:
-        logger.warning("ES startup: %s", exc)
+    if os.environ.get("ELASTICSEARCH_URL"):
+        try:
+            await es.ensure_index()
+        except Exception as exc:
+            logger.warning("ES startup: %s", exc)
+    else:
+        logger.info("ES startup: ELASTICSEARCH_URL não configurado — indexação desativada.")
 
     # Cache scheduler — atualiza licitações 4× ao dia
     try:

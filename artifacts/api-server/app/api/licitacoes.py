@@ -935,7 +935,22 @@ async def get_licitacao(
         except Exception:
             pass
 
-    # 4. Fallback: busca no dadosabertos por CNPJ + ano
+    # 4. Fallback: cache local (licitacoes_cache) — disponível mesmo sem acesso externo
+    pool = await get_pool()
+    row = None
+    if numero_busca:
+        row = await pool.fetchrow(
+            "SELECT * FROM licitacoes_cache WHERE numero = $1", numero_busca
+        )
+    if row is None:
+        # Tenta pelo id da licitação (campo separado do número PNCP)
+        row = await pool.fetchrow(
+            "SELECT * FROM licitacoes_cache WHERE id = $1", licitacao_id
+        )
+    if row:
+        return _snake_to_camel(dict(row))
+
+    # 5. Fallback: busca no dadosabertos por CNPJ + ano
     if numero_busca:
         cnpj_fb = numero_busca.split("-")[0]
         try:

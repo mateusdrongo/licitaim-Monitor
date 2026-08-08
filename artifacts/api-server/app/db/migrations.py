@@ -67,6 +67,9 @@ _DDL = [
     )
     """,
     "CREATE INDEX IF NOT EXISTS idx_mon_user ON monitoramentos(user_id)",
+    # Coluna adicionada após o schema inicial — usada pelo monitor_worker para
+    # saber quando um monitoramento foi executado pela última vez (timestamptz).
+    "ALTER TABLE monitoramentos ADD COLUMN IF NOT EXISTS last_checked_at TIMESTAMPTZ",
 
     # ── 3. Alertas — depende de users e monitoramentos ────────────────────────
     """
