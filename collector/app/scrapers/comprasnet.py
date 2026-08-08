@@ -1,8 +1,11 @@
 """
 ComprasNetScraper — Portal ComprasNet (www.comprasnet.gov.br)
-Usa Playwright para renderizar JS + BeautifulSoup para parse de HTML.
+Usa httpx + BeautifulSoup para scraping sem dependência de browser headless.
 
-O portal exige navegação headless pois usa JS pesado para renderizar resultados.
+Se o portal bloquear o acesso direto (JS pesado não executado), a listagem
+retornará 0 resultados e um aviso será logado — sem falha silenciosa.
+O BBMNetScraper ainda usa Playwright; a dependência permanece no projeto
+enquanto aquele scraper não for migrado.
 """
 from __future__ import annotations
 
@@ -11,6 +14,7 @@ import logging
 from datetime import date
 from typing import AsyncIterator, Optional
 
+import httpx
 from bs4 import BeautifulSoup
 
 from ..base_scraper import BaseScraper
@@ -19,6 +23,20 @@ from ..config import CollectorSettings
 logger = logging.getLogger("collector.comprasnet")
 
 BASE_URL = "https://www.comprasnet.gov.br/ConsultaLicitacoes/ConsLicitacao_Relacao.asp"
+DETAIL_URL = "https://www.comprasnet.gov.br/ConsultaLicitacoes/download/download_editais_detalhe.asp"
+
+# Headers that mimic a real browser to reduce the chance of being blocked
+_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+    "Accept-Encoding": "gzip, deflate",
+    "Connection": "keep-alive",
+}
 
 
 class ComprasNetScraper(BaseScraper):
@@ -26,79 +44,113 @@ class ComprasNetScraper(BaseScraper):
 
     def __init__(self, settings: Optional[CollectorSettings] = None):
         super().__init__(settings)
-        self._playwright = None
-        self._browser = None
+        self._client: Optional[httpx.AsyncClient] = None
 
     # ── Lifecycle ─────────────────────────────────────────────────────────────
 
     async def on_start(self) -> None:
-        from playwright.async_api import async_playwright
-        self._playwright = await async_playwright().start()
-        self._browser = await self._playwright.chromium.launch(
-            headless=self.settings.headless,
-            args=["--no-sandbox", "--disable-setuid-sandbox"],
+        timeout = httpx.Timeout(
+            connect=10.0,
+            read=self.settings.playwright_timeout_ms / 1000,
+            write=10.0,
+            pool=10.0,
         )
-        logger.info("ComprasNet: browser iniciado.")
+        self._client = httpx.AsyncClient(
+            headers=_HEADERS,
+            timeout=timeout,
+            follow_redirects=True,
+        )
+        logger.info("ComprasNet: cliente HTTP iniciado.")
 
     async def on_finish(self) -> None:
-        if self._browser:
-            await self._browser.close()
-        if self._playwright:
-            await self._playwright.stop()
-        logger.info("ComprasNet: browser encerrado.")
+        if self._client:
+            await self._client.aclose()
+            self._client = None
+        logger.info("ComprasNet: cliente HTTP encerrado.")
 
     # ── scrape_by_date ────────────────────────────────────────────────────────
 
     async def scrape_by_date(self, start: date, end: date) -> AsyncIterator[dict]:
-        if not self._browser:
+        if self._client is None:
             await self.on_start()
 
-        page = await self._browser.new_page()
-        page.set_default_timeout(self.settings.playwright_timeout_ms)
+        params = {
+            "numprp": "",
+            "objeto": "",
+            "dt_publ_ini": start.strftime("%d/%m/%Y"),
+            "dt_publ_fim": end.strftime("%d/%m/%Y"),
+            "chkmodalidade": "on",
+            "coduasg": "",
+            "Uf": "",
+            "municipio": "",
+            "situacao": "",
+            "submit": "OK",
+        }
 
         try:
-            url = (
-                f"{BASE_URL}"
-                f"?numprp=&objeto=&dt_publ_ini={start.strftime('%d%%2F%m%%2F%Y')}"
-                f"&dt_publ_fim={end.strftime('%d%%2F%m%%2F%Y')}"
-                f"&chkmodalidade=on&coduasg=&Uf=&municipio=&situacao=&submit=OK"
-            )
-            logger.info("ComprasNet: %s", url)
-            await page.goto(url, wait_until="networkidle")
-            await page.wait_for_timeout(2000)
+            logger.info("ComprasNet: consultando %s → %s", start, end)
+            response = await self._client.get(BASE_URL, params=params)
+            response.raise_for_status()
 
-            html = await page.content()
-            items = self._parse_listing(html)
-            logger.info("ComprasNet: %d licitações encontradas.", len(items))
+            items = self._parse_listing(response.text)
+
+            if not items:
+                # Could be JS-rendered content that httpx cannot execute
+                logger.warning(
+                    "ComprasNet: 0 licitações encontradas para %s–%s. "
+                    "O portal pode estar usando JS pesado que não pode ser executado "
+                    "sem browser headless, ou simplesmente não há resultados no período.",
+                    start,
+                    end,
+                )
+            else:
+                logger.info("ComprasNet: %d licitações encontradas.", len(items))
 
             for item in items:
                 yield item
                 await asyncio.sleep(self.settings.pncp_rate_limit_sleep)
 
+        except httpx.HTTPStatusError as exc:
+            logger.error(
+                "ComprasNet scrape_by_date: HTTP %s — %s",
+                exc.response.status_code,
+                exc,
+            )
+        except httpx.RequestError as exc:
+            logger.error("ComprasNet scrape_by_date: erro de rede — %s", exc)
         except Exception as exc:
-            logger.error("ComprasNet scrape_by_date: %s", exc)
-        finally:
-            await page.close()
+            logger.error("ComprasNet scrape_by_date: erro inesperado — %s", exc)
 
     # ── scrape_by_id ──────────────────────────────────────────────────────────
 
     async def scrape_by_id(self, external_id: str) -> dict | None:
-        if not self._browser:
+        if self._client is None:
             await self.on_start()
 
-        page = await self._browser.new_page()
-        page.set_default_timeout(self.settings.playwright_timeout_ms)
+        params = {"coduasg": "", "numprp": external_id}
 
         try:
-            url = f"https://www.comprasnet.gov.br/ConsultaLicitacoes/download/download_editais_detalhe.asp?coduasg=&numprp={external_id}"
-            await page.goto(url, wait_until="networkidle")
-            html = await page.content()
-            return self._parse_detail(html, external_id)
-        except Exception as exc:
-            logger.error("ComprasNet scrape_by_id(%s): %s", external_id, exc)
+            response = await self._client.get(DETAIL_URL, params=params)
+            response.raise_for_status()
+            return self._parse_detail(response.text, external_id)
+        except httpx.HTTPStatusError as exc:
+            logger.error(
+                "ComprasNet scrape_by_id(%s): HTTP %s — %s",
+                external_id,
+                exc.response.status_code,
+                exc,
+            )
             return None
-        finally:
-            await page.close()
+        except httpx.RequestError as exc:
+            logger.error(
+                "ComprasNet scrape_by_id(%s): erro de rede — %s", external_id, exc
+            )
+            return None
+        except Exception as exc:
+            logger.error(
+                "ComprasNet scrape_by_id(%s): erro inesperado — %s", external_id, exc
+            )
+            return None
 
     # ── Parsers ───────────────────────────────────────────────────────────────
 
@@ -106,36 +158,36 @@ class ComprasNetScraper(BaseScraper):
         soup = BeautifulSoup(html, "html.parser")
         results = []
 
-        # ComprasNet usa tabelas para listagem
+        # ComprasNet uses tables for listing results
         for row in soup.select("table tr"):
             cells = row.find_all("td")
             if len(cells) < 6:
                 continue
             texts = [c.get_text(strip=True) for c in cells]
-            # Heurística: primeira célula com número de pregão
+            # Heuristic: first cell should contain a tender number (has digits)
             if not texts[0] or not any(c.isdigit() for c in texts[0]):
                 continue
 
             results.append({
-                "source":           self.SOURCE,
-                "external_id":      self._normalize_str(texts[0]),
-                "numero_controle":  self._normalize_str(texts[0]),
-                "objeto":           self._normalize_str(texts[2]) if len(texts) > 2 else "",
-                "orgao":            self._normalize_str(texts[1]) if len(texts) > 1 else "",
-                "cnpj_orgao":       None,
-                "unidade":          "",
-                "uf":               None,
-                "municipio":        None,
-                "modalidade":       self._normalize_str(texts[3]) if len(texts) > 3 else "",
-                "situacao":         self._normalize_str(texts[5]) if len(texts) > 5 else "",
-                "valor_estimado":   None,
-                "data_publicacao":  self._normalize_str(texts[4]) if len(texts) > 4 else "",
-                "data_abertura":    "",
+                "source":            self.SOURCE,
+                "external_id":       self._normalize_str(texts[0]),
+                "numero_controle":   self._normalize_str(texts[0]),
+                "objeto":            self._normalize_str(texts[2]) if len(texts) > 2 else "",
+                "orgao":             self._normalize_str(texts[1]) if len(texts) > 1 else "",
+                "cnpj_orgao":        None,
+                "unidade":           "",
+                "uf":                None,
+                "municipio":         None,
+                "modalidade":        self._normalize_str(texts[3]) if len(texts) > 3 else "",
+                "situacao":          self._normalize_str(texts[5]) if len(texts) > 5 else "",
+                "valor_estimado":    None,
+                "data_publicacao":   self._normalize_str(texts[4]) if len(texts) > 4 else "",
+                "data_abertura":     "",
                 "data_encerramento": "",
-                "srp":              False,
-                "link_original":    "",
-                "dados_brutos":     {"raw_cells": texts},
-                "items":            [],
+                "srp":               False,
+                "link_original":     "",
+                "dados_brutos":      {"raw_cells": texts},
+                "items":             [],
             })
 
         return results
@@ -147,25 +199,25 @@ class ComprasNetScraper(BaseScraper):
             return None
 
         return {
-            "source":           self.SOURCE,
-            "external_id":      external_id,
-            "numero_controle":  external_id,
-            "objeto":           self._extract_between(text, "Objeto:", "Modalidade:"),
-            "orgao":            self._extract_between(text, "UASG:", "Número"),
-            "cnpj_orgao":       None,
-            "unidade":          "",
-            "uf":               None,
-            "municipio":        None,
-            "modalidade":       self._extract_between(text, "Modalidade:", "Situação:"),
-            "situacao":         self._extract_between(text, "Situação:", "Abertura:"),
-            "valor_estimado":   None,
-            "data_publicacao":  "",
-            "data_abertura":    self._extract_between(text, "Abertura:", "Encerramento:"),
+            "source":            self.SOURCE,
+            "external_id":       external_id,
+            "numero_controle":   external_id,
+            "objeto":            self._extract_between(text, "Objeto:", "Modalidade:"),
+            "orgao":             self._extract_between(text, "UASG:", "Número"),
+            "cnpj_orgao":        None,
+            "unidade":           "",
+            "uf":                None,
+            "municipio":         None,
+            "modalidade":        self._extract_between(text, "Modalidade:", "Situação:"),
+            "situacao":          self._extract_between(text, "Situação:", "Abertura:"),
+            "valor_estimado":    None,
+            "data_publicacao":   "",
+            "data_abertura":     self._extract_between(text, "Abertura:", "Encerramento:"),
             "data_encerramento": "",
-            "srp":              False,
-            "link_original":    "",
-            "dados_brutos":     {"html_snippet": text[:2000]},
-            "items":            [],
+            "srp":               False,
+            "link_original":     "",
+            "dados_brutos":      {"html_snippet": text[:2000]},
+            "items":             [],
         }
 
     def _extract_between(self, text: str, start_kw: str, end_kw: str) -> str:

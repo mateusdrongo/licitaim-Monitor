@@ -172,9 +172,9 @@ async def run_pncp_scrape(db_url: str, days: int = 1) -> dict:
 
 async def run_comprasnet_scrape(db_url: str, days: int = 1) -> dict:
     """
-    Executa scraping ComprasNet via Playwright (headless Chromium).
-    Requer que os browsers do Playwright estejam instalados:
-        python -m playwright install chromium
+    Executa scraping ComprasNet via httpx + BeautifulSoup (sem browser headless).
+    Quando o portal retornar conteúdo JS-only, 0 resultados são retornados e um
+    aviso é logado em vez de falhar silenciosamente.
     """
     from .config import get_settings
     from .scrapers import ComprasNetScraper

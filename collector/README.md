@@ -7,7 +7,7 @@ Microsserviço de scraping para portais de licitação pública brasileira.
 | Portal | Método | Status |
 |--------|--------|--------|
 | PNCP | API oficial (httpx + tenacity) | ✅ Produção |
-| ComprasNet | Playwright + BeautifulSoup | ✅ Implementado |
+| ComprasNet | httpx + BeautifulSoup | ✅ Implementado |
 | BEC-SP | httpx + BeautifulSoup | ✅ Implementado |
 | BBMNet | Playwright | ✅ Implementado |
 
@@ -21,7 +21,7 @@ collector/
 │   ├── base_scraper.py      # Classe abstrata
 │   ├── scrapers/
 │   │   ├── pncp.py          # API PNCP + tenacity retry
-│   │   ├── comprasnet.py    # Playwright + BS4
+│   │   ├── comprasnet.py    # httpx + BS4
 │   │   ├── bec_sp.py        # httpx + BS4
 │   │   └── bbmnet.py        # Playwright
 │   ├── processors/
@@ -38,7 +38,7 @@ collector/
 ```bash
 # 1. Instalar dependências
 pip install -r requirements.txt
-playwright install chromium
+playwright install chromium  # necessário apenas para BBMNet
 
 # 2. Criar tabelas no banco
 python -m collector.app.main sync-schema
@@ -91,7 +91,7 @@ docker run -e DATABASE_URL=postgresql://... \
 | `CELERY_BROKER_URL` | igual ao `RABBITMQ_URL` | Broker Celery |
 | `CELERY_RESULT_BACKEND` | `redis://localhost:6379/0` | Result backend |
 | `LOG_LEVEL` | `INFO` | Nível de log |
-| `HEADLESS` | `true` | Playwright headless |
+| `HEADLESS` | `true` | Playwright headless (usado pelo BBMNet) |
 
 ## Fluxo de dados
 
