@@ -289,17 +289,51 @@ export default function Licitacoes() {
   const qc = useQueryClient();
   const { toast } = useToast();
 
+  // ── Shared auth-error handler for background queries ─────────────────
+  // Called when a background query (not a mutation) receives a 401.
+  // Shows a persistent toast with an "Entrar" button that preserves the
+  // current URL (including all filters) as the post-login redirect target.
+  const authErrorShownRef = useRef(false);
+  function handleQueryAuth401() {
+    if (authErrorShownRef.current) return; // only one toast at a time
+    authErrorShownRef.current = true;
+    const returnTo = window.location.pathname + window.location.search;
+    toast({
+      variant: "destructive",
+      title: "Sessão expirada",
+      description: "Faça login novamente para continuar.",
+      duration: Infinity,
+      action: (
+        <ToastAction
+          altText="Entrar"
+          onClick={() => navigate(`/entrar?redirect=${encodeURIComponent(returnTo)}`)}
+        >
+          Entrar
+        </ToastAction>
+      ),
+    });
+  }
+
   // ── Carrega favoritos do servidor ─────────────────────────────────────
   // Map: licitacaoId -> fav DB id (para poder deletar pelo id interno)
-  const { data: favData } = useQuery<{ data: Array<{ id: number; licitacaoId: string }> }>({
+  const { data: favData, error: favError } = useQuery<{ data: Array<{ id: number; licitacaoId: string }> }>({
     queryKey: ["favoritos-ids"],
     queryFn: async () => {
       const res = await apiFetch(`${BASE}/api/favoritos`, { credentials: "include" });
+      if (res.status === 401) throw new Error("401");
       if (!res.ok) return { data: [] };
       return res.json();
     },
     staleTime: 30_000,
+    retry: false,
   });
+
+  // Propagate 401 from the favorites background query to the auth toast.
+  useEffect(() => {
+    if (favError instanceof Error && favError.message.includes("401")) {
+      handleQueryAuth401();
+    }
+  }, [favError]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const favMap = useMemo<Map<string, number>>(() => {
     const m = new Map<string, number>();
@@ -380,16 +414,25 @@ export default function Licitacoes() {
   }
 
   // ── Carrega gerenciamentos do servidor ────────────────────────────────
-  const { data: gerData } = useQuery<{ data: Array<{ id: number; licitacaoId: string }> }>({
+  const { data: gerData, error: gerError } = useQuery<{ data: Array<{ id: number; licitacaoId: string }> }>({
     queryKey: ["gerenciamento-ids"],
     queryFn: async () => {
       const res = await apiFetch(`${BASE}/api/gerenciamento`, { credentials: "include" });
+      if (res.status === 401) throw new Error("401");
       if (!res.ok) return { data: [] };
       const json = await res.json();
       return { data: (json.data ?? []).map((g: { id: number; licitacao_id?: string; licitacaoId?: string }) => ({ id: g.id, licitacaoId: g.licitacaoId ?? g.licitacao_id ?? "" })) };
     },
     staleTime: 30_000,
+    retry: false,
   });
+
+  // Propagate 401 from the gerenciamento background query to the auth toast.
+  useEffect(() => {
+    if (gerError instanceof Error && gerError.message.includes("401")) {
+      handleQueryAuth401();
+    }
+  }, [gerError]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const gerMap = useMemo<Map<string, number>>(() => {
     const m = new Map<string, number>();
