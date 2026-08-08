@@ -1080,8 +1080,6 @@ export default function Licitacoes() {
               <Database className="w-3.5 h-3.5 text-primary flex-shrink-0" />
               {statsData.total.toLocaleString("pt-BR")} licitações em cache
             </span>
-            <span className="text-border">·</span>
-            <span>Atualizado: {fmtLastSync(statsData.last_sync)}</span>
             {statsData.fonte_predominante && (
               <>
                 <span className="text-border">·</span>
@@ -1097,20 +1095,6 @@ export default function Licitacoes() {
                 <span className="flex items-center gap-1" title={`Collector: ${collectorData.processed} processadas, ${collectorData.errors} erros`}>
                   <RefreshCw className="w-3 h-3" />
                   Coleta: {fmtLastSync(collectorData.lastRun)}
-                </span>
-              </>
-            )}
-            {collectorData?.isStale && (
-              <>
-                <span className="text-border">·</span>
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 border border-amber-500/30 font-semibold">
-                  <AlertTriangle className="w-3 h-3 flex-shrink-0" />
-                  {collectorData.lastRun
-                    ? (() => {
-                        const hoursAgo = Math.floor((Date.now() - new Date(collectorData.lastRun).getTime()) / 3_600_000);
-                        return `Dados possivelmente desatualizados — coleta parou há ${hoursAgo}h`;
-                      })()
-                    : "Dados possivelmente desatualizados — coleta nunca iniciada"}
                 </span>
               </>
             )}
