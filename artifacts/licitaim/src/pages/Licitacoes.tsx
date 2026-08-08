@@ -238,6 +238,12 @@ function gerarUrlPncp(codigoPncp: string): string | null {
   return `https://pncp.gov.br/editais/${cnpj}/${ano}/${numero}`;
 }
 
+// ─── Pending action retry (after re-login) ────────────────────────────────────
+const PENDING_ACTION_KEY = "licitaim_pending_action";
+type PendingAction =
+  | { type: "fav"; id: string; lic: Licitacao; currently: boolean }
+  | { type: "ger"; id: string; lic: Licitacao; currently: boolean };
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 const PAGE_SIZES = [10, 20, 50, 100, 150, 200, 300];
 
@@ -317,6 +323,7 @@ export default function Licitacoes() {
         const res = await apiFetch(`${BASE}/api/favoritos/by-licitacao/${encodeURIComponent(id)}`, {
           method: "DELETE", credentials: "include",
         });
+        if (res.status === 401) throw new Error("401");
         if (!res.ok && res.status !== 404) throw new Error("Erro ao desfavoritar");
       } else {
         // Adiciona com metadados
@@ -333,13 +340,14 @@ export default function Licitacoes() {
             licitacaoValor: lic.valorEstimado != null ? String(lic.valorEstimado) : null,
           }),
         });
+        if (res.status === 401) throw new Error("401");
         if (!res.ok && res.status !== 409) throw new Error("Erro ao favoritar");
       }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["favoritos-ids"] });
     },
-    onError: (err: unknown, { id }) => {
+    onError: (err: unknown, { id, lic, currently }) => {
       // Reverte override em caso de erro
       setFavOverrides(prev => { const m = new Map(prev); m.delete(id); return m; });
       const msg = err instanceof Error ? err.message : String(err);
@@ -352,7 +360,11 @@ export default function Licitacoes() {
           ? "Faça login novamente para favoritar licitações."
           : "Não foi possível atualizar os favoritos. Tente novamente.",
         action: is401
-          ? <ToastAction altText="Entrar" onClick={() => navigate(`/entrar?redirect=${encodeURIComponent(returnTo)}`)}>Entrar</ToastAction>
+          ? <ToastAction altText="Entrar" onClick={() => {
+              const action: PendingAction = { type: "fav", id, lic, currently };
+              sessionStorage.setItem(PENDING_ACTION_KEY, JSON.stringify(action));
+              navigate(`/entrar?redirect=${encodeURIComponent(returnTo)}`);
+            }}>Entrar</ToastAction>
           : undefined,
       });
     },
@@ -480,7 +492,7 @@ export default function Licitacoes() {
       qc.invalidateQueries({ queryKey: ["gerenciamento-ids"] });
       qc.invalidateQueries({ queryKey: ["gerenciamento"] });
     },
-    onError: (err: unknown, { id, currently }) => {
+    onError: (err: unknown, { id, lic, currently }) => {
       setGerOverrides(prev => { const m = new Map(prev); m.delete(id); return m; });
       const msg = err instanceof Error ? err.message : String(err);
       const is401 = msg === "401" || msg.toLowerCase().includes("unauthorized");
@@ -516,7 +528,11 @@ export default function Licitacoes() {
           ? "Faça login novamente para gerenciar licitações."
           : "Não foi possível completar a operação. Tente novamente.",
         action: is401
-          ? <ToastAction altText="Entrar" onClick={() => navigate(`/entrar?redirect=${encodeURIComponent(returnTo)}`)}>Entrar</ToastAction>
+          ? <ToastAction altText="Entrar" onClick={() => {
+              const action: PendingAction = { type: "ger", id, lic, currently };
+              sessionStorage.setItem(PENDING_ACTION_KEY, JSON.stringify(action));
+              navigate(`/entrar?redirect=${encodeURIComponent(returnTo)}`);
+            }}>Entrar</ToastAction>
           : undefined,
       });
     },
@@ -527,6 +543,30 @@ export default function Licitacoes() {
     setGerOverrides(prev => new Map(prev).set(id, !currently));
     gerMutation.mutate({ id, lic, currently });
   }
+
+  // ── Retry pending action after re-login ───────────────────────────────
+  // When a 401 occurs the user is prompted to log in. If they click "Entrar",
+  // the pending action is saved to sessionStorage so it can be replayed here
+  // automatically once the login redirect brings them back to this page.
+  useEffect(() => {
+    const raw = sessionStorage.getItem(PENDING_ACTION_KEY);
+    if (!raw) return;
+    // Clear immediately so a page refresh doesn't re-trigger the action.
+    sessionStorage.removeItem(PENDING_ACTION_KEY);
+    try {
+      const action = JSON.parse(raw) as PendingAction;
+      if (action.type === "fav") {
+        const next = !action.currently;
+        setFavOverrides(prev => new Map(prev).set(action.id, next));
+        favMutation.mutate({ id: action.id, lic: action.lic, currently: action.currently });
+      } else if (action.type === "ger") {
+        setGerOverrides(prev => new Map(prev).set(action.id, !action.currently));
+        gerMutation.mutate({ id: action.id, lic: action.lic, currently: action.currently });
+      }
+    } catch {
+      // Malformed sessionStorage entry — ignore silently.
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Stats do cache ────────────────────────────────────────────────────
   const { data: statsData, refetch: refetchStats } = useQuery<{
