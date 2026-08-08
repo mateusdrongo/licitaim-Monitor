@@ -525,3 +525,118 @@ async def check_document_expirations() -> dict:
         sent, skipped,
     )
     return {"certidoes_checked": len(certs), "alerts_sent": sent, "alerts_skipped": skipped}
+
+
+# ── check_favorited_tender_changes ────────────────────────────────────────────
+
+async def check_favorited_tender_changes() -> dict:
+    """
+    Varre tender_history para mudanças em campos rastreados (situacao,
+    valor_estimado, modalidade, objeto) ocorridas desde a última execução
+    e notifica usuários que favoritaram os tenders afetados via
+    notify_favorited_tender_changes().
+
+    Usa job_runs para rastrear o cursor da última execução, garantindo
+    que nenhuma mudança seja processada duas vezes nem ignorada entre ciclos.
+    """
+    from ..db.session import get_pool
+    from .tender_change_service import (
+        notify_favorited_tender_changes,
+        TRACKED_FIELDS as _SVC_TRACKED,
+    )
+
+    pool = await get_pool()
+    now  = datetime.now(timezone.utc)
+
+    # Campos que disparam notificação (alinhados com tender_change_service)
+    svc_fields: list[str] = [tf for tf, _ in _SVC_TRACKED]
+
+    # Cursor: última vez que este job rodou com sucesso
+    last_ran = await pool.fetchval(
+        "SELECT MAX(ran_at) FROM job_runs WHERE job_name = $1",
+        "check_favorited_tender_changes",
+    )
+    # Primeira execução: olha a última hora para cobrir mudanças recentes
+    since: datetime = last_ran or (now - timedelta(hours=1))
+
+    # Tenders que tiveram algum campo rastreado alterado desde o cursor
+    changed_rows = await pool.fetch(
+        """
+        SELECT DISTINCT th.tender_id
+          FROM tender_history th
+         WHERE th.campo    = ANY($1::text[])
+           AND th.criado_em > $2
+        """,
+        svc_fields,
+        since,
+    )
+
+    if not changed_rows:
+        logger.info(
+            "check_favorited_tender_changes: nenhuma mudança rastreada desde %s.", since
+        )
+        # Ainda registra execução para avançar o cursor
+        await pool.execute(
+            "INSERT INTO job_runs (job_name) VALUES ($1)",
+            "check_favorited_tender_changes",
+        )
+        return {"tenders_with_changes": 0, "users_notified": 0, "users_skipped": 0}
+
+    tender_uuids = [r["tender_id"] for r in changed_rows]
+
+    # Busca dados actualizados dos tenders afetados
+    tenders = await pool.fetch(
+        """
+        SELECT id::text,
+               external_id       AS numero,
+               objeto,
+               situacao,
+               valor_estimado::text,
+               modalidade
+          FROM tenders
+         WHERE id = ANY($1::uuid[])
+        """,
+        tender_uuids,
+    )
+
+    total_notified = 0
+    total_skipped  = 0
+
+    for row in tenders:
+        tender_dict = {
+            "id":             row["id"],
+            "numero":         row["numero"],
+            "objeto":         row["objeto"] or "",
+            "situacao":       row["situacao"] or "",
+            "valor_estimado": row["valor_estimado"],
+            "modalidade":     row["modalidade"] or "",
+        }
+        try:
+            result = await notify_favorited_tender_changes(tender_dict)
+            total_notified += result.get("users_notified", 0)
+            total_skipped  += result.get("users_skipped", 0)
+        except Exception as exc:
+            logger.warning(
+                "check_favorited_tender_changes: erro ao processar tender %s: %s",
+                tender_dict["id"], exc,
+            )
+
+    # Avança o cursor apenas após processar todos os tenders do lote
+    try:
+        await pool.execute(
+            "INSERT INTO job_runs (job_name) VALUES ($1)",
+            "check_favorited_tender_changes",
+        )
+    except Exception as exc:
+        logger.warning("check_favorited_tender_changes: falha ao registrar job_run: %s", exc)
+
+    logger.info(
+        "check_favorited_tender_changes: %d tender(s) com mudanças, "
+        "%d usuário(s) notificado(s), %d sem diff.",
+        len(tenders), total_notified, total_skipped,
+    )
+    return {
+        "tenders_with_changes": len(tenders),
+        "users_notified":       total_notified,
+        "users_skipped":        total_skipped,
+    }

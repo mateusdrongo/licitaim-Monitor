@@ -40,6 +40,11 @@ celery_app.conf.update(
             "task":     "app.tasks.check_monitors",
             "schedule": crontab(minute="*/15"),
         },
+        # A cada 15 min: notifica favoritos com mudanças detectadas pelo collector
+        "check-favorited-changes-15min": {
+            "task":     "app.tasks.check_favorited_tender_changes",
+            "schedule": crontab(minute="*/15"),
+        },
         # A cada 1h: alerta licitações que abrem em 24h
         "check-upcoming-1h": {
             "task":     "app.tasks.check_upcoming",
@@ -126,4 +131,25 @@ def check_documents(self) -> dict:
     from .services.monitor_worker import check_document_expirations
     result = _run(check_document_expirations())
     logger.info("Task check_documents concluído: %s", result)
+    return result
+
+
+@celery_app.task(
+    name="app.tasks.check_favorited_tender_changes",
+    bind=True,
+    max_retries=2,
+    default_retry_delay=60,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+)
+def check_favorited_tender_changes(self) -> dict:
+    """
+    Varre tender_history para mudanças em licitações favoritadas e notifica
+    os usuários afetados via e-mail e Telegram.
+    Roda a cada 15 minutos, alinhado com check_monitors.
+    """
+    logger.info("Task check_favorited_tender_changes iniciando.")
+    from .services.monitor_worker import check_favorited_tender_changes as _check
+    result = _run(_check())
+    logger.info("Task check_favorited_tender_changes concluído: %s", result)
     return result
