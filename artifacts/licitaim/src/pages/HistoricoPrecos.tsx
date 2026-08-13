@@ -39,6 +39,7 @@ export default function HistoricoPrecos() {
   const [dataInicio, setDataInicio] = useState("");
   const [dataFim, setDataFim] = useState("");
   const [pagina, setPagina] = useState(1);
+  const tableRef = React.useRef<HTMLDivElement>(null);
 
   // submitted state drives the query
   const [submitted, setSubmitted] = useState<{
@@ -73,6 +74,7 @@ export default function HistoricoPrecos() {
     if (!submitted) return;
     setPagina(p);
     setSubmitted({ ...submitted, pagina: p });
+    tableRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const registros = data?.registros ?? [];
@@ -280,12 +282,12 @@ export default function HistoricoPrecos() {
           )}
 
           {/* Table */}
-          <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div ref={tableRef} className="bg-card border border-border rounded-xl overflow-hidden">
             <div className="px-5 py-3 border-b border-border flex items-center justify-between">
               <span className="text-sm font-medium">
                 Licitações encontradas
                 <span className="ml-2 text-xs text-muted-foreground font-normal">
-                  (mostrando até 200 por página — {data!.tipo === "homologado" ? "encerradas" : "todas"})
+                  ({data!.tipo === "homologado" ? "encerradas" : "todas"})
                 </span>
               </span>
             </div>
@@ -353,24 +355,26 @@ export default function HistoricoPrecos() {
 
             {/* Pagination */}
             {data!.totalPaginas > 1 && (
-              <div className="px-5 py-3 border-t border-border flex items-center justify-between text-sm">
+              <div className="px-5 py-3 border-t border-border flex items-center justify-between text-sm flex-wrap gap-2">
                 <span className="text-xs text-muted-foreground">
                   Página {data!.pagina} de {data!.totalPaginas}
+                  {" — "}
+                  {data!.totalRegistros.toLocaleString("pt-BR")} registros encontrados
                 </span>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2">
                   <button
                     onClick={() => changePage(pagina - 1)}
                     disabled={pagina <= 1}
-                    className="p-1.5 rounded border border-border hover:bg-muted disabled:opacity-40 transition-colors"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded border border-border hover:bg-muted disabled:opacity-40 transition-colors text-xs"
                   >
-                    <ChevronLeft className="w-4 h-4" />
+                    <ChevronLeft className="w-3.5 h-3.5" /> Anterior
                   </button>
                   <button
                     onClick={() => changePage(pagina + 1)}
                     disabled={pagina >= data!.totalPaginas}
-                    className="p-1.5 rounded border border-border hover:bg-muted disabled:opacity-40 transition-colors"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded border border-border hover:bg-muted disabled:opacity-40 transition-colors text-xs"
                   >
-                    <ChevronRight className="w-4 h-4" />
+                    Próxima <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
