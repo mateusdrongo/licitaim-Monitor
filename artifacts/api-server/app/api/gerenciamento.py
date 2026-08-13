@@ -338,10 +338,19 @@ async def add_gerenciamento(body: GerenciamentoCreate, current_user: dict = Depe
     )
     r = dict(row)
 
+    # Cria a checklist padrão de habilitação para o novo gerenciamento
+    ger_id = r["id"]
+    await pool.executemany(
+        """INSERT INTO gerenciamento_habilitacao
+           (gerenciamento_id, user_id, documento, status)
+           VALUES ($1, $2, $3, 'pendente')""",
+        [(ger_id, current_user["id"], doc) for doc in DOCS_DEFAULT],
+    )
+
     r["total_tarefas"] = 0
     r["tarefas_concluidas"] = 0
     r["total_anotacoes"] = 0
-    r["docs_pendentes"] = 0
+    r["docs_pendentes"] = len(DOCS_DEFAULT)
     return _ger_row(r)
 
 

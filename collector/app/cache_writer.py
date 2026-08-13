@@ -59,7 +59,19 @@ def _parse_ts(val) -> Optional[datetime]:
         return val
     if isinstance(val, date):
         return datetime(val.year, val.month, val.day)
-    s = str(val).strip().replace("Z", "")
+    s = str(val).strip()
+    # Normalise 'Z' suffix → '+00:00' for fromisoformat compatibility
+    if s.endswith("Z"):
+        s = s[:-1] + "+00:00"
+    # fromisoformat handles YYYY-MM-DD, YYYY-MM-DDTHH:MM:SS, with/without tz
+    try:
+        return datetime.fromisoformat(s)
+    except ValueError:
+        pass
+    # Fallback strptime — parse the full string, NOT a slice.
+    # (The original code sliced by len(fmt), which counts format tokens like
+    # '%Y' as 2 chars while the real data is 4 chars — causing silent NULL.)
+    s_bare = s.split("+")[0].split("-0")[0] if ("+0" in s or "-0" in s[10:]) else s
     for fmt in (
         "%Y-%m-%dT%H:%M:%S",
         "%Y-%m-%dT%H:%M",
@@ -67,7 +79,7 @@ def _parse_ts(val) -> Optional[datetime]:
         "%Y-%m-%d",
     ):
         try:
-            return datetime.strptime(s[: len(fmt)], fmt)
+            return datetime.strptime(s, fmt)
         except ValueError:
             continue
     return None

@@ -15,11 +15,13 @@ router = APIRouter(prefix="/certidoes", tags=["certidoes"])
 UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-MIME_EXTENSIONS = {
+# Allowlist estrita: apenas MIME types conhecidos e seguros para certidões.
+# A extensão é SEMPRE derivada do MIME type declarado pelo servidor — nunca
+# do nome de arquivo ou extensão enviados pelo cliente.
+MIME_EXTENSIONS: dict[str, str] = {
     "application/pdf": ".pdf",
     "image/png": ".png",
     "image/jpeg": ".jpg",
-    "image/jpg": ".jpg",
     "application/msword": ".doc",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document": ".docx",
     "application/vnd.ms-excel": ".xls",
@@ -99,8 +101,17 @@ async def upload_certidao(
     current_user: dict = Depends(get_current_user),
 ):
     """Cria uma certidão com arquivo anexo (multipart/form-data)."""
-    content_type = file.content_type or "application/octet-stream"
-    ext = MIME_EXTENSIONS.get(content_type, os.path.splitext(file.filename or "")[1] or ".bin")
+    content_type = file.content_type or ""
+    ext = MIME_EXTENSIONS.get(content_type)
+    if ext is None:
+        raise HTTPException(
+            status_code=415,
+            detail=(
+                "Tipo de arquivo não permitido. "
+                "Formatos aceitos: PDF, PNG, JPEG, DOC, DOCX, XLS, XLSX."
+            ),
+        )
+
     filename = f"{uuid.uuid4()}{ext}"
     filepath = os.path.join(UPLOAD_DIR, filename)
 
@@ -127,20 +138,44 @@ async def upload_certidao(
     return _fmt(dict(row))
 
 
-# ── Servir arquivo (autenticado) ────────────────────────────────────────────
+# ── Servir arquivo (autenticado + autorizado) ───────────────────────────────
 
 @router.get("/file/{filename}")
 async def serve_certidao_file(
     filename: str,
     current_user: dict = Depends(get_current_user),
 ):
-    """Serve o arquivo de uma certidão (somente para o usuário autenticado)."""
+    """
+    Serve o arquivo de uma certidão.
+
+    Segurança:
+    - Verifica que o arquivo pertence a uma certidão do usuário autenticado
+      (consulta certidoes WHERE arquivo_url LIKE %filename AND user_id = current_user).
+    - Serve com Content-Disposition: attachment para evitar execução inline de
+      conteúdo ativo no navegador.
+    - Rejeita nomes com traversal (/, \\, ..).
+    """
     if "/" in filename or "\\" in filename or ".." in filename:
         raise HTTPException(status_code=400, detail="Nome inválido")
+
+    # Autorização: o arquivo deve pertencer a uma certidão do usuário
+    pool = await get_pool()
+    cert_row = await pool.fetchrow(
+        "SELECT id FROM certidoes WHERE arquivo_url = $1 AND user_id = $2",
+        f"/api/certidoes/file/{filename}",
+        current_user["id"],
+    )
+    if cert_row is None:
+        raise HTTPException(status_code=404, detail="Arquivo não encontrado")
+
     filepath = os.path.join(UPLOAD_DIR, filename)
     if not os.path.isfile(filepath):
         raise HTTPException(status_code=404, detail="Arquivo não encontrado")
-    return FileResponse(filepath)
+
+    return FileResponse(
+        filepath,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 # ── Criar sem arquivo (JSON) ────────────────────────────────────────────────
