@@ -391,55 +391,93 @@ export default function HistoricoPrecos() {
 
             {/* Pagination */}
             {data!.totalPaginas > 1 && (
-              <div className="px-5 py-3 border-t border-border flex items-center justify-between text-sm flex-wrap gap-2">
+              <div className="px-5 py-3 border-t border-border flex items-center justify-between text-sm flex-wrap gap-3">
                 <span className="text-xs text-muted-foreground">
                   Página {data!.pagina} de {data!.totalPaginas}
                   {" — "}
                   {data!.totalRegistros.toLocaleString("pt-BR")} registros encontrados
                 </span>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                  {/* Previous */}
                   <button
                     onClick={() => changePage(pagina - 1)}
                     disabled={pagina <= 1}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded border border-border hover:bg-muted disabled:opacity-40 transition-colors text-xs"
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded border border-border hover:bg-muted disabled:opacity-40 transition-colors text-xs"
                   >
-                    <ChevronLeft className="w-3.5 h-3.5" /> Anterior
+                    <ChevronLeft className="w-3.5 h-3.5" />
                   </button>
 
-                  {/* Direct page jump */}
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      const val = parseInt((e.currentTarget.elements.namedItem("pg") as HTMLInputElement).value, 10);
-                      if (!isNaN(val) && val >= 1 && val <= data!.totalPaginas) changePage(val);
-                    }}
-                    className="flex items-center gap-1"
-                  >
-                    <input
-                      name="pg"
-                      type="number"
-                      min={1}
-                      max={data!.totalPaginas}
-                      defaultValue={pagina}
-                      key={pagina}
-                      className="w-14 text-center h-7 rounded border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      aria-label="Ir para página"
-                    />
-                    <button
-                      type="submit"
-                      className="px-2 py-1 rounded border border-border hover:bg-muted transition-colors text-xs"
-                    >
-                      Ir
-                    </button>
-                  </form>
+                  {/* Numbered pages with ellipsis */}
+                  {(() => {
+                    const total = data!.totalPaginas;
+                    const cur = pagina;
+                    const pages: (number | "…")[] = [];
 
+                    if (total <= 7) {
+                      for (let i = 1; i <= total; i++) pages.push(i);
+                    } else {
+                      pages.push(1);
+                      if (cur > 3) pages.push("…");
+                      const start = Math.max(2, cur - 1);
+                      const end   = Math.min(total - 1, cur + 1);
+                      for (let i = start; i <= end; i++) pages.push(i);
+                      if (cur < total - 2) pages.push("…");
+                      pages.push(total);
+                    }
+
+                    return pages.map((p, idx) =>
+                      p === "…" ? (
+                        <span key={`ellipsis-${idx}`} className="px-1 text-xs text-muted-foreground select-none">…</span>
+                      ) : (
+                        <button
+                          key={p}
+                          onClick={() => changePage(p as number)}
+                          className={`min-w-[28px] h-7 px-1.5 rounded border text-xs transition-colors ${
+                            p === cur
+                              ? "bg-primary text-primary-foreground border-primary font-semibold"
+                              : "border-border hover:bg-muted"
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      )
+                    );
+                  })()}
+
+                  {/* Next */}
                   <button
                     onClick={() => changePage(pagina + 1)}
                     disabled={pagina >= data!.totalPaginas}
-                    className="flex items-center gap-1 px-3 py-1.5 rounded border border-border hover:bg-muted disabled:opacity-40 transition-colors text-xs"
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded border border-border hover:bg-muted disabled:opacity-40 transition-colors text-xs"
                   >
-                    Próxima <ChevronRight className="w-3.5 h-3.5" />
+                    <ChevronRight className="w-3.5 h-3.5" />
                   </button>
+
+                  {/* Go-to-page input */}
+                  {data!.totalPaginas > 7 && (
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        const input = (e.currentTarget.elements.namedItem("goToPage") as HTMLInputElement);
+                        const val = parseInt(input.value, 10);
+                        if (!isNaN(val) && val >= 1 && val <= data!.totalPaginas) {
+                          changePage(val);
+                          input.value = "";
+                        }
+                      }}
+                      className="flex items-center gap-1 ml-2"
+                    >
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">Ir para</span>
+                      <input
+                        name="goToPage"
+                        type="number"
+                        min={1}
+                        max={data!.totalPaginas}
+                        placeholder="pág."
+                        className="w-14 h-7 px-2 rounded border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-primary text-center"
+                      />
+                    </form>
+                  )}
                 </div>
               </div>
             )}
