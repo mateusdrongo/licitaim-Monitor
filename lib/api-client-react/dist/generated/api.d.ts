@@ -946,6 +946,23 @@ export declare function useGetHistoricoPrecos<TData = Awaited<ReturnType<typeof 
 }): UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
 };
+export declare const getPrecosStatusUrl: () => string;
+export declare const getPrecosStatus: (options?: RequestInit) => Promise<PrecosStatus>;
+export declare const getGetPrecosStatusQueryKey: () => readonly ["/api/precos/status"];
+export declare const getGetPrecosStatusQueryOptions: <TData = Awaited<ReturnType<typeof getPrecosStatus>>, TError = ErrorType<unknown>>(options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getPrecosStatus>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+}) => UseQueryOptions<Awaited<ReturnType<typeof getPrecosStatus>>, TError, TData> & {
+    queryKey: QueryKey;
+};
+export type GetPrecosStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getPrecosStatus>>>;
+export type GetPrecosStatusQueryError = ErrorType<unknown>;
+export declare function useGetPrecosStatus<TData = Awaited<ReturnType<typeof getPrecosStatus>>, TError = ErrorType<unknown>>(options?: {
+    query?: UseQueryOptions<Awaited<ReturnType<typeof getPrecosStatus>>, TError, TData>;
+    request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+};
 export declare const getAiSearchUrl: () => string;
 /**
  * @summary Pesquisa inteligente com IA

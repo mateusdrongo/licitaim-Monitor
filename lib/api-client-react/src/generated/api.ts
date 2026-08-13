@@ -2930,6 +2930,49 @@ export function useGetHistoricoPrecos<TData = Awaited<ReturnType<typeof getHisto
 
 
 
+// ── /precos/status ────────────────────────────────────────────────────────────
+
+export const getPrecosStatusUrl = () => `/api/precos/status`;
+
+export const getPrecosStatus = async (options?: RequestInit): Promise<PrecosStatus> => {
+  return customFetch<PrecosStatus>(getPrecosStatusUrl(), options);
+};
+
+export const getGetPrecosStatusQueryKey = () => [`/api/precos/status`] as const;
+
+export const getGetPrecosStatusQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPrecosStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<Awaited<ReturnType<typeof getPrecosStatus>>, TError, TData>;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+  const queryKey = queryOptions?.queryKey ?? getGetPrecosStatusQueryKey();
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getPrecosStatus>>> = ({ signal }) =>
+    getPrecosStatus({ signal, ...requestOptions });
+  return { queryKey, queryFn, staleTime: 30_000, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPrecosStatus>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPrecosStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getPrecosStatus>>>;
+export type GetPrecosStatusQueryError = ErrorType<unknown>;
+
+export function useGetPrecosStatus<
+  TData = Awaited<ReturnType<typeof getPrecosStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<Awaited<ReturnType<typeof getPrecosStatus>>, TError, TData>;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPrecosStatusQueryOptions(options);
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
 export const getAiSearchUrl = () => {
 
 

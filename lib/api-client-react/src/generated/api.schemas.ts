@@ -527,6 +527,11 @@ export interface RegistroPreco {
   municipio?: string | null;
 }
 
+export interface PrecosStatus {
+  totalLicitacoes: number;
+  populado: boolean;
+}
+
 export interface HistoricoPrecos {
   item: string;
   tipo: string;

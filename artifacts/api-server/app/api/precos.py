@@ -35,6 +35,27 @@ _UFS_VALIDAS = {
 }
 
 
+@router.get("/status")
+async def precos_status(
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Retorna a contagem total de licitações na base local.
+    Usado pelo frontend para detectar quando o banco ainda está vazio (collector não rodou).
+    """
+    pool = await get_pool()
+    try:
+        row = await pool.fetchrow(
+            "SELECT COUNT(*) AS total FROM licitacoes_cache"
+        )
+        total = int(row["total"] or 0)
+    except Exception as exc:
+        logger.error("precos_status: erro ao consultar banco: %s", exc)
+        total = 0
+
+    return {"totalLicitacoes": total, "populado": total > 0}
+
+
 @router.get("/historico")
 async def historico_precos(
     q: str = Query(..., min_length=2, description="Descrição ou código do item"),

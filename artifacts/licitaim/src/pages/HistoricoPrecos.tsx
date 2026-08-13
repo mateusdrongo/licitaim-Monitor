@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useGetHistoricoPrecos } from "@workspace/api-client-react";
+import { useGetHistoricoPrecos, useGetPrecosStatus } from "@workspace/api-client-react";
 import {
   LineChart as LChart, Line, XAxis, YAxis,
   CartesianGrid, Tooltip, ResponsiveContainer,
@@ -7,7 +7,7 @@ import {
 import {
   LineChart, Search, Building2, MapPin,
   Calendar, TrendingDown, TrendingUp, BarChart3,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, DatabaseZap,
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -46,6 +46,9 @@ export default function HistoricoPrecos() {
     q: string; uf: string; tipo: string; pagina: number;
     dataInicio: string; dataFim: string;
   } | null>(null);
+
+  const { data: statusData } = useGetPrecosStatus();
+  const dbEmpty = statusData !== undefined && !statusData.populado;
 
   const { data, isLoading } = useGetHistoricoPrecos(
     submitted
@@ -107,6 +110,22 @@ export default function HistoricoPrecos() {
           Consulte preços estimados e homologados de licitações públicas para balizar sua proposta.
         </p>
       </div>
+
+      {/* Empty-DB banner — shown when collector hasn't populated the cache yet */}
+      {dbEmpty && (
+        <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-start gap-3">
+          <DatabaseZap className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+              Base de dados sendo populada
+            </p>
+            <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+              O coletor ainda não importou licitações. Aguarde alguns minutos — a base é atualizada
+              automaticamente a cada 20 minutos. Após a primeira carga, as pesquisas de preço estarão disponíveis.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Search bar */}
       <form onSubmit={handleSearch} className="bg-card border border-border rounded-xl p-4 space-y-3">
@@ -202,8 +221,12 @@ export default function HistoricoPrecos() {
           <BarChart3 className="w-10 h-10 text-muted-foreground mx-auto" />
           <p className="font-medium">Nenhum registro encontrado</p>
           <p className="text-sm text-muted-foreground">
-            Tente uma descrição mais genérica ou remova o filtro de estado.
-            {tipo === "homologado" && " Para homologados, pode não haver registros encerrados com esse termo."}
+            {dbEmpty
+              ? "A base de dados ainda está vazia. Aguarde o coletor importar as licitações (até 20 minutos após o primeiro início)."
+              : <>
+                  Tente uma descrição mais genérica ou remova o filtro de estado.
+                  {tipo === "homologado" && " Para homologados, pode não haver registros encerrados com esse termo."}
+                </>}
           </p>
         </div>
       )}
