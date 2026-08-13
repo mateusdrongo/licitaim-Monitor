@@ -1,10 +1,14 @@
 """
-SyncService — sincroniza licitações do Postgres/PNCP para o Elasticsearch.
+SyncService — sincroniza licitações do Postgres/licitacoes_cache para o Elasticsearch.
+
+O collector é a única fonte de ingestão de dados externos.  O SyncService lê
+exclusivamente do banco (`licitacoes_cache`) e indexa no ES — sem chamadas HTTP
+a PNCP ou qualquer outra API externa.
 
 Uso:
-  - sync_tender(tender_id): busca no PNCP/mock e indexa no ES
+  - sync_tender(tender_id): busca no cache e indexa no ES
   - sync_all(): indexa todos em lote
-  - Hook: chamar sync_tender() em background após create/update de uma licitação
+  - Hook: chamar schedule_sync() em background após create/update de uma licitação
 """
 from __future__ import annotations
 
@@ -12,11 +16,22 @@ import asyncio
 import logging
 from typing import Optional
 
-from datetime import date, timedelta
 from .elasticsearch_service import get_es_service
-from ..api.licitacoes import _normalize, _normalize_pncp_item, _fetch_dadosabertos, MOCK_LICITACOES, MODALIDADES_DADOSABERTOS
+from ..db.session import get_pool
 
 logger = logging.getLogger(__name__)
+
+
+def _row_to_tender(row: dict) -> dict:
+    """Converte uma linha do licitacoes_cache para o schema interno."""
+    d = dict(row)
+    for k in ("data_publicacao", "data_abertura", "data_encerramento", "atualizado_em"):
+        if d.get(k) and hasattr(d[k], "isoformat"):
+            d[k] = d[k].isoformat()
+    d["data_publicacao_pncp"] = d.pop("data_publicacao", None)
+    d["criado_em"] = d.pop("atualizado_em", None)
+    d.setdefault("is_favoritada", False)
+    return d
 
 
 class SyncService:
@@ -27,12 +42,12 @@ class SyncService:
 
     async def sync_tender(self, tender_id: str) -> bool:
         """
-        Busca a licitação pelo ID (mock ou PNCP) e a indexa no ES.
+        Busca a licitação pelo ID no cache do banco e a indexa no ES.
         Retorna True se indexou com sucesso.
         """
         tender = await self._fetch_tender(tender_id)
         if not tender:
-            logger.warning("SyncService.sync_tender: '%s' não encontrado.", tender_id)
+            logger.warning("SyncService.sync_tender: '%s' não encontrado no cache.", tender_id)
             return False
 
         ok = await self._es.index_tender(tender)
@@ -44,7 +59,7 @@ class SyncService:
 
     async def sync_all(self, batch_size: int = 100) -> dict:
         """
-        Sincroniza todos os tenders disponíveis em lotes.
+        Sincroniza todos os tenders do cache em lotes para o ES.
         Retorna estatísticas: {indexed, errors, total}.
         """
         all_tenders = await self._fetch_all_tenders()
@@ -89,64 +104,55 @@ class SyncService:
         except Exception as exc:
             logger.warning("SyncService background sync(%s): %s", tender_id, exc)
 
-    # ── Data fetching helpers ─────────────────────────────────────────────────
+    # ── Data fetching helpers (DB-only) ───────────────────────────────────────
 
     async def _fetch_tender(self, tender_id: str) -> Optional[dict]:
-        # 1. Tenta nos mocks locais
-        mock = next(
-            (m for m in MOCK_LICITACOES if m.get("id") == tender_id or m.get("numeroControlePNCP") == tender_id),
-            None,
-        )
-        if mock:
-            return _normalize(mock)
-
-        # 2. Tenta no PNCP
-        parts = tender_id.split("-")
-        if len(parts) >= 3:
-            cnpj, ano, seq = parts[0], parts[1], parts[2]
-            import httpx
-            try:
-                async with httpx.AsyncClient(timeout=8.0) as client:
-                    resp = await client.get(
-                        f"https://pncp.gov.br/api/consulta/v1/orgaos/{cnpj}/compras/{ano}/{seq}"
-                    )
-                    if resp.status_code == 200:
-                        return _normalize_pncp_item(resp.json())
-            except Exception as exc:
-                logger.warning("SyncService PNCP fetch(%s): %s", tender_id, exc)
-
+        """Busca uma licitação pelo id ou numero no licitacoes_cache."""
+        try:
+            pool = await get_pool()
+            async with pool.acquire() as conn:
+                row = await conn.fetchrow(
+                    """
+                    SELECT numero, id, ano, objeto, orgao_nome, orgao_cnpj, uf, municipio,
+                           modalidade, modalidade_codigo, modo_disputa, situacao, valor_estimado,
+                           data_publicacao, data_abertura, data_encerramento,
+                           esfera, poder, srp, numero_processo, informacao_complementar,
+                           amparo_legal, fonte, atualizado_em
+                    FROM licitacoes_cache
+                    WHERE id = $1 OR numero = $1
+                    LIMIT 1
+                    """,
+                    tender_id,
+                )
+            if row:
+                return _row_to_tender(row)
+        except Exception as exc:
+            logger.warning("SyncService._fetch_tender(%s): %s", tender_id, exc)
         return None
 
     async def _fetch_all_tenders(self) -> list[dict]:
         """
-        Retorna todos os tenders disponíveis.
-        Prioriza dados do PNCP; usa mocks como fallback/base.
+        Retorna todos os tenders do licitacoes_cache.
+        Fonte única: banco de dados populado pelo collector.
         """
-        # Tenta buscar do PNCP (paginado)
-        # Busca via dadosabertos.compras.gov.br em paralelo por modalidade
-        hoje = date.today()
-        params = {
-            "pagina": 1, "tamanhoPagina": 500,
-            "dataPublicacaoPncpInicial": (hoje - timedelta(days=30)).isoformat(),
-            "dataPublicacaoPncpFinal":   hoje.isoformat(),
-        }
-        import httpx
-        all_results: list[dict] = []
         try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                tasks = [_fetch_dadosabertos(client, params, m) for m in MODALIDADES_DADOSABERTOS]
-                batches = await asyncio.gather(*tasks, return_exceptions=True)
-            for batch in batches:
-                if isinstance(batch, list):
-                    all_results.extend(batch)
+            pool = await get_pool()
+            async with pool.acquire() as conn:
+                rows = await conn.fetch(
+                    """
+                    SELECT numero, id, ano, objeto, orgao_nome, orgao_cnpj, uf, municipio,
+                           modalidade, modalidade_codigo, modo_disputa, situacao, valor_estimado,
+                           data_publicacao, data_abertura, data_encerramento,
+                           esfera, poder, srp, numero_processo, informacao_complementar,
+                           amparo_legal, fonte, atualizado_em
+                    FROM licitacoes_cache
+                    ORDER BY data_publicacao DESC NULLS LAST, atualizado_em DESC
+                    """
+                )
+            return [_row_to_tender(row) for row in rows]
         except Exception as exc:
-            logger.warning("SyncService _fetch_all_tenders: %s", exc)
-
-        if all_results:
-            return all_results
-
-        # Fallback: mocks
-        return [_normalize(m) for m in MOCK_LICITACOES]
+            logger.warning("SyncService._fetch_all_tenders: %s", exc)
+            return []
 
 
 # ── Singleton ─────────────────────────────────────────────────────────────────
