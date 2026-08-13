@@ -95,6 +95,8 @@ export default function Certidoes() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [dragOver, setDragOver] = useState(false);
   const [formError, setFormError] = useState("");
+  const [editingArquivoUrl, setEditingArquivoUrl] = useState<string | null>(null);
+  const [replaceMode, setReplaceMode] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["certidoes"] });
@@ -146,6 +148,19 @@ export default function Certidoes() {
 
   const atualizar = useMutation({
     mutationFn: async ({ id, body }: { id: number; body: Partial<FormState> }) => {
+      // Upload do arquivo primeiro, se fornecido
+      if (body.file) {
+        const fd = new FormData();
+        fd.append("file", body.file);
+        const fileRes = await apiFetch(`${BASE}/api/certidoes/${id}/arquivo`, {
+          method: "PATCH", credentials: "include", body: fd,
+        });
+        if (!fileRes.ok) {
+          const err = await fileRes.json().catch(() => ({}));
+          throw new Error((err as any).detail || "Erro ao enviar arquivo");
+        }
+      }
+      // Atualiza metadados
       const res = await apiFetch(`${BASE}/api/certidoes/${id}`, {
         method: "PATCH", credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -175,8 +190,8 @@ export default function Certidoes() {
 
   // ── Helpers de modal ──────────────────────────────────────────────────────
 
-  const openCreate = () => { setForm(EMPTY_FORM); setFormError(""); setModal("create"); };
-  const closeModal = () => { setModal(null); setForm(EMPTY_FORM); setFormError(""); };
+  const openCreate = () => { setForm(EMPTY_FORM); setFormError(""); setEditingArquivoUrl(null); setReplaceMode(false); setModal("create"); };
+  const closeModal = () => { setModal(null); setForm(EMPTY_FORM); setFormError(""); setEditingArquivoUrl(null); setReplaceMode(false); };
 
   const openEdit = (cert: Certidao) => {
     setForm({
@@ -188,6 +203,8 @@ export default function Certidoes() {
       descricao: cert.descricao ?? "",
       file: null,
     });
+    setEditingArquivoUrl(cert.arquivoUrl);
+    setReplaceMode(false);
     setFormError("");
     setModal(cert.id);
   };
@@ -366,10 +383,35 @@ export default function Certidoes() {
             </div>
 
             <div className="space-y-4">
-              {/* Drag-and-drop (apenas na criação) */}
-              {!isEditing && (
-                <div>
-                  <label className="block text-sm font-medium mb-1">Arquivo <span className="text-muted-foreground font-normal">(opcional)</span></label>
+              {/* Seção de arquivo */}
+              <div>
+                <label className="block text-sm font-medium mb-1">Arquivo <span className="text-muted-foreground font-normal">(opcional)</span></label>
+
+                {/* Edição: cert já tem arquivo e usuário ainda não pediu para substituir */}
+                {isEditing && editingArquivoUrl && !replaceMode && !form.file ? (
+                  <div className="flex items-center gap-3 border border-border rounded-xl px-4 py-3 bg-muted/30">
+                    <FileText className="w-5 h-5 text-primary shrink-0" />
+                    <span className="text-sm text-foreground truncate flex-1">Arquivo anexado</span>
+                    <a
+                      href={`${BASE}${editingArquivoUrl}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download
+                      className="p-1.5 rounded-md hover:bg-primary/10 text-primary transition-colors shrink-0"
+                      title="Baixar"
+                    >
+                      <Download className="w-4 h-4" />
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => setReplaceMode(true)}
+                      className="flex items-center gap-1.5 text-xs font-medium text-primary hover:underline shrink-0"
+                    >
+                      <Upload className="w-3.5 h-3.5" /> Substituir
+                    </button>
+                  </div>
+                ) : (
+                  /* Drop zone: criação, ou edição sem arquivo, ou modo substituição */
                   <div
                     onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                     onDragLeave={() => setDragOver(false)}
@@ -390,17 +432,37 @@ export default function Certidoes() {
                         <FileText className="w-7 h-7 text-primary mx-auto" />
                         <p className="font-medium text-sm">{form.file.name}</p>
                         <p className="text-xs text-muted-foreground">{(form.file.size / 1024).toFixed(1)} KB</p>
+                        {isEditing && replaceMode && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setForm(f => ({ ...f, file: null })); setReplaceMode(false); }}
+                            className="text-xs text-muted-foreground hover:text-foreground underline mt-1"
+                          >
+                            Cancelar substituição
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <div className="space-y-1.5">
                         <Upload className="w-7 h-7 text-muted-foreground mx-auto" />
-                        <p className="text-sm font-medium">Arraste ou clique para selecionar</p>
+                        <p className="text-sm font-medium">
+                          {isEditing && replaceMode ? "Selecione o novo arquivo" : "Arraste ou clique para selecionar"}
+                        </p>
                         <p className="text-xs text-muted-foreground">PDF, DOC, DOCX, PNG, JPG (opcional)</p>
+                        {isEditing && replaceMode && (
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setReplaceMode(false); }}
+                            className="text-xs text-muted-foreground hover:text-foreground underline"
+                          >
+                            Cancelar
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
-                </div>
-              )}
+                )}
+              </div>
 
               {/* Nome */}
               <div>

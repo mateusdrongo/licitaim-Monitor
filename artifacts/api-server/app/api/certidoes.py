@@ -229,6 +229,71 @@ async def update_certidao(
     return _fmt(dict(row))
 
 
+# ── Substituir / adicionar arquivo em certidão existente ───────────────────
+
+@router.patch("/{cert_id}/arquivo")
+async def update_certidao_arquivo(
+    cert_id: int,
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
+):
+    """
+    Substitui (ou adiciona) o arquivo de uma certidão já cadastrada.
+
+    - Valida o MIME type contra a allowlist.
+    - Salva o novo arquivo em disco.
+    - Atualiza arquivo_url no banco.
+    - Remove o arquivo anterior do disco (se existia).
+    """
+    content_type = file.content_type or ""
+    ext = MIME_EXTENSIONS.get(content_type)
+    if ext is None:
+        raise HTTPException(
+            status_code=415,
+            detail=(
+                "Tipo de arquivo não permitido. "
+                "Formatos aceitos: PDF, PNG, JPEG, DOC, DOCX, XLS, XLSX."
+            ),
+        )
+
+    pool = await get_pool()
+    # Busca a certidão e verifica ownership antes de gravar qualquer coisa
+    existing = await pool.fetchrow(
+        "SELECT arquivo_url FROM certidoes WHERE id=$1 AND user_id=$2",
+        cert_id, current_user["id"],
+    )
+    if not existing:
+        raise HTTPException(status_code=404, detail="Não encontrado")
+
+    # Salva novo arquivo em disco
+    filename = f"{uuid.uuid4()}{ext}"
+    filepath = os.path.join(UPLOAD_DIR, filename)
+    try:
+        with open(filepath, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+    finally:
+        file.file.close()
+
+    novo_arquivo_url = f"/api/certidoes/file/{filename}"
+
+    # Atualiza o banco
+    updated_row = await pool.fetchrow(
+        "UPDATE certidoes SET arquivo_url=$1, atualizado_em=NOW() WHERE id=$2 AND user_id=$3 RETURNING *",
+        novo_arquivo_url, cert_id, current_user["id"],
+    )
+
+    # Remove arquivo anterior do disco
+    old_url = existing["arquivo_url"] or ""
+    if old_url.startswith("/api/certidoes/file/"):
+        old_fname = old_url.split("/")[-1]
+        if "/" not in old_fname and ".." not in old_fname:
+            old_fpath = os.path.join(UPLOAD_DIR, old_fname)
+            if os.path.isfile(old_fpath):
+                os.remove(old_fpath)
+
+    return _fmt(dict(updated_row))
+
+
 # ── Remover ─────────────────────────────────────────────────────────────────
 
 @router.delete("/{cert_id}", status_code=204)
