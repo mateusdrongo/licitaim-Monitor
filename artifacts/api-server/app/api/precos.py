@@ -6,7 +6,14 @@ Sem dependência de APIs externas — os dados estão sempre disponíveis.
 
 Tipos de consulta:
   estimado   — valor_estimado de todas as licitações que batem com o termo
-  homologado — valor_estimado de licitações encerradas (adjudicadas/homologadas)
+  homologado — valor_estimado de licitações com situacao='encerrada' (processos concluídos)
+
+Nota: o banco armazena apenas valor_estimado (referência pré-licitação). Não há campo de
+valor adjudicado/homologado na fonte de dados atual; o modo "homologado" restringe os
+resultados a processos encerrados, mas os valores exibidos continuam sendo estimativas.
+
+Estatísticas (precoMedio, precoMinimo, precoMaximo) são calculadas sobre o conjunto
+completo de resultados do filtro, não apenas sobre a página atual.
 """
 from __future__ import annotations
 
@@ -42,11 +49,16 @@ async def historico_precos(
     Retorna preços de licitações que mencionam o item pesquisado.
 
     tipo=estimado   → todas as licitações (valor de referência pré-licitação)
-    tipo=homologado → apenas encerradas (valor adjudicado/homologado)
+    tipo=homologado → apenas licitações encerradas (situacao='encerrada')
+
+    Nota: ambos os modos exibem valor_estimado. Licitações canceladas ou suspensas
+    são excluídas do modo homologado pois não chegaram à adjudicação.
+
+    Estatísticas calculadas sobre o conjunto completo de resultados (não apenas a página).
     """
     pool = await get_pool()
 
-    limit = 200      # máximo por consulta
+    limit = 200      # máximo por página
     offset = (pagina - 1) * limit
 
     conditions: list[str] = [
@@ -57,9 +69,10 @@ async def historico_precos(
     args: list = [f"%{q}%"]
     idx = 2
 
+    # homologado: apenas processos efetivamente encerrados (não cancelados/suspensos)
     if tipo == "homologado":
-        conditions.append(f"situacao = ANY(${idx}::text[])")
-        args.append(["encerrada", "cancelada"])
+        conditions.append(f"situacao = ${idx}")
+        args.append("encerrada")
         idx += 1
 
     if uf and uf.upper() in _UFS_VALIDAS:
@@ -81,6 +94,7 @@ async def historico_precos(
 
     where = "WHERE " + " AND ".join(conditions)
 
+    # Page query
     sql = f"""
         SELECT
             numero,
@@ -100,62 +114,73 @@ async def historico_precos(
         LIMIT {limit} OFFSET {offset}
     """
 
-    count_sql = f"SELECT COUNT(*) FROM licitacoes_cache {where}"
+    # Full-dataset aggregate (count + stats) — no pagination, covers the entire filter
+    agg_sql = f"""
+        SELECT
+            COUNT(*)                    AS total,
+            AVG(valor_estimado)         AS media,
+            MIN(valor_estimado)         AS minimo,
+            MAX(valor_estimado)         AS maximo
+        FROM licitacoes_cache
+        {where}
+    """
 
     try:
         rows = await pool.fetch(sql, *args)
-        total_count = await pool.fetchval(count_sql, *args)
+        agg  = await pool.fetchrow(agg_sql, *args)
     except Exception as exc:
         logger.error("historico_precos: erro ao consultar banco: %s", exc)
-        return _empty_response(q)
+        return _empty_response(q, tipo, pagina)
 
-    if not rows:
-        return _empty_response(q)
+    total_count = int(agg["total"] or 0)
+
+    if total_count == 0:
+        return _empty_response(q, tipo, pagina)
 
     registros = []
     for r in rows:
         dt = r["data_publicacao"] or r["data_abertura"] or r["data_encerramento"]
         registros.append({
-            "data":       dt.date().isoformat() if dt else None,
-            "preco":      float(r["valor_estimado"]),
-            "orgao":      r["orgao_nome"] or "",
-            "uf":         r["uf"] or "",
-            "municipio":  r["municipio"] or "",
+            "data":        dt.date().isoformat() if dt else None,
+            "preco":       float(r["valor_estimado"]),
+            "orgao":       r["orgao_nome"] or "",
+            "uf":          r["uf"] or "",
+            "municipio":   r["municipio"] or "",
             "licitacaoId": r["numero"] or "",
-            "objeto":     (r["objeto"] or "")[:200],
-            "modalidade": r["modalidade"] or "",
-            "situacao":   r["situacao"] or "",
+            "objeto":      (r["objeto"] or "")[:200],
+            "modalidade":  r["modalidade"] or "",
+            "situacao":    r["situacao"] or "",
         })
 
-    precos = [r["preco"] for r in registros]
-    preco_medio  = sum(precos) / len(precos)
-    preco_minimo = min(precos)
-    preco_maximo = max(precos)
+    # Stats come from the full-result aggregate, not the current page
+    preco_medio  = float(agg["media"]  or 0)
+    preco_minimo = float(agg["minimo"] or 0)
+    preco_maximo = float(agg["maximo"] or 0)
 
     return {
-        "item":          q,
-        "tipo":          tipo,
-        "totalRegistros": int(total_count or len(registros)),
-        "precoMedio":    round(preco_medio, 2),
-        "precoMinimo":   round(preco_minimo, 2),
-        "precoMaximo":   round(preco_maximo, 2),
-        "registros":     registros,
-        "pagina":        pagina,
-        "totalPaginas":  max(1, -(-int(total_count or len(registros)) // limit)),
-        "fonte":         "licitacoes_cache",
+        "item":           q,
+        "tipo":           tipo,
+        "totalRegistros": total_count,
+        "precoMedio":     round(preco_medio, 2),
+        "precoMinimo":    round(preco_minimo, 2),
+        "precoMaximo":    round(preco_maximo, 2),
+        "registros":      registros,
+        "pagina":         pagina,
+        "totalPaginas":   max(1, -(-total_count // limit)),
+        "fonte":          "licitacoes_cache",
     }
 
 
-def _empty_response(q: str) -> dict:
+def _empty_response(q: str, tipo: str = "estimado", pagina: int = 1) -> dict:
     return {
-        "item":          q,
-        "tipo":          "estimado",
+        "item":           q,
+        "tipo":           tipo,
         "totalRegistros": 0,
-        "precoMedio":    0.0,
-        "precoMinimo":   0.0,
-        "precoMaximo":   0.0,
-        "registros":     [],
-        "pagina":        1,
-        "totalPaginas":  1,
-        "fonte":         "licitacoes_cache",
+        "precoMedio":     0.0,
+        "precoMinimo":    0.0,
+        "precoMaximo":    0.0,
+        "registros":      [],
+        "pagina":         pagina,
+        "totalPaginas":   1,
+        "fonte":          "licitacoes_cache",
     }

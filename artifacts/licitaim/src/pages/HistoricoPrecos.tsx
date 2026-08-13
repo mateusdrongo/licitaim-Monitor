@@ -36,15 +36,27 @@ export default function HistoricoPrecos() {
   const [searchTerm, setSearchTerm] = useState("");
   const [uf, setUf] = useState("");
   const [tipo, setTipo] = useState<"estimado" | "homologado">("estimado");
+  const [dataInicio, setDataInicio] = useState("");
+  const [dataFim, setDataFim] = useState("");
   const [pagina, setPagina] = useState(1);
 
   // submitted state drives the query
   const [submitted, setSubmitted] = useState<{
     q: string; uf: string; tipo: string; pagina: number;
+    dataInicio: string; dataFim: string;
   } | null>(null);
 
   const { data, isLoading } = useGetHistoricoPrecos(
-    submitted ? { q: submitted.q, uf: submitted.uf || undefined, tipo: submitted.tipo, pagina: submitted.pagina } : { q: "__never__" },
+    submitted
+      ? {
+          q: submitted.q,
+          uf: submitted.uf || undefined,
+          tipo: submitted.tipo,
+          pagina: submitted.pagina,
+          ...(submitted.dataInicio ? { dataInicio: submitted.dataInicio } : {}),
+          ...(submitted.dataFim ? { dataFim: submitted.dataFim } : {}),
+        }
+      : { q: "__never__" },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     { query: { enabled: !!submitted } } as any,
   );
@@ -52,7 +64,7 @@ export default function HistoricoPrecos() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchTerm.trim()) return;
-    const next = { q: searchTerm.trim(), uf, tipo, pagina: 1 };
+    const next = { q: searchTerm.trim(), uf, tipo, pagina: 1, dataInicio, dataFim };
     setPagina(1);
     setSubmitted(next);
   };
@@ -144,6 +156,27 @@ export default function HistoricoPrecos() {
           >
             Buscar
           </button>
+        </div>
+
+        {/* Date range filters */}
+        <div className="flex flex-wrap gap-3 items-center">
+          <span className="text-xs text-muted-foreground font-medium">Período:</span>
+          <div className="flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+            <input
+              type="date"
+              value={dataInicio}
+              onChange={(e) => setDataInicio(e.target.value)}
+              className="h-8 px-2 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+          </div>
+          <span className="text-xs text-muted-foreground">até</span>
+          <input
+            type="date"
+            value={dataFim}
+            onChange={(e) => setDataFim(e.target.value)}
+            className="h-8 px-2 rounded-md border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+          />
         </div>
 
         <p className="text-xs text-muted-foreground">
