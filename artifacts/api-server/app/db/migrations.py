@@ -314,7 +314,28 @@ _DDL = [
     # mas agora o collector opera em minutos — mantemos interval_hours por compat).
     "ALTER TABLE collector_status ADD COLUMN IF NOT EXISTS interval_minutes INT DEFAULT 20",
 
-    # ── Certidões: campo de arquivo (nullable, adicionado após criação inicial) ──
+    # ── Certidões ─────────────────────────────────────────────────────────────
+    # Criada aqui para garantir existência em ambientes novos.  O ALTER TABLE
+    # abaixo adiciona arquivo_url caso a tabela já existisse sem essa coluna.
+    """
+    CREATE TABLE IF NOT EXISTS certidoes (
+        id               SERIAL PRIMARY KEY,
+        user_id          TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        nome             TEXT NOT NULL,
+        tipo             TEXT NOT NULL DEFAULT 'outro',
+        orgao_emissor    TEXT,
+        numero           TEXT,
+        data_emissao     DATE,
+        data_vencimento  DATE,
+        descricao        TEXT,
+        arquivo_url      TEXT,
+        criado_em        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        atualizado_em    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_cert_user ON certidoes(user_id)",
+    "CREATE INDEX IF NOT EXISTS idx_cert_vencimento ON certidoes(data_vencimento)",
+    # Coluna adicionada após criação inicial — idempotente
     "ALTER TABLE certidoes ADD COLUMN IF NOT EXISTS arquivo_url TEXT",
 
     # ── 13. Collector alert state ─────────────────────────────────────────────

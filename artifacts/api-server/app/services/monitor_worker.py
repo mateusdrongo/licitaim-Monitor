@@ -421,6 +421,11 @@ async def check_document_expirations() -> dict:
     pool = await get_pool()
     hoje = date.today()
 
+    # Janela de busca:
+    # - Futuro: até 30 dias à frente (cobre todos os thresholds positivos)
+    # - Passado: até 30 dias atrás — garante que certidões que venceram durante
+    #   uma indisponibilidade prolongada ainda sejam alertadas.  A deduplicação
+    #   por ref_key evita reenvios para quem já recebeu o alerta normalmente.
     certs = await _fetch_with_notif_fallback(
         pool,
         full_query="""
@@ -443,11 +448,12 @@ async def check_document_expirations() -> dict:
                  AND c.data_vencimento >= $1
                  AND c.data_vencimento <= $2
         """,
-        args=(hoje - timedelta(days=1), hoje + timedelta(days=30)),
+        args=(hoje - timedelta(days=30), hoje + timedelta(days=30)),
         context="check_document_expirations",
     )
 
-    ALERT_THRESHOLDS = {30, 15, 7, 3, 1, 0, -1}
+    # Thresholds futuros: alertas pontuais nos marcos padrão.
+    FUTURE_THRESHOLDS = {30, 15, 7, 3, 1, 0}
     sent     = 0
     skipped  = 0
 
@@ -455,21 +461,31 @@ async def check_document_expirations() -> dict:
         dv   = cert["data_vencimento"]
         dias = (dv - hoje).days
 
-        if dias not in ALERT_THRESHOLDS:
-            continue
-
-        # Chave de deduplicação: cert + threshold — evita reenvio se o job rodar >1× no dia
-        ref_key = f"certidao_{cert['id']}_d{dias}"
+        # ── Certidão futura ou vencendo hoje: alerta apenas nos thresholds ────
+        if dias >= 0:
+            if dias not in FUTURE_THRESHOLDS:
+                continue
+            # Chave de deduplicação: cert + threshold — evita reenvio se o job
+            # rodar >1× no dia para o mesmo marco de prazo.
+            ref_key    = f"certidao_{cert['id']}_d{dias}"
+            dedup_interval = "24 hours"
+        else:
+            # ── Certidão vencida (dias < 0) ────────────────────────────────────
+            # Usa chave estável "_vencida" com janela de 7 dias para que:
+            # (a) não re-alerte usuários já notificados na semana corrente, e
+            # (b) ainda alerte usuários cujo alerta foi perdido por outage de
+            #     até 7 dias (cenário de misfire prolongado).
+            ref_key    = f"certidao_{cert['id']}_vencida"
+            dedup_interval = "7 days"
 
         try:
-            # Deduplicação: não re-alerta se já existe registro nas últimas 24h
             existing = await pool.fetchval(
-                """
+                f"""
                 SELECT id FROM alertas
                 WHERE user_id      = $1
                   AND tipo         = 'prazo_vencendo'
                   AND licitacao_id = $2
-                  AND criado_em    > NOW() - INTERVAL '24 hours'
+                  AND criado_em    > NOW() - INTERVAL '{dedup_interval}'
                 LIMIT 1
                 """,
                 str(cert["user_id"]), ref_key,
