@@ -147,6 +147,11 @@ async def historico_precos(
     """
 
     try:
+        # Check if the table has any rows at all (detects first-startup empty state)
+        cache_count = await pool.fetchval("SELECT COUNT(*) FROM licitacoes_cache")
+        if (cache_count or 0) == 0:
+            return _empty_response(q, tipo, pagina, cache_vazio=True)
+
         rows = await pool.fetch(sql, *args)
         agg  = await pool.fetchrow(agg_sql, *args)
     except Exception as exc:
@@ -192,7 +197,7 @@ async def historico_precos(
     }
 
 
-def _empty_response(q: str, tipo: str = "estimado", pagina: int = 1) -> dict:
+def _empty_response(q: str, tipo: str = "estimado", pagina: int = 1, cache_vazio: bool = False) -> dict:
     return {
         "item":           q,
         "tipo":           tipo,
@@ -204,4 +209,5 @@ def _empty_response(q: str, tipo: str = "estimado", pagina: int = 1) -> dict:
         "pagina":         pagina,
         "totalPaginas":   1,
         "fonte":          "licitacoes_cache",
+        "cacheVazio":     cache_vazio,
     }

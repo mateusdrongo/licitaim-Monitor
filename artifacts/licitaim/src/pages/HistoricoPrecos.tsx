@@ -215,8 +215,21 @@ export default function HistoricoPrecos() {
         </div>
       )}
 
+      {/* Cache still empty (first startup) */}
+      {!isLoading && submitted && !hasData && (data as any)?.cacheVazio && (
+        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-xl p-12 text-center space-y-2">
+          <BarChart3 className="w-10 h-10 text-amber-500 mx-auto" />
+          <p className="font-medium text-amber-800 dark:text-amber-300">
+            Banco de dados ainda sendo preenchido
+          </p>
+          <p className="text-sm text-amber-700 dark:text-amber-400">
+            O banco de dados ainda está sendo preenchido. O collector atualiza a cada 20 minutos — tente novamente em breve.
+          </p>
+        </div>
+      )}
+
       {/* No results */}
-      {!isLoading && submitted && !hasData && (
+      {!isLoading && submitted && !hasData && !(data as any)?.cacheVazio && (
         <div className="bg-card border border-border rounded-xl p-12 text-center space-y-2">
           <BarChart3 className="w-10 h-10 text-muted-foreground mx-auto" />
           <p className="font-medium">Nenhum registro encontrado</p>
