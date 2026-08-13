@@ -11,7 +11,6 @@ from ..db.session import get_pool
 from ..db.licitacoes_repo import (
     search_licitacoes_cache,
     get_cache_stats,
-    CANONICAL_WINDOW_DAYS,
 )
 
 router = APIRouter(prefix="/licitacoes", tags=["licitacoes"])
@@ -69,7 +68,6 @@ _MODAL_NAME_TO_CODE: dict[str, int] = {
 
 # ── User-Agent rotation — bypass WAF PNCP ─────────────────────────────────────
 # Pool amplo: Chrome/Firefox/Edge/Safari em Windows/Mac/Linux/Mobile.
-# search_queue.py usa sua própria variante estendida com Referer e Sec-CH-UA.
 _USER_AGENTS = [
     # Chrome Windows
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
@@ -368,45 +366,6 @@ async def _fetch_pncp_consulta(
     return []
 
 
-async def _fetch_pncp_consulta_all_pages(
-    client: httpx.AsyncClient,
-    data_ini: str,
-    data_fim: str,
-    modalidade: int,
-    uf: str | None = None,
-    max_pages: int = 50,
-) -> list[dict]:
-    """
-    Itera todas as páginas da API PNCP consulta até o fim ou max_pages.
-    Usado pelo scheduler para cobertura completa da janela de datas.
-    """
-    all_items: list[dict] = []
-    for pagina in range(1, max_pages + 1):
-        page_items = await _fetch_pncp_consulta(client, data_ini, data_fim, modalidade, uf, pagina)
-        if not page_items:
-            break
-        all_items.extend(page_items)
-        if len(page_items) < 20:
-            # Última página parcial — não há mais
-            break
-    return all_items
-
-
-async def _fetch_dadosabertos_all_pages(
-    client: httpx.AsyncClient,
-    base_params: dict,
-    modalidade: int,
-    page_size: int = 100,
-    max_pages: int = 50,
-) -> list[dict]:
-    """
-    Itera todas as páginas do dadosabertos até o fim ou max_pages.
-    Usado pelo scheduler para cobertura completa da janela de datas.
-    """
-    items, _ = await _fetch_dados_all_pages_with_cap(client, base_params, modalidade, page_size, max_pages)
-    return items
-
-
 async def _fetch_pncp_all_pages_with_cap(
     client: httpx.AsyncClient,
     data_ini: str,
@@ -475,37 +434,6 @@ async def _fetch_dadosabertos(
         pass
     return []
 
-
-async def _buscar_dadosabertos_por_cnpj(
-    cnpj: str,
-    ano: int,
-    id_compra: str,
-    numero_controle: str,
-) -> dict | None:
-    """Busca item específico no dadosabertos por CNPJ + ano (fallback de detalhe)."""
-    start_date = f"{ano}-01-01"
-    end_date   = f"{ano}-12-31"
-    try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            base_params = {
-                "pagina": 1, "tamanhoPagina": 100,
-                "dataPublicacaoPncpInicial": start_date,
-                "dataPublicacaoPncpFinal":   end_date,
-                "orgaoEntidadeCnpj":         cnpj,
-            }
-            for modal in MODALIDADES_DADOSABERTOS:
-                resp = await client.get(DADOSABERTOS_URL, params={**base_params, "codigoModalidade": modal})
-                if resp.status_code == 200:
-                    for item in resp.json().get("resultado", []):
-                        norm = _normalize_dadosabertos(item)
-                        if (
-                            str(norm.get("id", ""))     == str(id_compra)
-                            or norm.get("numero", "")   == numero_controle
-                        ):
-                            return norm
-    except Exception:
-        pass
-    return None
 
 
 # ── Mock fallback ──────────────────────────────────────────────────────────────

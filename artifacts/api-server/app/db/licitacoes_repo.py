@@ -27,61 +27,9 @@ def set_cache_ready(ok: bool) -> None:
 # ── Cobertura do cache — modelo global ────────────────────────────────────────
 #
 # Design:  UMA única linha na tabela de cobertura, com scope_key=GLOBAL_SCOPE_KEY.
-# O scheduler popula os últimos CANONICAL_WINDOW_DAYS dias de todas as modalidades
-# e grava is_complete=True apenas quando nenhuma modalidade atingiu o cap de páginas.
-# O endpoint serve do banco SOMENTE quando:
-#   (a) a cobertura global é fresca (last_sync < COVERAGE_TTL atrás), E
-#   (b) is_complete=True (sem truncagem), E
-#   (c) o intervalo de datas do usuário está contido na janela canônica.
-# Se qualquer condição falhar, o endpoint busca ao vivo nas APIs externas.
-#
-# Isso garante que:
-#   • Escopos filtrados NUNCA são marcados como cobertura parcial.
-#   • Um cap de páginas invalida o uso do banco até o próximo sync completo.
-#   • Resultados zerados legítimos são servidos do banco (sem re-fetch desnecessário).
-
-CANONICAL_WINDOW_DAYS = 30       # janela padrão — deve coincidir com endpoint e scheduler
+CANONICAL_WINDOW_DAYS = 30       # janela padrão — deve coincidir com scheduler
 GLOBAL_SCOPE_KEY      = "global_30d"
 _COVERAGE_TTL         = timedelta(hours=6)   # 1 intervalo entre crons (4×/dia)
-
-
-async def check_global_coverage(pool: asyncpg.Pool, user_data_ini: str, user_data_fim: str) -> bool:
-    """
-    Retorna True se o banco pode responder a uma busca com esse intervalo de datas:
-    - Cobertura global fresca (< COVERAGE_TTL)
-    - Sync foi completo (sem truncagem por cap)
-    - Intervalo do usuário está contido na janela canônica [hoje-30d, hoje]
-    """
-    if not _cache_ready:
-        return False
-    hoje = datetime.now(timezone.utc).date()
-    janela_ini = hoje - timedelta(days=CANONICAL_WINDOW_DAYS)
-
-    # Verifica contenção da janela do usuário
-    try:
-        u_ini = datetime.fromisoformat(user_data_ini).date()
-        u_fim = datetime.fromisoformat(user_data_fim).date()
-    except Exception:
-        return False
-    if u_ini < janela_ini or u_fim > hoje:
-        return False   # fora da janela canônica → busca ao vivo
-
-    try:
-        async with pool.acquire() as conn:
-            row = await conn.fetchrow(
-                "SELECT last_sync, is_complete FROM licitacoes_cache_coverage WHERE scope_key = $1",
-                GLOBAL_SCOPE_KEY,
-            )
-        if not row:
-            return False
-        last_sync = row["last_sync"]
-        if last_sync.tzinfo is None:
-            last_sync = last_sync.replace(tzinfo=timezone.utc)
-        age = datetime.now(timezone.utc) - last_sync
-        return age <= _COVERAGE_TTL and bool(row["is_complete"])
-    except Exception as exc:
-        logger.warning("check_global_coverage: %s", exc)
-        return False
 
 
 async def record_global_coverage(pool: asyncpg.Pool, total_found: int, is_complete: bool) -> None:
