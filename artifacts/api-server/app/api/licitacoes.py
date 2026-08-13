@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Depends, Query, HTTPException, BackgroundTasks  # BackgroundTasks: /admin/sync
 from typing import Optional
-import asyncio
 import random
 import re
 from datetime import date, timedelta
@@ -33,8 +32,7 @@ DADOSABERTOS_URL  = "https://dadosabertos.compras.gov.br/modulo-contratacoes/1_c
 #   14=Inaplicabilidade  15=Chamada Pública
 #   16=Concorrência-E Internacional  17=Concorrência-P Internacional
 #   18=Pregão-E Internacional  19=Pregão-P Internacional
-MODALIDADES_PADRAO       = [6, 4, 8, 9, 5, 7]   # modalidades mais frequentes no cron
-# Códigos dadosabertos (sistema diferente, usado somente no fallback)
+# Códigos dadosabertos — usado por sync_service.py como fallback
 MODALIDADES_DADOSABERTOS = [5, 6, 3, 7]
 
 _MODAL_NAME_TO_CODE: dict[str, int] = {
@@ -111,10 +109,6 @@ def _pncp_headers() -> dict:
         "Pragma": "no-cache",
         "Cache-Control": "no-cache",
     }
-
-def _fmt_pncp_date(iso: str) -> str:
-    """YYYY-MM-DD → YYYYMMDD para a API PNCP consulta."""
-    return iso.replace("-", "")
 
 # ── Domínios ───────────────────────────────────────────────────────────────────
 _ESFERA_MAP = {"F": "federal", "E": "estadual", "M": "municipal", "D": "distrital"}
@@ -252,173 +246,7 @@ def _normalize(item: dict) -> dict:
     return item
 
 
-# ── Enriquecimento por código PNCP ────────────────────────────────────────────
-
-def _parse_pncp_code_to_url(numero: str) -> str | None:
-    """
-    Converte um código PNCP no formato ``CNPJ14-unit-seq/ano``
-    (ex: ``07598626000190-1-000023/2026``) para a URL de detalhe da API
-    consulta: ``https://pncp.gov.br/api/consulta/v1/orgaos/{cnpj}/compras/{ano}/{seq}``.
-
-    Retorna None se o código não puder ser interpretado.
-    """
-    parsed = _parse_numero_pncp(numero)
-    if not parsed:
-        return None
-    cnpj, seq, ano = parsed
-    return f"{PNCP_CONSULTA_BASE}/orgaos/{cnpj}/compras/{ano}/{seq}"
-
-
-async def _fetch_pncp_detalhe_consulta(
-    client: httpx.AsyncClient,
-    numero: str,
-) -> dict | None:
-    """
-    Busca os dados detalhados de uma licitação a partir do seu código PNCP,
-    usando a API consulta (não bloqueada pelo WAF com User-Agent rotation).
-
-    Código de entrada: ``CNPJ14-unit-seq/ano``  ex: ``07598626000190-1-000023/2026``
-    URL resultante:    ``https://pncp.gov.br/api/consulta/v1/orgaos/07598626000190/compras/2026/23``
-
-    Retorna os dados normalizados (schema interno) ou None em caso de erro.
-    """
-    url = _parse_pncp_code_to_url(numero)
-    if not url:
-        return None
-    try:
-        resp = await client.get(url, headers=_pncp_headers())
-        if resp.status_code == 200:
-            return _normalize_pncp_item(resp.json())
-    except Exception:
-        pass
-    return None
-
-
-async def _enrich_licitacoes(
-    items: list[dict],
-    concurrency: int = 5,
-) -> list[dict]:
-    """
-    Enriquece uma lista de licitações buscando o detalhe individual de cada uma
-    via ``_fetch_pncp_detalhe_consulta``. Faz no máximo ``concurrency`` chamadas
-    simultâneas para não sobrecarregar o WAF.
-
-    Campos do detalhe sobrepõem campos ausentes/nulos do item original.
-    Itens sem número PNCP válido ou cujo detalhe falhou são retornados sem alteração.
-    """
-    sem = asyncio.Semaphore(concurrency)
-
-    async def _enrich_one(item: dict) -> dict:
-        numero = item.get("numero") or ""
-        if not numero or not _parse_numero_pncp(numero):
-            return item
-        async with sem:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                detail = await _fetch_pncp_detalhe_consulta(client, numero)
-        if not detail:
-            return item
-        # Mescla: prefere detalhe para campos complementares, mantém item original
-        # para campos essenciais já presentes (evita regressão de dados bons).
-        merged = {**item}
-        for field in (
-            "informacao_complementar", "amparo_legal", "numero_processo",
-            "modo_disputa", "esfera", "poder", "srp",
-            "data_abertura", "data_encerramento",
-        ):
-            if not merged.get(field) and detail.get(field) is not None:
-                merged[field] = detail[field]
-        return merged
-
-    tasks = [_enrich_one(item) for item in items]
-    return list(await asyncio.gather(*tasks))
-
-
-# ── Fetchers ───────────────────────────────────────────────────────────────────
-
-async def _fetch_pncp_consulta(
-    client: httpx.AsyncClient,
-    data_ini: str,     # YYYYMMDD
-    data_fim: str,     # YYYYMMDD
-    modalidade: int,
-    uf: str | None = None,
-    pagina: int = 1,
-) -> list[dict]:
-    """
-    Busca uma página da API PNCP consulta pública.
-    tamanhoPagina=20 evita erro 500; User-Agent rotacionado para bypass do WAF.
-    """
-    url = (
-        f"{PNCP_CONSULTA_URL}"
-        f"?dataInicial={data_ini}&dataFinal={data_fim}"
-        f"&codigoModalidadeContratacao={modalidade}"
-        f"&tamanhoPagina=20&pagina={pagina}"
-    )
-    if uf:
-        url += f"&uf={uf}"
-    try:
-        resp = await client.get(url, headers=_pncp_headers())
-        if resp.status_code == 200:
-            return [_normalize_pncp_item(i) for i in resp.json().get("data", [])]
-        if resp.status_code == 204:
-            return []
-    except Exception:
-        pass
-    return []
-
-
-async def _fetch_pncp_all_pages_with_cap(
-    client: httpx.AsyncClient,
-    data_ini: str,
-    data_fim: str,
-    modalidade: int,
-    uf: str | None = None,
-    max_pages: int = 50,
-) -> tuple[list[dict], bool]:
-    """
-    Itera todas as páginas PNCP. Retorna (items, capped).
-    capped=True se atingiu max_pages sem esgotar os dados (possível truncagem).
-    """
-    all_items: list[dict] = []
-    for pagina in range(1, max_pages + 1):
-        page_items = await _fetch_pncp_consulta(client, data_ini, data_fim, modalidade, uf, pagina)
-        if not page_items:
-            return all_items, False   # exauriu normalmente
-        all_items.extend(page_items)
-        if len(page_items) < 20:
-            return all_items, False   # última página parcial → completo
-    # Chegou até max_pages com páginas cheias → pode haver mais dados
-    return all_items, True
-
-
-async def _fetch_dados_all_pages_with_cap(
-    client: httpx.AsyncClient,
-    base_params: dict,
-    modalidade: int,
-    page_size: int = 100,
-    max_pages: int = 50,
-) -> tuple[list[dict], bool]:
-    """
-    Itera todas as páginas do dadosabertos. Retorna (items, capped).
-    capped=True se atingiu max_pages sem esgotar os dados.
-    """
-    all_items: list[dict] = []
-    for pagina in range(1, max_pages + 1):
-        params = {**base_params, "codigoModalidade": modalidade, "pagina": pagina, "tamanhoPagina": page_size}
-        try:
-            resp = await client.get(DADOSABERTOS_URL, params=params)
-            if resp.status_code == 200:
-                page_items = [_normalize_dadosabertos(i) for i in resp.json().get("resultado", [])]
-                if not page_items:
-                    return all_items, False
-                all_items.extend(page_items)
-                if len(page_items) < page_size:
-                    return all_items, False
-            else:
-                return all_items, False
-        except Exception:
-            return all_items, False
-    return all_items, True
-
+# ── Fetchers (fallback — usado por sync_service.py) ───────────────────────────
 
 async def _fetch_dadosabertos(
     client: httpx.AsyncClient,
