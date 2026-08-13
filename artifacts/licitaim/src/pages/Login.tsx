@@ -128,9 +128,13 @@ export default function Login() {
                 <label className="text-sm font-medium leading-none" htmlFor="password">
                   Senha
                 </label>
-                <a href="#" className="text-xs text-primary hover:underline">
+                <button
+                  type="button"
+                  onClick={() => setLocation("/esqueceu-senha")}
+                  className="text-xs text-primary hover:underline"
+                >
                   Esqueceu a senha?
-                </a>
+                </button>
               </div>
               <input
                 id="password"

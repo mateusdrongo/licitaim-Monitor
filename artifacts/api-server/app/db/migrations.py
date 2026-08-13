@@ -355,6 +355,24 @@ _DDL = [
     VALUES (1, FALSE)
     ON CONFLICT (id) DO NOTHING
     """,
+
+    # session_version: monotonically-increasing integer; incremented on every
+    # password reset. JWTs carry the version at issuance time; if the stored
+    # version is higher the token belongs to an invalidated session.
+    "ALTER TABLE users ADD COLUMN IF NOT EXISTS session_version INT NOT NULL DEFAULT 0",
+
+    # ── 14. Tokens de redefinição de senha ────────────────────────────────────
+    """
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+        token       TEXT PRIMARY KEY,
+        user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        expires_at  TIMESTAMPTZ NOT NULL,
+        used        BOOLEAN NOT NULL DEFAULT FALSE,
+        criado_em   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS idx_prt_user ON password_reset_tokens(user_id)",
+    "CREATE INDEX IF NOT EXISTS idx_prt_expires ON password_reset_tokens(expires_at)",
 ]
 
 

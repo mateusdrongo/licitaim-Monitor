@@ -35,6 +35,17 @@ class WebSocketManager:
             del self._connections[user_id]
         logger.info("WS disconnect: user=%s total=%d", user_id, self._count())
 
+    async def disconnect_all_for_user(self, user_id: str) -> None:
+        """Close all active WebSocket connections for a user (e.g. after password reset)."""
+        sockets = list(self._connections.pop(user_id, set()))
+        for ws in sockets:
+            try:
+                await ws.close(code=4003, reason="Sessão encerrada — senha alterada")
+            except Exception:
+                pass
+        if sockets:
+            logger.info("WS disconnect_all: user=%s closed=%d", user_id, len(sockets))
+
     # ── Envio ─────────────────────────────────────────────────────────────────
 
     async def send_personal(self, user_id: str, payload: dict) -> bool:

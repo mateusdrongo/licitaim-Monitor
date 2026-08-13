@@ -13,6 +13,8 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import LandingPage from "@/pages/LandingPage";
 import Login from "@/pages/Login";
 import Cadastro from "@/pages/Cadastro";
+import EsqueceuSenha from "@/pages/EsqueceuSenha";
+import RedefinirSenha from "@/pages/RedefinirSenha";
 
 // App pages
 import Dashboard from "@/pages/Dashboard";
@@ -42,6 +44,8 @@ function AppRoutes() {
       {/* Autenticação */}
       <Route path="/entrar" component={Login} />
       <Route path="/cadastro" component={Cadastro} />
+      <Route path="/esqueceu-senha" component={EsqueceuSenha} />
+      <Route path="/redefinir-senha" component={RedefinirSenha} />
 
       {/* App autenticado — (.*) casa com qualquer nº de segmentos, ao contrário
            de /:rest* que em modo estrito só casa com um segmento */}

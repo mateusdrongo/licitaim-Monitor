@@ -11,7 +11,7 @@ from .db.session import get_pool, close_pool, init_pool
 import artifacts.api_server.app.db.session as _session_module  # noqa: F401 — for _db_available
 from .db.migrations import run_migrations
 from .core.camel import _convert
-from .core.security import decode_token
+from .core.security import decode_token, decode_token_full
 from .api import auth, dashboard, licitacoes, favoritos, monitoramentos
 from .api import alertas, documentos, equipe, oportunidades
 from .api import certidoes, agenda, analytics, precos, ai, admin, gerenciamento
@@ -221,17 +221,27 @@ async def websocket_endpoint(websocket: WebSocket, token: str):
       {"type": "pong"}
       {"type": "mark_read", "notification_id": <id>}
     """
-    user_id = decode_token(token)
+    payload = decode_token_full(token)
+    if not payload:
+        await websocket.close(code=4001, reason="Token inválido")
+        return
+    user_id = payload.get("sub")
     if not user_id:
         await websocket.close(code=4001, reason="Token inválido")
         return
 
     pool = await get_pool()
     user = await pool.fetchrow(
-        "SELECT id, nome, email FROM users WHERE id=$1", user_id
+        "SELECT id, nome, email, session_version FROM users WHERE id=$1", user_id
     )
     if not user:
         await websocket.close(code=4001, reason="Usuário não encontrado")
+        return
+
+    # Session revocation: reject tokens whose session_version doesn't match
+    token_sv = payload.get("sv", 0)
+    if token_sv != user["session_version"]:
+        await websocket.close(code=4003, reason="Sessão encerrada — senha alterada")
         return
 
     ws_manager = get_ws_manager()
