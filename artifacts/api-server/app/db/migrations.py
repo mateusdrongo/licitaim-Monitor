@@ -314,6 +314,9 @@ _DDL = [
     # mas agora o collector opera em minutos — mantemos interval_hours por compat).
     "ALTER TABLE collector_status ADD COLUMN IF NOT EXISTS interval_minutes INT DEFAULT 20",
 
+    # ── Certidões: campo de arquivo (nullable, adicionado após criação inicial) ──
+    "ALTER TABLE certidoes ADD COLUMN IF NOT EXISTS arquivo_url TEXT",
+
     # ── 13. Collector alert state ─────────────────────────────────────────────
     # Single-row table (id=1) that tracks whether an outage alert has already
     # been sent for the current stale window, to avoid repeat notifications.

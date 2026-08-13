@@ -11,6 +11,7 @@ export const certidoesTable = pgTable("certidoes", {
   dataEmissao: date("data_emissao"),
   dataVencimento: date("data_vencimento"),
   descricao: text("descricao"),
+  arquivoUrl: text("arquivo_url"),
   criadoEm: timestamp("criado_em").notNull().defaultNow(),
   atualizadoEm: timestamp("atualizado_em").notNull().defaultNow(),
 });
