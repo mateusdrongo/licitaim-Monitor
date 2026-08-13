@@ -50,7 +50,11 @@ export default function Cadastro() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        setError((body as { detail?: string }).detail ?? "Erro ao criar conta.");
+        const b = body as { detail?: string | { msg: string }[]; error?: string };
+        const detail = Array.isArray(b.detail)
+          ? (b.detail[0]?.msg ?? "Erro ao criar conta.")
+          : (b.detail ?? b.error ?? "Erro ao criar conta.");
+        setError(detail);
         return;
       }
       await refetch();

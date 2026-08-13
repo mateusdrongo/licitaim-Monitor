@@ -55,7 +55,11 @@ export default function Login() {
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        setError((body as { error?: string }).error ?? "Erro ao fazer login. Tente novamente.");
+        const b = body as { detail?: string | { msg: string }[]; error?: string };
+        const detail = Array.isArray(b.detail)
+          ? (b.detail[0]?.msg ?? "Erro ao fazer login.")
+          : (b.detail ?? b.error ?? "Erro ao fazer login. Tente novamente.");
+        setError(detail);
         return;
       }
 

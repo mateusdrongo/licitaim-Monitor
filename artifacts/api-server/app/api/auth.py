@@ -125,21 +125,21 @@ async def login(body: LoginRequest, response: Response):
     pool = await get_pool()
 
     user = await pool.fetchrow(
-        "SELECT id, nome, email, empresa, cnpj, plano, avatar_url, senha_hash, criado_em "
+        "SELECT id, nome, email, empresa, cnpj, plano, avatar_url, senha_hash, criado_em, "
+        "notif_email, notif_telegram, telegram_chat_id "
         "FROM users WHERE email = $1",
         body.email.lower().strip(),
     )
 
     if not user:
-        # Demo mode: auto-create user on first login
-        new_id = str(uuid.uuid4())
-        nome = body.email.split("@")[0].capitalize()
-        user = await pool.fetchrow(
-            """INSERT INTO users (id, nome, email, plano, empresa)
-               VALUES ($1, $2, $3, 'profissional', 'Minha Empresa Ltda')
-               RETURNING id, nome, email, empresa, cnpj, plano, avatar_url, senha_hash, criado_em""",
-            new_id, nome, body.email.lower().strip(),
-        )
+        raise HTTPException(status_code=401, detail="E-mail ou senha incorretos")
+
+    senha_hash = user["senha_hash"]
+    if senha_hash:
+        # Account has a password — verify it
+        if not body.password or not verify_password(body.password, senha_hash):
+            raise HTTPException(status_code=401, detail="E-mail ou senha incorretos")
+    # Legacy accounts (senha_hash IS NULL) — allow login without password verification
 
     _set_auth_cookie(response, user["id"])
     return _user_response(dict(user))
@@ -147,19 +147,25 @@ async def login(body: LoginRequest, response: Response):
 
 @router.post("/register")
 async def register(body: RegisterRequest, response: Response):
+    if len(body.password) < 8:
+        raise HTTPException(status_code=422, detail="A senha deve ter pelo menos 8 caracteres")
+
     pool = await get_pool()
 
-    existing = await pool.fetchrow("SELECT id FROM users WHERE email = $1", body.email.lower().strip())
+    existing = await pool.fetchrow(
+        "SELECT id FROM users WHERE email = $1", body.email.lower().strip()
+    )
     if existing:
         raise HTTPException(status_code=409, detail="E-mail já cadastrado")
 
     new_id = str(uuid.uuid4())
-    hashed = get_password_hash(body.password) if body.password else None
+    hashed = get_password_hash(body.password)
 
     user = await pool.fetchrow(
         """INSERT INTO users (id, nome, email, senha_hash, empresa, cnpj, plano)
            VALUES ($1, $2, $3, $4, $5, $6, 'gratuito')
-           RETURNING id, nome, email, empresa, cnpj, plano, avatar_url, criado_em""",
+           RETURNING id, nome, email, empresa, cnpj, plano, avatar_url, criado_em,
+                     notif_email, notif_telegram, telegram_chat_id""",
         new_id, body.nome, body.email.lower().strip(), hashed, body.empresa, body.cnpj,
     )
 
