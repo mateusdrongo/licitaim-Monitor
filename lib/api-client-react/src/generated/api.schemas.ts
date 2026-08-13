@@ -100,6 +100,8 @@ export interface Alerta {
   licitacaoObjeto?: string | null;
   /** @nullable */
   monitoramentoNome?: string | null;
+  /** @nullable — URL de navegação interna (ex: '/certidoes') */
+  link?: string | null;
   criadoEm: string;
 }
 

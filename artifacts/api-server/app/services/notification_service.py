@@ -303,13 +303,14 @@ async def send_document_expiration(
         body  = f"A certidão '{nome}' vencerá em {dias_restantes} dia(s). Programe a renovação."
         tipo  = "warning"
 
-    # Persiste alerta (licitacao_id guarda ref_key para deduplicação futura)
+    # Persiste alerta (licitacao_id guarda ref_key para deduplicação futura;
+    # link aponta para /certidoes para que o usuário possa navegar direto da caixa de alertas)
     persisted = False
     try:
         pool = await get_pool()
         await pool.execute(
-            """INSERT INTO alertas (user_id, tipo, titulo, descricao, licitacao_id, lido)
-               VALUES ($1,'prazo_vencendo',$2,$3,$4,false)""",
+            """INSERT INTO alertas (user_id, tipo, titulo, descricao, licitacao_id, link, lido)
+               VALUES ($1,'prazo_vencendo',$2,$3,$4,'/certidoes',false)""",
             user_id, title, body, ref_key,
         )
         persisted = True

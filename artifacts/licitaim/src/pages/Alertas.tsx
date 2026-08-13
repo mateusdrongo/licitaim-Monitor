@@ -106,6 +106,7 @@ export default function Alertas() {
                     </div>
                   )}
                   
+                  {/* Link para licitação no PNCP (alertas de monitoramento) */}
                   {alerta.licitacaoId && pncpUrl(alerta.licitacaoId) && (
                     <div className="mt-3">
                       <a
@@ -116,6 +117,17 @@ export default function Alertas() {
                       >
                         Ver no PNCP →
                       </a>
+                    </div>
+                  )}
+                  {/* Link genérico (ex: /certidoes para alertas de prazo_vencendo) */}
+                  {alerta.link && !pncpUrl(alerta.licitacaoId) && (
+                    <div className="mt-3">
+                      <Link
+                        href={alerta.link}
+                        className="text-sm font-medium text-primary hover:underline"
+                      >
+                        {alerta.tipo === "prazo_vencendo" ? "Gerenciar certidões →" : "Ver detalhes →"}
+                      </Link>
                     </div>
                   )}
                 </div>
