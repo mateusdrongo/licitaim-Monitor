@@ -24,7 +24,9 @@ const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 export default function Cadastro() {
   const [, setLocation] = useLocation();
   const redirectTo = useRedirectTarget();
-  const { data: user, isLoading, refetch } = useGetMe();
+  const { data: user, isLoading, refetch } = useGetMe({
+    query: { retry: 0 },
+  });
 
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");

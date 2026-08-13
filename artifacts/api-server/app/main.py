@@ -7,7 +7,8 @@ from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
-from .db.session import get_pool, close_pool
+from .db.session import get_pool, close_pool, init_pool
+import artifacts.api_server.app.db.session as _session_module  # noqa: F401 — for _db_available
 from .db.migrations import run_migrations
 from .core.camel import _convert
 from .core.security import decode_token

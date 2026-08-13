@@ -25,7 +25,9 @@ function useRedirectTarget(fallback = "/dashboard"): string {
 export default function Login() {
   const [, setLocation] = useLocation();
   const redirectTo = useRedirectTarget();
-  const { data: user, isLoading, refetch } = useGetMe();
+  const { data: user, isLoading, refetch } = useGetMe({
+    query: { retry: 0 },
+  });
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
