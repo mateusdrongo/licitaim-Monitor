@@ -702,22 +702,26 @@ async def manual_sync(
     _admin: dict = Depends(get_admin_user),
 ):
     """
-    Dispara um sync manual do cache em background. Retorna imediatamente.
+    Dispara um ciclo de coleta manual em background. Retorna imediatamente.
     Requer privilégio de administrador (ver ADMIN_EMAILS em env).
-    Rejeita se já houver um sync em andamento (qualquer chamador: cron, warm-up ou manual).
+
+    Delega ao mesmo mecanismo do endpoint POST /collector/run para garantir
+    comportamento idêntico: usa run_one_cycle() com o lock _is_running.
+    Rejeita com 409 se já houver um ciclo em andamento.
     """
-    from ..services.cache_scheduler import sync_licitacoes_job, is_sync_in_progress
+    from . import collector as _col_mod  # noqa: PLC0415
 
-    # Verificação best-effort antes de enfileirar (a guarda definitiva está dentro de
-    # sync_licitacoes_job, que retorna early sem duplicar trabalho se o flag já estiver ativo).
-    if is_sync_in_progress():
-        raise HTTPException(
-            status_code=409,
-            detail="Já existe um sync em andamento. Aguarde a conclusão.",
-        )
+    # Atomic check-and-reserve under the same lock used by /collector/run
+    async with _col_mod._run_lock:
+        if _col_mod._is_running:
+            raise HTTPException(
+                status_code=409,
+                detail="Já existe um ciclo de coleta em andamento. Aguarde a conclusão.",
+            )
+        _col_mod._is_running = True
 
-    background_tasks.add_task(sync_licitacoes_job)
-    return {"status": "started", "message": "Sync iniciado em background."}
+    background_tasks.add_task(_col_mod._run_collection_cycle)
+    return {"status": "started", "message": "Ciclo de coleta iniciado em background."}
 
 
 @router.get("/admin/stats")
@@ -744,11 +748,12 @@ async def sync_status(
     _admin: dict = Depends(get_admin_user),
 ):
     """
-    Retorna se há um sync em andamento (qualquer chamador: cron, warm-up ou manual).
-    Usado para polling pelo frontend.
+    Retorna se há um ciclo de coleta em andamento.
+    Reflete o flag _is_running do collector (compartilhado por /collector/run
+    e /admin/sync). Usado para polling pelo frontend.
     """
-    from ..services.cache_scheduler import is_sync_in_progress
-    return {"in_progress": is_sync_in_progress()}
+    from . import collector as _col_mod  # noqa: PLC0415
+    return {"in_progress": _col_mod._is_running}
 
 
 @router.get("/{licitacao_id:path}")

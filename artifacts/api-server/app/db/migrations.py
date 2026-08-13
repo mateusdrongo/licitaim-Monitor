@@ -310,6 +310,9 @@ _DDL = [
         atualizado_em   TIMESTAMPTZ DEFAULT NOW()
     )
     """,
+    # interval_minutes: tempo real do ciclo em minutos (interval_hours era usado antes,
+    # mas agora o collector opera em minutos — mantemos interval_hours por compat).
+    "ALTER TABLE collector_status ADD COLUMN IF NOT EXISTS interval_minutes INT DEFAULT 20",
 
     # ── 13. Collector alert state ─────────────────────────────────────────────
     # Single-row table (id=1) that tracks whether an outage alert has already

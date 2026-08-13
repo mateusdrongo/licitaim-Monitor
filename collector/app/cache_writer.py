@@ -193,6 +193,7 @@ async def upsert_to_licitacoes_cache(
 
     inseridos = 0
     atualizados = 0
+    rows_failed = 0
     changed_tenders: list[dict] = []
 
     # Processa em lotes para não manter transação longa
@@ -249,12 +250,14 @@ async def upsert_to_licitacoes_cache(
                     logger.warning(
                         "upsert_to_licitacoes_cache skip '%s': %s", row["numero"], exc
                     )
+                    rows_failed += 1
 
     logger.info(
-        "upsert_to_licitacoes_cache: %d inseridos, %d atualizados, %d com mudanças.",
-        inseridos, atualizados, len(changed_tenders),
+        "upsert_to_licitacoes_cache: %d inseridos, %d atualizados, "
+        "%d com mudanças, %d falhas.",
+        inseridos, atualizados, len(changed_tenders), rows_failed,
     )
-    return inseridos, atualizados, changed_tenders
+    return inseridos, atualizados, changed_tenders, rows_failed
 
 
 async def notify_favorites_changes(
@@ -342,6 +345,11 @@ async def notify_favorites_changes(
         )
 
 
+# Scope key que a API lê para stats e check_global_coverage.
+# Deve coincidir com GLOBAL_SCOPE_KEY em licitacoes_repo.py.
+GLOBAL_SCOPE_KEY = "global_30d"
+
+
 async def record_coverage(
     pool: asyncpg.Pool,
     total: int,
@@ -352,18 +360,28 @@ async def record_coverage(
     """
     Registra cobertura do ciclo em licitacoes_cache_coverage para que a API
     saiba que o banco é autoritativo para este intervalo de datas.
+
+    Grava duas linhas:
+      - GLOBAL_SCOPE_KEY ("global_30d"): lida por get_cache_stats e check_global_coverage da API.
+      - collector:{data_ini}:{data_fim}: escopo específico do ciclo, para diagnóstico.
     """
-    try:
-        scope_key = f"collector:{data_ini}:{data_fim}"
-        await pool.execute(
-            """INSERT INTO licitacoes_cache_coverage
+    upsert_sql = """
+        INSERT INTO licitacoes_cache_coverage
                (scope_key, last_sync, total_found, is_complete)
                VALUES ($1, NOW(), $2, $3)
                ON CONFLICT (scope_key) DO UPDATE
                    SET last_sync    = NOW(),
                        total_found  = EXCLUDED.total_found,
-                       is_complete  = EXCLUDED.is_complete""",
-            scope_key, total, is_complete,
-        )
+                       is_complete  = EXCLUDED.is_complete
+    """
+    try:
+        # Linha global — a mais importante, lida pela API em get_cache_stats
+        await pool.execute(upsert_sql, GLOBAL_SCOPE_KEY, total, is_complete)
     except Exception as exc:
-        logger.warning("record_coverage: %s", exc)
+        logger.warning("record_coverage (global): %s", exc)
+    try:
+        # Linha específica do ciclo — diagnóstico
+        cycle_key = f"collector:{data_ini}:{data_fim}"
+        await pool.execute(upsert_sql, cycle_key, total, is_complete)
+    except Exception as exc:
+        logger.warning("record_coverage (cycle): %s", exc)

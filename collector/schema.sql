@@ -86,10 +86,13 @@ CREATE INDEX IF NOT EXISTS idx_tender_history_campo  ON tender_history (tender_i
 
 -- ── Status do collector — uma linha por portal + "global" ──────────────────
 CREATE TABLE IF NOT EXISTS collector_status (
-    portal          TEXT        PRIMARY KEY,
-    last_run        TIMESTAMPTZ,
-    processed       INT         DEFAULT 0,
-    errors          INT         DEFAULT 0,
-    interval_hours  INT         DEFAULT 4,
-    atualizado_em   TIMESTAMPTZ DEFAULT NOW()
+    portal            TEXT        PRIMARY KEY,
+    last_run          TIMESTAMPTZ,
+    processed         INT         DEFAULT 0,
+    errors            INT         DEFAULT 0,
+    interval_hours    INT         DEFAULT 4,
+    interval_minutes  INT         DEFAULT 20,
+    atualizado_em     TIMESTAMPTZ DEFAULT NOW()
 );
+-- Coluna adicionada após o schema inicial — idempotente.
+ALTER TABLE collector_status ADD COLUMN IF NOT EXISTS interval_minutes INT DEFAULT 20;

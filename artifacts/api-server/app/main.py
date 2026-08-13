@@ -17,7 +17,7 @@ from .api import certidoes, agenda, analytics, precos, ai, admin, gerenciamento
 from .api import collector as collector_api
 from .services.elasticsearch_service import get_es_service
 from .services.websocket_manager import get_ws_manager
-from .services.cache_scheduler import start_scheduler, stop_scheduler, sync_licitacoes_job
+from .services.cache_scheduler import start_scheduler, stop_scheduler
 from .services.task_alerts import check_task_deadlines
 from .services.monitor_worker import check_document_expirations
 # search_queue removido — coletores autônomos substituem a coleta sob demanda
@@ -51,14 +51,19 @@ async def lifespan(app: FastAPI):
     except Exception as exc:
         logger.warning("Scheduler startup: %s", exc)
 
-    # Warm-up: se a tabela estiver vazia na primeira inicialização, dispara sync imediato
+    # Warm-up: banco vazio é esperado na primeira inicialização com arquitetura
+    # collector-first. O collector standalone popula licitacoes_cache a cada
+    # COLLECTOR_INTERVAL_MINUTES minutos (padrão 20 min) de forma autônoma.
+    # A API não faz chamadas externas — apenas lê do banco local.
     try:
         count = await pool.fetchval("SELECT COUNT(*) FROM licitacoes_cache")
         if (count or 0) == 0:
-            logger.info("lifespan: banco vazio — disparando sync inicial em background.")
-            asyncio.create_task(sync_licitacoes_job())
+            logger.info(
+                "lifespan: licitacoes_cache vazio — "
+                "aguardando próximo ciclo do collector standalone."
+            )
     except Exception as exc:
-        logger.warning("lifespan: warm-up check falhou (%s) — sync não disparado.", exc)
+        logger.warning("lifespan: warm-up check falhou (%s).", exc)
 
     # Misfire recovery: verifica se check_task_deadlines já rodou hoje (BRT).
     # Se o servidor estava fora às 08h, o APScheduler perde o disparo (misfire_grace_time=300s).

@@ -77,7 +77,7 @@ async def collector_status(_admin: dict = Depends(get_admin_user)):
     try:
         rows = await pool.fetch(
             """
-            SELECT portal, last_run, processed, errors, interval_hours, atualizado_em
+            SELECT portal, last_run, processed, errors, interval_hours, interval_minutes, atualizado_em
             FROM collector_status
             ORDER BY portal
             """
@@ -114,11 +114,16 @@ async def collector_status(_admin: dict = Depends(get_admin_user)):
         if last_run_ts and last_run_ts.tzinfo is None:
             last_run_ts = last_run_ts.replace(tzinfo=timezone.utc)
 
-        interval_h = row["interval_hours"] or _DEFAULT_INTERVAL_HOURS
+        # Prefer interval_minutes (precise) over legacy interval_hours (coarse)
+        _interval_min: int = (
+            row["interval_minutes"]
+            if row["interval_minutes"] is not None
+            else (row["interval_hours"] or _DEFAULT_INTERVAL_HOURS) * 60
+        )
         next_run_in: int | None = None
         if last_run_ts:
             elapsed = (now - last_run_ts).total_seconds()
-            remaining = interval_h * 3600 - elapsed
+            remaining = _interval_min * 60 - elapsed
             next_run_in = max(0, int(remaining))
 
         _STALE_THRESHOLD_HOURS = 8
@@ -232,12 +237,15 @@ except Exception as _exc:
 
 async def _run_collection_cycle() -> None:
     """
-    Executa um ciclo completo de coleta (PNCP + ComprasNet + BEC-SP) de forma
-    assíncrona. Chamado como BackgroundTask pelo endpoint /run.
+    Executa um ciclo completo de coleta de forma assíncrona.
+    Chamado como BackgroundTask pelo endpoint /run.
+
+    Delega toda a lógica de coleta, cache, cobertura e notificações
+    a `run_one_cycle()` para garantir comportamento idêntico ao ciclo
+    automático do collector standalone (sem duplicação de código).
 
     O flag _is_running já está definido como True pelo endpoint antes de
-    esta função ser enfileirada, garantindo que checagens concorrentes retornem
-    409 imediatamente. Esta função só é responsável por resetá-lo no finally.
+    esta função ser enfileirada; é resetado no finally.
     """
     global _is_running
 
@@ -252,53 +260,24 @@ async def _run_collection_cycle() -> None:
         _ensure_collector_on_path()
 
         from collector.app.standalone import (  # type: ignore[import]
-            run_pncp_scrape,
-            run_comprasnet_scrape,
-            run_bec_sp_scrape,
-            _write_collector_status,
+            run_one_cycle,
             SKIP_COMPRASNET,
             SKIP_BEC_SP,
             SCRAPE_DAYS,
         )
 
-        cycle_totals = {"processed": 0, "errors": 0}
-
-        try:
-            result = await run_pncp_scrape(db_url, days=SCRAPE_DAYS)
-            cycle_totals["processed"] += result["processed"]
-            cycle_totals["errors"]    += result["errors"]
-            await _write_collector_status(db_url, "pncp", result["processed"], result["errors"])
-        except Exception as exc:
-            logger.error("collector/run PNCP: %s", exc, exc_info=True)
-            cycle_totals["errors"] += 1
-
-        if not SKIP_COMPRASNET:
-            try:
-                result = await run_comprasnet_scrape(db_url, days=SCRAPE_DAYS)
-                cycle_totals["processed"] += result["processed"]
-                cycle_totals["errors"]    += result["errors"]
-                await _write_collector_status(db_url, "comprasnet", result["processed"], result["errors"])
-            except Exception as exc:
-                logger.error("collector/run ComprasNet: %s", exc, exc_info=True)
-                cycle_totals["errors"] += 1
-
-        if not SKIP_BEC_SP:
-            try:
-                result = await run_bec_sp_scrape(db_url, days=SCRAPE_DAYS)
-                cycle_totals["processed"] += result["processed"]
-                cycle_totals["errors"]    += result["errors"]
-                await _write_collector_status(db_url, "bec_sp", result["processed"], result["errors"])
-            except Exception as exc:
-                logger.error("collector/run BEC-SP: %s", exc, exc_info=True)
-                cycle_totals["errors"] += 1
-
-        await _write_collector_status(
-            db_url, "global",
-            cycle_totals["processed"], cycle_totals["errors"],
+        result = await run_one_cycle(
+            db_url=db_url,
+            skip_comprasnet=SKIP_COMPRASNET,
+            skip_bec_sp=SKIP_BEC_SP,
+            scrape_days=SCRAPE_DAYS,
         )
         logger.info(
-            "collector/run: ciclo manual concluído — %d processados, %d erros.",
-            cycle_totals["processed"], cycle_totals["errors"],
+            "collector/run: ciclo manual concluído — %d processados, %d erros, "
+            "%d inseridos/%d atualizados, is_complete=%s.",
+            result["processed"], result["errors"],
+            result["cache_inserted"], result["cache_updated"],
+            result["is_complete"],
         )
     except Exception as exc:
         logger.error("collector/run: erro inesperado: %s", exc, exc_info=True)
