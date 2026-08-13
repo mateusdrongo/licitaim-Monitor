@@ -517,15 +517,27 @@ export interface RegistroPreco {
   licitacaoId: string;
   /** @nullable */
   quantidade?: number | null;
+  /** @nullable */
+  objeto?: string | null;
+  /** @nullable */
+  modalidade?: string | null;
+  /** @nullable */
+  situacao?: string | null;
+  /** @nullable */
+  municipio?: string | null;
 }
 
 export interface HistoricoPrecos {
   item: string;
+  tipo: string;
   totalRegistros: number;
   precoMedio: number;
   precoMinimo: number;
   precoMaximo: number;
   registros: RegistroPreco[];
+  pagina: number;
+  totalPaginas: number;
+  fonte: string;
 }
 
 export interface AiSearchInput {
@@ -674,5 +686,8 @@ q: string;
 uf?: string;
 dataInicio?: string;
 dataFim?: string;
+/** estimado | homologado */
+tipo?: string;
+pagina?: number;
 };
 
