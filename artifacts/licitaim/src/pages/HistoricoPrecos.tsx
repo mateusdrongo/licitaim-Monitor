@@ -405,6 +405,34 @@ export default function HistoricoPrecos() {
                   >
                     <ChevronLeft className="w-3.5 h-3.5" /> Anterior
                   </button>
+
+                  {/* Direct page jump */}
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const val = parseInt((e.currentTarget.elements.namedItem("pg") as HTMLInputElement).value, 10);
+                      if (!isNaN(val) && val >= 1 && val <= data!.totalPaginas) changePage(val);
+                    }}
+                    className="flex items-center gap-1"
+                  >
+                    <input
+                      name="pg"
+                      type="number"
+                      min={1}
+                      max={data!.totalPaginas}
+                      defaultValue={pagina}
+                      key={pagina}
+                      className="w-14 text-center h-7 rounded border border-input bg-background text-xs focus:outline-none focus:ring-2 focus:ring-primary [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      aria-label="Ir para página"
+                    />
+                    <button
+                      type="submit"
+                      className="px-2 py-1 rounded border border-border hover:bg-muted transition-colors text-xs"
+                    >
+                      Ir
+                    </button>
+                  </form>
+
                   <button
                     onClick={() => changePage(pagina + 1)}
                     disabled={pagina >= data!.totalPaginas}
