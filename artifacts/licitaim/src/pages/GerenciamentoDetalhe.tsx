@@ -7,7 +7,7 @@ import {
   CheckCircle2, Clock, AlertTriangle, XCircle, Trophy, Plus, Trash2,
   Edit3, Save, X, Loader2, StickyNote, CheckSquare, Tag,
   TrendingUp, Flag, ChevronDown, ChevronUp, ShieldCheck, FileCheck,
-  BellRing,
+  BellRing, Download,
 } from "lucide-react";
 import { fmtDateBRT, fmtDateTime, extract422DateMessage } from "../lib/dateUtils";
 import { useToast } from "../hooks/use-toast";
@@ -87,6 +87,19 @@ interface Habilitacao {
   atualizadoEm: string;
 }
 
+interface Certidao {
+  id: number;
+  nome: string;
+  tipo: string;
+  orgaoEmissor: string | null;
+  numero: string | null;
+  dataEmissao: string | null;
+  dataVencimento: string | null;
+  status: string;
+  descricao: string | null;
+  arquivoUrl: string | null;
+}
+
 interface Alerta {
   id: number;
   tipo: string;
@@ -134,6 +147,43 @@ const DOCS_DEFAULT = [
   "Ato Constitutivo / Contrato Social",
   "Atestado de Capacidade Técnica",
 ];
+
+// ── Matching certidões ↔ habilitação ──────────────────────────────────────
+
+function normalizarTexto(s: string) {
+  return s.toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ").trim();
+}
+
+const TIPO_KEYWORDS: Record<string, string[]> = {
+  fgts:             ["fgts", "regularidade fgts", "fundo de garantia"],
+  receita_federal:  ["receita federal", "cnd", "debitos federais", "debitos da uniao"],
+  inss:             ["inss", "previdencia social", "previdencia"],
+  trabalhista:      ["trabalhista", "cndt", "debitos trabalhistas"],
+  estadual:         ["estadual", "divida ativa estadual"],
+  municipal:        ["municipal", "divida ativa municipal", "tributos municipais"],
+  balanco:          ["balanco", "balanco patrimonial", "demonstracoes contabeis"],
+  contrato_social:  ["contrato social", "ato constitutivo", "estatuto social"],
+  procuracao:       ["procuracao", "procurador"],
+};
+
+/** Retorna a primeira certidão que combina com o nome do documento de habilitação. */
+function matchCertidao(docNome: string, certidoes: Certidao[]): Certidao | undefined {
+  const normDoc = normalizarTexto(docNome);
+  return certidoes.find(c => {
+    // Certidões vencidas não são consideradas disponíveis
+    if (c.status === "vencida") return false;
+    // 1. Verificar palavras-chave do tipo
+    const keywords = TIPO_KEYWORDS[c.tipo] ?? [];
+    if (keywords.some(kw => normDoc.includes(kw))) return true;
+    // 2. Verificar tokens significativos do nome da certidão (≥5 chars)
+    const nomeTokens = normalizarTexto(c.nome).split(" ").filter(t => t.length >= 5);
+    if (nomeTokens.some(t => normDoc.includes(t))) return true;
+    return false;
+  });
+}
 
 function fmtValor(v?: number | string | null) {
   if (v == null) return null;
@@ -313,6 +363,18 @@ export default function GerenciamentoDetalhe() {
     },
     enabled: !!gerId,
   });
+
+  // Certidões da empresa — usadas para cruzar com documentos de habilitação
+  const { data: certidoesData } = useQuery<Certidao[]>({
+    queryKey: ["certidoes"],
+    queryFn: async () => {
+      const res = await apiFetch(`${BASE}/api/certidoes`, { credentials: "include" });
+      if (!res.ok) throw new Error("Erro ao buscar certidões");
+      return res.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  const certidoesEmpresa = certidoesData ?? [];
 
   // Local snapshot so the banner stays visible even after alerts are marked as read
   const [alertasSnap, setAlertasSnap] = React.useState<Alerta[]>([]);
@@ -1216,6 +1278,38 @@ export default function GerenciamentoDetalhe() {
                                 <span className={`w-1.5 h-1.5 rounded-full ${stCfgH.dot}`} />
                                 {stCfgH.label}
                               </span>
+                              {/* Certidão da empresa que cobre este documento */}
+                              {(() => {
+                                const cert = matchCertidao(h.documento, certidoesEmpresa);
+                                if (!cert) return null;
+                                const isAVencer = cert.status === "a_vencer";
+                                return (
+                                  <span
+                                    className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium border
+                                      ${isAVencer
+                                        ? "bg-amber-50 text-amber-700 border-amber-200/60 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/40"
+                                        : "bg-emerald-50 text-emerald-700 border-emerald-200/60 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/40"
+                                      }`}
+                                    title={`Certidão: ${cert.nome}${cert.dataVencimento ? ` — vence ${new Date(cert.dataVencimento + "T12:00:00").toLocaleDateString("pt-BR")}` : ""}`}
+                                  >
+                                    <ShieldCheck className="w-3 h-3" />
+                                    {isAVencer ? "certidão a vencer" : "certidão disponível"}
+                                    {cert.arquivoUrl && (
+                                      <a
+                                        href={`${BASE}${cert.arquivoUrl}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        download
+                                        onClick={e => e.stopPropagation()}
+                                        title={`Baixar: ${cert.nome}`}
+                                        className="ml-0.5 opacity-70 hover:opacity-100 transition-opacity"
+                                      >
+                                        <Download className="w-3 h-3" />
+                                      </a>
+                                    )}
+                                  </span>
+                                );
+                              })()}
                               {h.dataEntrega && (
                                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                                   <Calendar className="w-3 h-3" />
